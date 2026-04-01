@@ -1,0 +1,77 @@
+package dev.prism.gradle.internal
+
+import dev.prism.gradle.dsl.MetadataExtension
+import dev.prism.gradle.dsl.VersionConfiguration
+import net.neoforged.moddevgradle.dsl.NeoForgeExtension
+import org.gradle.api.Project
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+
+object CommonConfigurator {
+    fun configure(
+        commonProject: Project,
+        versionConfig: VersionConfiguration,
+        metadata: MetadataExtension,
+    ) {
+        commonProject.pluginManager.apply("java-library")
+        commonProject.pluginManager.apply("net.neoforged.moddev")
+
+        RepositorySetup.configure(commonProject)
+
+        commonProject.extensions.configure(JavaPluginExtension::class.java) { java ->
+            java.toolchain.languageVersion.set(
+                JavaLanguageVersion.of(versionConfig.resolvedJavaVersion)
+            )
+            java.withSourcesJar()
+        }
+
+        val neoFormVersion = versionConfig.neoFormVersion
+            ?: NeoFormVersionResolver.resolve(versionConfig.minecraftVersion, commonProject)
+
+        commonProject.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
+            neoForge.neoFormVersion = neoFormVersion
+
+            if (versionConfig.parchmentMinecraftVersion != null) {
+                neoForge.parchment { parchment ->
+                    parchment.minecraftVersion.set(versionConfig.parchmentMinecraftVersion)
+                    parchment.mappingsVersion.set(versionConfig.parchmentMappingsVersion)
+                }
+            }
+
+            val at = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (at.exists()) {
+                neoForge.setAccessTransformers(at.absolutePath)
+            }
+        }
+
+        commonProject.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
+        commonProject.dependencies.add("compileOnly", "io.github.llamalad7:mixinextras-common:0.3.5")
+        commonProject.dependencies.add("annotationProcessor", "io.github.llamalad7:mixinextras-common:0.3.5")
+
+        val commonJava = commonProject.configurations.create("commonJava") { cfg ->
+            cfg.isCanBeResolved = false
+            cfg.isCanBeConsumed = true
+        }
+
+        val commonResources = commonProject.configurations.create("commonResources") { cfg ->
+            cfg.isCanBeResolved = false
+            cfg.isCanBeConsumed = true
+        }
+
+        commonProject.afterEvaluate { proj ->
+            val javaExt = proj.extensions.getByType(JavaPluginExtension::class.java)
+            val mainSourceSet = javaExt.sourceSets.getByName("main")
+            proj.artifacts.add("commonJava", mainSourceSet.java.sourceDirectories.singleFile)
+            proj.artifacts.add("commonResources", mainSourceSet.resources.sourceDirectories.singleFile)
+        }
+
+        val group = metadata.group.ifEmpty { commonProject.rootProject.group.toString() }
+        listOf("apiElements", "runtimeElements", "sourcesElements", "javadocElements").forEach { variant ->
+            commonProject.configurations.findByName(variant)?.outgoing { outgoing ->
+                outgoing.capability("$group:${metadata.modId}:${commonProject.version}")
+            }
+        }
+
+        TemplateExpansion.configure(commonProject, versionConfig, metadata)
+    }
+}
