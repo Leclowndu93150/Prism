@@ -12,6 +12,8 @@ Applied in `settings.gradle.kts`. Registers subprojects and configures repositor
 
 ```kotlin
 prism {
+    sharedCommon()   // optional: root-level common/ project shared across all versions
+
     version(minecraftVersion: String) {
         common()     // always required
         fabric()     // optional

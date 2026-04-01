@@ -8,6 +8,7 @@ open class PrismExtension(private val project: Project) {
     internal val versions = mutableMapOf<String, VersionConfiguration>()
     internal val publishingConfig = PublishingConfiguration()
     internal val extraRepositories = mutableListOf<RepositoryEntry>()
+    internal var sharedCommonEnabled = false
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)

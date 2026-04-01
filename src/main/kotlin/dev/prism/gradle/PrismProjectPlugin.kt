@@ -9,6 +9,7 @@ import dev.prism.gradle.internal.DependencyConfigurator
 import dev.prism.gradle.internal.KotlinConfigurator
 import dev.prism.gradle.internal.LoaderConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
+import dev.prism.gradle.internal.SharedCommonConfigurator
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -39,6 +40,19 @@ class PrismProjectPlugin : Plugin<Project> {
             extension.metadata.group = rootProject.group.toString()
         }
 
+        val sharedProject = rootProject.findProject(":common")
+        val hasSharedCommon = sharedProject != null
+
+        if (hasSharedCommon) {
+            val minJava = extension.versions.values.minOfOrNull { it.resolvedJavaVersion } ?: 21
+            SharedCommonConfigurator.configure(sharedProject!!, extension.metadata, extension.extraRepositories, minJava)
+
+            if (extension.versions.values.any { it.kotlinVersion != null }) {
+                val kotlinVersion = extension.versions.values.mapNotNull { it.kotlinVersion }.first()
+                KotlinConfigurator.apply(sharedProject, extension.versions.values.first { it.kotlinVersion != null })
+            }
+        }
+
         for ((mcVersion, versionConfig) in extension.versions) {
             if (versionConfig.loaders.isEmpty()) {
                 rootProject.logger.warn("Prism: version '$mcVersion' has no loaders configured, skipping.")
@@ -59,6 +73,10 @@ class PrismProjectPlugin : Plugin<Project> {
             CommonConfigurator.configure(commonProject, versionConfig, extension.metadata, extension.extraRepositories)
             KotlinConfigurator.apply(commonProject, versionConfig)
             DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
+
+            if (hasSharedCommon) {
+                SharedCommonConfigurator.wireInto(commonProject, sharedProject!!)
+            }
 
             for (loaderConfig in versionConfig.loaders) {
                 val loaderProject = rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")

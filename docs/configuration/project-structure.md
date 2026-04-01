@@ -36,9 +36,39 @@ Each loader subproject has access to:
 - The full Minecraft source with loader modifications
 - Loader-specific APIs (Fabric API, NeoForge events, Forge events)
 
+## Shared common (cross-version)
+
+By default, each version is fully independent. If you have pure Java code (interfaces, annotations, utilities) that doesn't touch Minecraft APIs and should be shared across all versions, you can enable a root-level `common/` project.
+
+**settings.gradle.kts:**
+```kotlin
+extensions.configure<PrismSettingsExtension>("prism") {
+    sharedCommon()
+
+    version("1.20.1") { common(); fabric(); forge() }
+    version("1.21.1") { common(); fabric(); neoforge() }
+}
+```
+
+This creates a `:common` project at `common/` in the root. Its source is compiled into every version's common project automatically.
+
+```
+common/                        <-- shared across ALL versions
+  src/main/java/
+versions/
+  1.20.1/
+    common/                    <-- version-specific, depends on shared common
+    fabric/
+  1.21.1/
+    common/
+    neoforge/
+```
+
+The shared common compiles with the lowest Java version across your targets (e.g. Java 17 if you target 1.20.1). It has no access to Minecraft classes. Use it for things like config interfaces, annotation definitions, or utility methods.
+
 ## Independence between versions
 
-Each version folder is completely independent. There is no shared code between `1.20.1` and `1.21.1`. If you need the same utility class in both, copy it.
+Each version folder is independent. The only exception is the optional shared `common/` above. Version-specific common code lives in `versions/{mc}/common/` and has access to vanilla Minecraft classes for that version.
 
 ## No subproject build files
 
