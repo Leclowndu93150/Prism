@@ -122,7 +122,7 @@ Prism auto-detects these files. Just place them in the right location.
 - `versions/{mc}/common/src/main/resources/` (shared across loaders)
 - `versions/{mc}/fabric/src/main/resources/` (Fabric only)
 
-The loader-specific file takes priority if both exist. On 26.x (unobfuscated), access wideners are skipped since all classes are already public.
+The loader-specific file takes priority if both exist. Access wideners work on all versions including 26.x (unobfuscated). Unobfuscated means names aren't scrambled, but classes can still be private/protected/final.
 
 Note: starting from `fabric.mod.json` schema v2, Fabric uses `classTweakers` in the mod metadata instead of `accessWidener`. This is a mod metadata change, not a Loom build change. Loom still uses `accessWidenerPath` at build time regardless of schema version.
 

@@ -14,7 +14,7 @@ Starting from Minecraft 26.1 (1.21.11), the game ships with unobfuscated source.
 - No remapping is applied to mod JARs
 - Loom's `officialMojangMappings()` is not called (would throw an error)
 - Fabric dependencies use `implementation` instead of `modImplementation` (no remapping needed)
-- Access wideners are skipped (all classes are already public)
+- Access wideners still work (they widen access levels and mutability, not related to obfuscation)
 - Mixin refmaps use static remapping
 
 Prism handles all of this automatically based on the Minecraft version. You do not need to configure anything differently for 26.x.
