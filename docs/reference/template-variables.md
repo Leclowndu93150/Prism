@@ -1,3 +1,7 @@
+---
+sidebar_position: 2
+---
+
 # Template Variables
 
 Prism expands `${variable}` placeholders in metadata files during the build.

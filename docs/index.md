@@ -1,3 +1,8 @@
+---
+slug: /
+sidebar_position: 1
+---
+
 # Prism
 
 A Gradle plugin for multi-version, multi-loader Minecraft mod development in a single branch.

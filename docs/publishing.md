@@ -1,3 +1,7 @@
+---
+sidebar_position: 4
+---
+
 # Publishing
 
 Prism wraps [mod-publish-plugin](https://github.com/modmuss50/mod-publish-plugin) to publish your mod JARs to CurseForge and Modrinth.

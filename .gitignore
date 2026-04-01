@@ -42,5 +42,8 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-### MkDocs ###
-site/
+### Docusaurus ###
+website/node_modules/
+website/build/
+website/.docusaurus/
+website/.cache-loader/
