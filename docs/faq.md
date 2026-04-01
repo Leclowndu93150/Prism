@@ -116,9 +116,21 @@ Reload the Gradle project in IntelliJ after changing the Prism configuration. Ru
 
 ## How do I add access wideners or access transformers?
 
-**Access wideners** (Fabric): Place `{modId}.accesswidener` in `versions/{mc}/common/src/main/resources/`.
+Prism auto-detects these files. Just place them in the right location.
 
-**Access transformers** (NeoForge/Forge): Place `accesstransformer.cfg` in `versions/{mc}/common/src/main/resources/META-INF/` or in the loader's own `src/main/resources/META-INF/`. Both locations are checked.
+**Access wideners** (Fabric): Place `{modId}.accesswidener` in either:
+- `versions/{mc}/common/src/main/resources/` (shared across loaders)
+- `versions/{mc}/fabric/src/main/resources/` (Fabric only)
+
+The loader-specific file takes priority if both exist. On 26.x (unobfuscated), access wideners are skipped since all classes are already public.
+
+Note: starting from `fabric.mod.json` schema v2, Fabric uses `classTweakers` in the mod metadata instead of `accessWidener`. This is a mod metadata change, not a Loom build change. Loom still uses `accessWidenerPath` at build time regardless of schema version.
+
+**Access transformers** (NeoForge/Forge): Place `accesstransformer.cfg` in `META-INF/` under either:
+- `versions/{mc}/common/src/main/resources/META-INF/`
+- `versions/{mc}/neoforge/src/main/resources/META-INF/` (or `forge/`)
+
+Both locations are checked and combined.
 
 ## What Gradle version do I need?
 

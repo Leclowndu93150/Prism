@@ -79,9 +79,17 @@ object FabricConfigurator {
             )
         }
 
-        val aw = commonProject.file("src/main/resources/${metadata.modId}.accesswidener")
-        if (aw.exists() && !unobfuscated) {
-            loom.accessWidenerPath.set(aw)
+        if (!unobfuscated) {
+            val commonAw = commonProject.file("src/main/resources/${metadata.modId}.accesswidener")
+            val loaderAw = loaderProject.file("src/main/resources/${metadata.modId}.accesswidener")
+            val aw = when {
+                loaderAw.exists() -> loaderAw
+                commonAw.exists() -> commonAw
+                else -> null
+            }
+            if (aw != null) {
+                loom.accessWidenerPath.set(aw)
+            }
         }
 
         if (!unobfuscated) {
