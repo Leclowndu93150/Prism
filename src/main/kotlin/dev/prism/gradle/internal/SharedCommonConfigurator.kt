@@ -23,6 +23,13 @@ object SharedCommonConfigurator {
             java.withSourcesJar()
         }
 
+        sharedProject.dependencies.add("compileOnly", "com.google.code.gson:gson:2.11.0")
+        sharedProject.dependencies.add("compileOnly", "org.slf4j:slf4j-api:2.0.9")
+        sharedProject.dependencies.add("compileOnly", "com.google.guava:guava:33.0.0-jre")
+        sharedProject.dependencies.add("compileOnly", "com.mojang:logging:1.2.7")
+        sharedProject.dependencies.add("compileOnly", "it.unimi.dsi:fastutil:8.5.13")
+        sharedProject.dependencies.add("compileOnly", "org.jetbrains:annotations:24.1.0")
+
         val sharedJava = sharedProject.configurations.create("sharedJava") { cfg ->
             cfg.isCanBeResolved = false
             cfg.isCanBeConsumed = true
