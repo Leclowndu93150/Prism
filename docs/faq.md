@@ -126,13 +126,22 @@ Gradle 8.8 or newer. Gradle 9.x is recommended.
 
 ## What Java version do I need?
 
-JDK 21. Prism auto-detects the target Java version per Minecraft version:
+You need the highest JDK required by any of your target versions. Prism auto-detects and sets the correct toolchain per Minecraft version:
 
 | Minecraft | Java |
 |-----------|------|
 | 1.16.x and older | 8 |
 | 1.17.x | 16 |
 | 1.18.x - 1.20.x | 17 |
-| 1.21.x and newer | 21 |
+| 1.21.x | 21 |
+| 26.x and newer | 25 |
 
-Override with `javaVersion` in the version block.
+Each subproject compiles with the right JDK regardless of which JDK Gradle itself runs on. Add the [foojay toolchain resolver](https://github.com/gradle/foojay-toolchains) to your `settings.gradle.kts` so Gradle can auto-download missing JDKs:
+
+```kotlin
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
+}
+```
+
+Override with `javaVersion` in the version block if needed.
