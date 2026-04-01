@@ -10,6 +10,19 @@ sidebar_position: 4
 - **Fabric (26.x+)**: No mappings needed. Minecraft is unobfuscated. Prism sets `fabric.loom.disableObfuscation=true` automatically.
 - **NeoForge / Forge**: Official mappings via ModDevGradle
 
+## Yarn mappings
+
+Fabric projects can use [Yarn](https://github.com/FabricMC/yarn) mappings instead of Mojang mappings:
+
+```kotlin
+fabric {
+    loaderVersion = "0.18.6"
+    yarn("1.21.1+build.3")
+}
+```
+
+When `yarn()` is set, Prism uses `net.fabricmc:yarn:{version}:v2` instead of `officialMojangMappings()`. Yarn is only available for obfuscated versions (pre-26.x).
+
 ## Unobfuscated versions (26.x+)
 
 Starting from Minecraft 26.1 (1.21.11), the game ships with unobfuscated source. This means:

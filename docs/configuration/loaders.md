@@ -26,7 +26,21 @@ version("1.21.1") {
 |-----------------|----------|--------------------------------------|
 | `loaderVersion` | Yes      | Fabric Loader version                |
 | `fabricApi()`   | No       | Adds Fabric API as a dependency      |
+| `yarn()`        | No       | Use Yarn mappings instead of Mojang  |
 | `datagen()`     | No       | Enables Fabric API datagen run       |
+
+### Mappings
+
+By default, Prism uses official Mojang mappings. To use Yarn instead:
+
+```kotlin
+fabric {
+    loaderVersion = "0.18.6"
+    yarn("1.21.1+build.3")
+}
+```
+
+Yarn mappings are only available for obfuscated versions (pre-26.x). On 26.x, Minecraft is unobfuscated and no mappings are needed.
 
 Access wideners are picked up from `common/src/main/resources/{modId}.accesswidener`.
 

@@ -19,6 +19,10 @@ prism {
 
         type = ReleaseType.STABLE  // STABLE, BETA, or ALPHA
 
+        // Display name on CurseForge/Modrinth
+        // Defaults to the JAR filename (e.g. mymod-1.21.1-NeoForge-1.0.0.jar)
+        // displayName = "My Mod v1.0.0"
+
         curseforge {
             accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
             projectId = "123456"

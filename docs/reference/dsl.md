@@ -92,6 +92,7 @@ fabric {
     apiVersion: String?        // set via fabricApi()
 
     fabricApi(version: String) // shorthand for apiVersion
+    yarn(version: String)      // use Yarn mappings instead of Mojang
     datagen()                  // enable Fabric API datagen run
 
     dependencies {
@@ -170,6 +171,7 @@ publishing {
     changelog: String?
     changelogFile: String?         // path relative to root project
     type: ReleaseType              // STABLE, BETA, ALPHA
+    displayName: String?           // defaults to JAR filename
 
     curseforge {
         accessToken: Provider<String>
