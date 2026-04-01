@@ -1,6 +1,9 @@
-# Prism
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png" alt="Prism" width="300">
+</p>
 
-A Gradle plugin for multi-version, multi-loader Minecraft mod development in a single branch.
+<h1 align="center">Prism</h1>
+<p align="center">A Gradle plugin for multi-version, multi-loader Minecraft mod development in a single branch.</p>
 
 Prism lets you target multiple Minecraft versions and mod loaders (Fabric, NeoForge, Forge) from one project, without switching branches. Each version gets its own isolated set of source folders, and Prism handles all the wiring.
 
