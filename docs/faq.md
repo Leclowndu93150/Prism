@@ -10,15 +10,48 @@ Yes. Add `kotlin()` to your version block:
 
 ```kotlin
 version("1.21.1") {
-    kotlin()  // uses 2.1.20 by default
-    kotlin("2.0.21")  // or pick a version
-
-    fabric { loaderVersion = "0.16.2" }
-    neoforge { loaderVersion = "21.1.26" }
+    kotlin()           // uses 2.1.20 by default
+    kotlin("2.0.21")   // or pick a version
 }
 ```
 
-This applies the Kotlin JVM plugin to both common and all loader subprojects, with the JVM target set to match the Minecraft version.
+This applies the Kotlin JVM plugin to common and all loader subprojects, with the JVM target matching the Minecraft version.
+
+## Can I use Yarn mappings?
+
+Yes, for Fabric on obfuscated versions (pre-26.x):
+
+```kotlin
+fabric {
+    loaderVersion = "0.18.6"
+    yarn("1.21.1+build.3")
+}
+```
+
+If `yarn()` is not set, Prism uses official Mojang mappings by default. On 26.x (unobfuscated), no mappings are needed and Yarn is not applicable.
+
+## Can I use Fabric API in common code?
+
+No. The version-specific common project (`versions/{mc}/common/`) only has access to vanilla Minecraft classes. Loader APIs like Fabric API, NeoForge events, or Forge events are only available in the loader-specific folders.
+
+Put shared logic that doesn't touch loader APIs in common, and put loader-specific code (event handlers, registration) in the loader folders.
+
+## Can I share code between versions?
+
+By default, no. Each version is fully independent.
+
+If you have pure Java code (interfaces, annotations, utilities) that doesn't touch Minecraft APIs, enable the shared common:
+
+```kotlin
+// settings.gradle.kts
+prism {
+    sharedCommon()
+    version("1.20.1") { ... }
+    version("1.21.1") { ... }
+}
+```
+
+This creates a root `common/` folder compiled with the lowest Java version across your targets. It has no access to Minecraft classes. See [Project Structure](configuration/project-structure.md) for details.
 
 ## How do I add dependencies?
 
@@ -30,7 +63,7 @@ version("1.21.1") {
         implementation("some:shared-lib:1.0")
     }
     fabric {
-        loaderVersion = "0.16.2"
+        loaderVersion = "0.18.6"
         dependencies {
             modImplementation("curse.maven:jei-238222:4613379")
         }
@@ -58,77 +91,62 @@ Use `jarJar()` in the dependency block:
 ```kotlin
 fabric {
     dependencies {
-        jarJar("some:library:1.0")  // uses Fabric's include
+        jarJar("some:library:1.0")         // uses Fabric's include
     }
 }
 neoforge {
     dependencies {
-        jarJar("some:library:[1.0,2.0)")  // uses NeoForge's jarJar
+        jarJar("some:library:[1.0,2.0)")   // uses NeoForge's jarJar
     }
 }
 ```
 
-## Can I share code between versions?
-
-No. Each version is fully independent. If you need the same class in 1.20.1 and 1.21.1, copy it into both `common` folders. This is intentional: Minecraft APIs change significantly between versions, and shared code creates more problems than it solves.
-
 ## How does datagen work?
 
-**Fabric**: Call `datagen()` in your fabric config. Requires Fabric API. Creates a datagen run using Fabric API's system properties. Output goes to `src/main/generated`.
+**Fabric**: Call `datagen()` in your fabric config. Requires Fabric API. Output goes to `src/main/generated`.
 
 **NeoForge**: Prism auto-detects the Minecraft version:
-
-- 1.21.3 and older: creates a single `data` run
-- 1.21.4 and newer: creates split `clientData` and `serverData` runs
+- 1.21.3 and older: single `data` run
+- 1.21.4 and newer: split `clientData` and `serverData` runs
 
 Output goes to `src/generated/resources`.
 
-**Forge**: Creates a `data` run. Output goes to `src/generated/resources`.
+**Forge**: Single `data` run. Output goes to `src/generated/resources`.
 
-## Can I publish multiple Minecraft versions?
+## How do I add custom run configurations?
 
-Yes. Use `minecraftVersions()` in the version block to list all compatible versions:
+Use the `runs` block inside any loader config:
 
 ```kotlin
-version("1.21.1") {
-    minecraftVersions("1.21", "1.21.1")
-    // ...
+fabric {
+    loaderVersion = "0.18.6"
+    runs {
+        client("testClient") { username = "Dev" }
+        server("secondServer") { }
+    }
 }
 ```
 
-When publishing, all listed versions will be added to CurseForge and Modrinth.
+See [Loaders](configuration/loaders.md#custom-run-configurations) for the full run DSL.
 
-## Can I add a subproject build file?
+## How does publishing work?
 
-You can, but it may conflict with Prism's configuration. Prism configures everything from the root project. If your subproject build file also applies plugins or configures the same tasks, you will get errors.
+See [Publishing](publishing.md). Key points:
 
-## How does the common project compile?
-
-The common subproject uses ModDevGradle with `neoFormVersion` only (vanilla Minecraft, no loader). This gives you access to all Minecraft classes without loader modifications.
-
-Common source files are compiled again as part of each loader's compilation, so they have access to loader APIs at compile time.
-
-## NeoForm version resolution fails
-
-1. Check your internet connection. Prism fetches version metadata from `maven.neoforged.net`.
-2. If building offline, set `neoFormVersion` manually in the version block.
-3. The resolved version is cached for 24 hours in `~/.gradle/caches/prism/`. Delete this file to force a refresh.
-
-## Run configurations are missing
-
-Reload the Gradle project in IntelliJ after changing the Prism configuration. Run configurations are generated during Gradle sync.
+- Display name on CurseForge/Modrinth defaults to the JAR filename (e.g. `mymod-1.21.1-NeoForge-1.0.0.jar`)
+- Override with `displayName` in the publishing block
+- Publishing dependencies (requires, optional, incompatible) can be set globally, per version, or per loader
+- All three levels stack
 
 ## How do I add access wideners or access transformers?
 
-Prism auto-detects these files. Just place them in the right location.
+Prism auto-detects these. Just place them in the right location.
 
 **Access wideners** (Fabric): Place `{modId}.accesswidener` in either:
-- `versions/{mc}/common/src/main/resources/` (shared across loaders)
-- `versions/{mc}/fabric/src/main/resources/` (Fabric only)
+- `versions/{mc}/fabric/src/main/resources/` (loader-specific, takes priority)
+- `versions/{mc}/common/src/main/resources/` (shared)
 
-The loader-specific file takes priority if both exist. Access wideners work on all versions including 26.x (unobfuscated). Unobfuscated means names aren't scrambled, but classes can still be private/protected/final.
-
-Note: starting from `fabric.mod.json` schema v2, Fabric uses `classTweakers` in the mod metadata instead of `accessWidener`. This is a mod metadata change, not a Loom build change. Loom still uses `accessWidenerPath` at build time regardless of schema version.
+Access wideners work on all versions including 26.x. Unobfuscated means names aren't scrambled, not that everything is public.
 
 **Access transformers** (NeoForge/Forge): Place `accesstransformer.cfg` in `META-INF/` under either:
 - `versions/{mc}/common/src/main/resources/META-INF/`
@@ -136,23 +154,41 @@ Note: starting from `fabric.mod.json` schema v2, Fabric uses `classTweakers` in 
 
 Both locations are checked and combined.
 
+## How does the common project compile?
+
+For 1.20.2+, the common subproject uses ModDevGradle with `neoFormVersion` (vanilla Minecraft, no loader).
+
+For 1.20.1 and older, it uses MDG Legacy with `mcpVersion` set to the Minecraft version.
+
+In both cases, common has full access to vanilla Minecraft classes but not loader APIs.
+
+Common source files are recompiled as part of each loader's compilation, so they have access to the full loader classpath at build time.
+
+## NeoForm version resolution fails
+
+1. Check your internet connection. Prism fetches from `maven.neoforged.net`.
+2. If offline, set `neoFormVersion` manually in the version block.
+3. Cache is at `~/.gradle/caches/prism/neoform-versions.txt` (24h TTL). Delete to refresh.
+
+## Run configurations are missing
+
+Reload the Gradle project in IntelliJ after changing the Prism configuration. Runs are generated during Gradle sync.
+
 ## What Gradle version do I need?
 
-Gradle 8.8 or newer. Gradle 9.x is recommended.
+Gradle 8.8 or newer. 9.x recommended.
 
 ## What Java version do I need?
 
-You need the highest JDK required by any of your target versions. Prism auto-detects and sets the correct toolchain per Minecraft version:
+You need the highest JDK required by any of your targets. Prism sets the correct toolchain per version automatically:
 
 | Minecraft | Java |
 |-----------|------|
-| 1.16.x and older | 8 |
-| 1.17.x | 16 |
 | 1.18.x - 1.20.x | 17 |
 | 1.21.x | 21 |
-| 26.x and newer | 25 |
+| 26.x | 25 |
 
-Each subproject compiles with the right JDK regardless of which JDK Gradle itself runs on. Add the [foojay toolchain resolver](https://github.com/gradle/foojay-toolchains) to your `settings.gradle.kts` so Gradle can auto-download missing JDKs:
+Add the [foojay toolchain resolver](https://github.com/gradle/foojay-toolchains) so Gradle auto-downloads missing JDKs:
 
 ```kotlin
 plugins {
@@ -160,4 +196,4 @@ plugins {
 }
 ```
 
-Override with `javaVersion` in the version block if needed.
+Override with `javaVersion` in the version block.

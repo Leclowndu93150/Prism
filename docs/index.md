@@ -11,44 +11,47 @@ Prism wraps [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradl
 
 ## What Prism does
 
-- Generates Gradle subprojects for each version and loader combination
-- Applies the correct toolchain plugin to each subproject
-- Wires common code into loader compilations
-- Configures run configurations with version-specific names
-- Version-aware datagen (split client/server for 1.21.4+)
-- Kotlin support with one function call
-- Per-loader dependency blocks with Jar-in-Jar support
+- All versions and loaders in one branch, one build file
+- Full IntelliJ run configurations per target
+- Kotlin and Java support
+- Mojang or Yarn mappings, Parchment
+- Per-loader dependency blocks with Jar-in-Jar
+- Custom run configurations with optional dev username
 - CurseMaven and Modrinth Maven built in
-- Template expansion in metadata files
-- Multi-version publishing to CurseForge and Modrinth
+- Version-aware datagen (split client/server for 1.21.4+)
+- Handles unobfuscated Minecraft (26.x) automatically
+- Auto-detects access wideners and access transformers
+- Template variable expansion in metadata files
+- CurseForge and Modrinth publishing with platform-specific dependencies
+- Optional shared common across all versions for pure Java API code
 
 ## Project layout
 
 ```
-your-mod/
-  build.gradle.kts
-  settings.gradle.kts
-  versions/
-    1.20.1/
-      common/src/main/java/
-      fabric/src/main/java/
-      forge/src/main/java/
-    1.21.1/
-      common/src/main/java/
-      fabric/src/main/java/
-      neoforge/src/main/java/
+common/                          optional shared code (no Minecraft)
+versions/
+  1.20.1/
+    common/src/main/java/        vanilla MC classes available
+    fabric/src/main/java/        Fabric API available
+    forge/src/main/java/         Forge API available
+  1.21.1/
+    common/src/main/java/
+    fabric/src/main/java/
+    neoforge/src/main/java/
+  26.1/
+    common/src/main/java/
+    fabric/src/main/java/
+    neoforge/src/main/java/
 ```
-
-Each version is completely independent. There is no cross-version shared code.
 
 ## Supported loaders
 
 | Loader   | Plugin used                | Minecraft versions |
 |----------|----------------------------|--------------------|
-| Fabric   | Fabric Loom                | Any                |
-| NeoForge | ModDevGradle               | 1.20.1+            |
+| Fabric   | Fabric Loom 1.15.5         | Any                |
+| NeoForge | ModDevGradle 2.0.141       | 1.20.2+            |
 | Forge    | ModDevGradle Legacy        | 1.17 - 1.20.1      |
 
 ## Next steps
 
-Head to [Getting Started](getting-started.md) to set up your first project.
+Use the [Prism Mod Template](https://github.com/Leclowndu93150/prism-mod-template) to get started in seconds, or read [Getting Started](getting-started.md) for manual setup.
