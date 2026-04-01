@@ -40,7 +40,7 @@ object NeoFormVersionResolver {
             return dep
         }
 
-        val mcpVersion = tryResolveFromMaven(MCP_METADATA_URL, minecraftVersion)
+        val mcpVersion = tryResolveFromMaven(MCP_METADATA_URL, minecraftVersion, preferPlain = true)
         if (mcpVersion != null) {
             val dep = CommonMinecraftDep("mcp", mcpVersion, true)
             memoryCache[minecraftVersion] = dep
@@ -54,9 +54,11 @@ object NeoFormVersionResolver {
         )
     }
 
-    private fun tryResolveFromMaven(metadataUrl: String, minecraftVersion: String): String? {
+    private fun tryResolveFromMaven(metadataUrl: String, minecraftVersion: String, preferPlain: Boolean = false): String? {
         val versions = fetchAvailableVersions(metadataUrl)
         val matching = versions.filter { it.startsWith("$minecraftVersion-") || it == minecraftVersion }
+        if (matching.isEmpty()) return null
+        if (preferPlain && matching.contains(minecraftVersion)) return minecraftVersion
         return matching.maxByOrNull { extractTimestamp(it) }
     }
 
