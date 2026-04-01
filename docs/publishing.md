@@ -28,9 +28,93 @@ prism {
             accessToken = providers.environmentVariable("MODRINTH_TOKEN")
             projectId = "abcdef12"
         }
+
+        // Global publishing dependencies (apply to ALL versions and loaders)
+        dependencies {
+            requires("fabric-api")
+            optional("jei")
+        }
     }
 }
 ```
+
+## Publishing dependencies
+
+Declare mod relationships that show up on CurseForge and Modrinth project pages. Dependencies can be set at three levels, and they stack:
+
+### Global (all versions, all loaders)
+
+```kotlin
+publishing {
+    dependencies {
+        requires("jei")
+        optional("jade")
+        incompatible("optifine")
+    }
+}
+```
+
+### Per version (all loaders for that version)
+
+```kotlin
+version("1.21.1") {
+    publishingDependencies {
+        requires("fabric-api")
+    }
+}
+```
+
+### Per loader (specific loader for specific version)
+
+```kotlin
+version("1.21.1") {
+    fabric {
+        publishingDependencies {
+            requires("fabric-api")
+            optional("modmenu")
+        }
+    }
+    neoforge {
+        publishingDependencies {
+            optional("jei")
+        }
+    }
+}
+```
+
+### Platform-specific dependencies
+
+If a slug differs between CurseForge and Modrinth, use platform-specific blocks:
+
+```kotlin
+publishingDependencies {
+    curseforge {
+        requires("jei")           // CurseForge slug
+    }
+    modrinth {
+        requires("jei-mod")       // Modrinth slug (if different)
+    }
+}
+```
+
+Or use the `platform` parameter:
+
+```kotlin
+publishingDependencies {
+    requires("fabric-api", PublishingPlatform.MODRINTH)
+    requires("fabric-api", PublishingPlatform.CURSEFORGE)
+    requires("some-mod", PublishingPlatform.BOTH)  // default
+}
+```
+
+### Dependency types
+
+| Method | CurseForge | Modrinth |
+|--------|------------|----------|
+| `requires(slug)` | Required | Required |
+| `optional(slug)` | Optional | Optional |
+| `incompatible(slug)` | Incompatible | Incompatible |
+| `embeds(slug)` | Embedded | Embedded |
 
 ## What Prism configures
 
@@ -41,6 +125,7 @@ For each loader subproject, Prism applies mod-publish-plugin and sets:
 - `minecraftVersions` to the Minecraft version of that subproject
 - `changelog`, `version`, and `type` from the root configuration
 - CurseForge and Modrinth credentials from the root configuration
+- Publishing dependencies from global + version + loader levels (stacked)
 
 ## Running
 

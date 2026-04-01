@@ -9,6 +9,7 @@ open class ForgeConfiguration : LoaderConfiguration {
     var loaderVersionRange: String? = null
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
+    internal val pubDeps = PublishingDepsBlock()
 
     fun dependencies(action: Action<DependencyBlock>) {
         action.execute(deps)
@@ -16,5 +17,9 @@ open class ForgeConfiguration : LoaderConfiguration {
 
     fun runs(action: Action<RunsBlock>) {
         action.execute(extraRuns)
+    }
+
+    fun publishingDependencies(action: Action<PublishingDepsBlock>) {
+        action.execute(pubDeps)
     }
 }

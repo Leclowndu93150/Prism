@@ -10,6 +10,7 @@ open class PublishingConfiguration {
 
     internal var curseforgeConfig: CurseForgeConfig? = null
     internal var modrinthConfig: ModrinthConfig? = null
+    internal val pubDeps = PublishingDepsBlock()
 
     val isConfigured: Boolean
         get() = curseforgeConfig != null || modrinthConfig != null
@@ -22,6 +23,10 @@ open class PublishingConfiguration {
     fun modrinth(action: Action<ModrinthConfig>) {
         if (modrinthConfig == null) modrinthConfig = ModrinthConfig()
         action.execute(modrinthConfig!!)
+    }
+
+    fun dependencies(action: Action<PublishingDepsBlock>) {
+        action.execute(pubDeps)
     }
 }
 

@@ -11,6 +11,7 @@ open class FabricConfiguration : LoaderConfiguration {
     var enableDatagen: Boolean = false
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
+    internal val pubDeps = PublishingDepsBlock()
 
     fun fabricApi(version: String) {
         apiVersion = version
@@ -26,5 +27,9 @@ open class FabricConfiguration : LoaderConfiguration {
 
     fun runs(action: Action<RunsBlock>) {
         action.execute(extraRuns)
+    }
+
+    fun publishingDependencies(action: Action<PublishingDepsBlock>) {
+        action.execute(pubDeps)
     }
 }

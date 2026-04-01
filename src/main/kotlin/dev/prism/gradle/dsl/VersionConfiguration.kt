@@ -14,6 +14,7 @@ open class VersionConfiguration(val minecraftVersion: String) {
     internal var forgeConfig: ForgeConfiguration? = null
     internal var neoForgeConfig: NeoForgeConfiguration? = null
     internal val commonDeps = DependencyBlock()
+    internal val pubDeps = PublishingDepsBlock()
 
     val resolvedJavaVersion: Int
         get() = javaVersion ?: detectJavaVersion(minecraftVersion)
@@ -43,6 +44,10 @@ open class VersionConfiguration(val minecraftVersion: String) {
 
     fun minecraftVersions(vararg versions: String) {
         minecraftVersionRange = versions.toList()
+    }
+
+    fun publishingDependencies(action: Action<PublishingDepsBlock>) {
+        action.execute(pubDeps)
     }
 
     val loaders: List<LoaderConfiguration>
