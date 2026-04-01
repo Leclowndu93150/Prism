@@ -17,6 +17,7 @@ object ForgeConfigurator {
         forgeConfig: ForgeConfiguration,
         metadata: MetadataExtension,
         extraRepositories: List<RepositoryEntry> = emptyList(),
+        sharedProject: Project? = null,
     ) {
         loaderProject.pluginManager.apply("java-library")
         loaderProject.pluginManager.apply("net.neoforged.moddev.legacyforge")
@@ -97,7 +98,7 @@ object ForgeConfigurator {
         }
 
         JarNaming.configure(loaderProject, metadata, versionConfig, forgeConfig)
-        CommonLoaderWiring.wire(loaderProject, commonProject, metadata)
+        CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
     }
 }

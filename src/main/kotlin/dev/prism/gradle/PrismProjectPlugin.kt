@@ -86,7 +86,8 @@ class PrismProjectPlugin : Plugin<Project> {
                     )
 
                 LoaderConfigurator.configure(
-                    loaderProject, commonProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories
+                    loaderProject, commonProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories,
+                    if (hasSharedCommon) sharedProject else null
                 )
 
                 KotlinConfigurator.apply(loaderProject, versionConfig)

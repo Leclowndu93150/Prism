@@ -29,6 +29,7 @@ object FabricConfigurator {
         fabricConfig: FabricConfiguration,
         metadata: MetadataExtension,
         extraRepositories: List<RepositoryEntry> = emptyList(),
+        sharedProject: Project? = null,
     ) {
         loaderProject.pluginManager.apply("java-library")
 
@@ -135,7 +136,7 @@ object FabricConfigurator {
         RunApplicator.applyFabricRuns(loaderProject, fabricConfig.extraRuns, versionConfig, loom)
 
         JarNaming.configure(loaderProject, metadata, versionConfig, fabricConfig)
-        CommonLoaderWiring.wire(loaderProject, commonProject, metadata)
+        CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
     }
 }

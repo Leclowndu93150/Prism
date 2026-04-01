@@ -29,6 +29,7 @@ object NeoForgeConfigurator {
         neoForgeConfig: NeoForgeConfiguration,
         metadata: MetadataExtension,
         extraRepositories: List<RepositoryEntry> = emptyList(),
+        sharedProject: Project? = null,
     ) {
         loaderProject.pluginManager.apply("java-library")
         loaderProject.pluginManager.apply("net.neoforged.moddev")
@@ -130,7 +131,7 @@ object NeoForgeConfigurator {
         }
 
         JarNaming.configure(loaderProject, metadata, versionConfig, neoForgeConfig)
-        CommonLoaderWiring.wire(loaderProject, commonProject, metadata)
+        CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
     }
 }

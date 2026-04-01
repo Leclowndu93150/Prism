@@ -17,16 +17,17 @@ object LoaderConfigurator {
         loaderConfig: LoaderConfiguration,
         metadata: MetadataExtension,
         extraRepositories: List<RepositoryEntry> = emptyList(),
+        sharedProject: Project? = null,
     ) {
         when (loaderConfig) {
             is FabricConfiguration -> FabricConfigurator.configure(
-                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories
+                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
             )
             is ForgeConfiguration -> ForgeConfigurator.configure(
-                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories
+                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
             )
             is NeoForgeConfiguration -> NeoForgeConfigurator.configure(
-                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories
+                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
             )
         }
     }
