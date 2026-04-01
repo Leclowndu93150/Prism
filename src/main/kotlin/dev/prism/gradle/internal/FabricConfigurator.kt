@@ -66,17 +66,32 @@ object FabricConfigurator {
         }
 
         loom.runs { runs ->
-            val client = runs.maybeCreate("client")
-            client.client()
-            client.setConfigName("Fabric Client (${versionConfig.minecraftVersion})")
-            client.ideConfigGenerated(true)
-            client.runDir("runs/${versionConfig.minecraftVersion}/fabric/client")
+            runs.getByName("client") { run ->
+                run.setConfigName("Fabric Client (${versionConfig.minecraftVersion})")
+                run.ideConfigGenerated(true)
+                run.runDir("runs/${versionConfig.minecraftVersion}/fabric/client")
+            }
+            runs.getByName("server") { run ->
+                run.setConfigName("Fabric Server (${versionConfig.minecraftVersion})")
+                run.ideConfigGenerated(true)
+                run.runDir("runs/${versionConfig.minecraftVersion}/fabric/server")
+            }
 
-            val server = runs.maybeCreate("server")
-            server.server()
-            server.setConfigName("Fabric Server (${versionConfig.minecraftVersion})")
-            server.ideConfigGenerated(true)
-            server.runDir("runs/${versionConfig.minecraftVersion}/fabric/server")
+            if (fabricConfig.apiVersion != null && fabricConfig.enableDatagen) {
+                runs.create("datagen") { run ->
+                    run.client()
+                    run.setConfigName("Fabric Datagen (${versionConfig.minecraftVersion})")
+                    run.ideConfigGenerated(true)
+                    run.runDir("runs/${versionConfig.minecraftVersion}/fabric/datagen")
+                    run.vmArg("-Dfabric-api.datagen")
+                    run.vmArg("-Dfabric-api.datagen.output-dir=${loaderProject.file("src/main/generated").absolutePath}")
+                    run.vmArg("-Dfabric-api.datagen.modid=${metadata.modId}")
+                }
+
+                loaderProject.extensions.configure(JavaPluginExtension::class.java) { java ->
+                    java.sourceSets.getByName("main").resources.srcDir("src/main/generated")
+                }
+            }
         }
 
         JarNaming.configure(loaderProject, metadata, versionConfig, fabricConfig)

@@ -10,6 +10,18 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 object NeoForgeConfigurator {
+
+    private fun hasSplitDataRuns(mcVersion: String): Boolean {
+        val parts = mcVersion.split(".")
+        val major = parts.getOrNull(0)?.toIntOrNull() ?: 1
+        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
+        if (major > 1) return true
+        if (minor > 21) return true
+        if (minor == 21 && patch >= 4) return true
+        return false
+    }
+
     fun configure(
         loaderProject: Project,
         commonProject: Project,
@@ -33,7 +45,7 @@ object NeoForgeConfigurator {
         loaderProject.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
             neoForge.version = neoForgeConfig.loaderVersion
 
-            if (versionConfig.parchmentMinecraftVersion != null) {
+            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
                 neoForge.parchment { parchment ->
                     parchment.minecraftVersion.set(versionConfig.parchmentMinecraftVersion)
                     parchment.mappingsVersion.set(versionConfig.parchmentMappingsVersion)
@@ -42,7 +54,12 @@ object NeoForgeConfigurator {
 
             val at = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
             if (at.exists()) {
-                neoForge.setAccessTransformers(at.absolutePath)
+                neoForge.accessTransformers.from(at.absolutePath)
+            }
+
+            val loaderAt = loaderProject.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (loaderAt.exists()) {
+                neoForge.accessTransformers.from(loaderAt.absolutePath)
             }
 
             neoForge.runs { runs ->
@@ -58,15 +75,39 @@ object NeoForgeConfigurator {
                     run.server()
                     run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/neoforge/server"))
                 }
-                runs.create("data") { run ->
-                    run.data()
-                    run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/neoforge/data"))
-                    run.programArguments.addAll(
-                        "--mod", metadata.modId,
-                        "--all",
-                        "--output", loaderProject.file("src/generated/resources/").absolutePath,
-                        "--existing", loaderProject.file("src/main/resources/").absolutePath
-                    )
+
+                if (hasSplitDataRuns(versionConfig.minecraftVersion)) {
+                    runs.create("clientData") { run ->
+                        run.clientData()
+                        run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/neoforge/clientData"))
+                        run.programArguments.addAll(
+                            "--mod", metadata.modId,
+                            "--all",
+                            "--output", loaderProject.file("src/generated/resources/").absolutePath,
+                            "--existing", loaderProject.file("src/main/resources/").absolutePath
+                        )
+                    }
+                    runs.create("serverData") { run ->
+                        run.serverData()
+                        run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/neoforge/serverData"))
+                        run.programArguments.addAll(
+                            "--mod", metadata.modId,
+                            "--all",
+                            "--output", loaderProject.file("src/generated/resources/").absolutePath,
+                            "--existing", loaderProject.file("src/main/resources/").absolutePath
+                        )
+                    }
+                } else {
+                    runs.create("data") { run ->
+                        run.data()
+                        run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/neoforge/data"))
+                        run.programArguments.addAll(
+                            "--mod", metadata.modId,
+                            "--all",
+                            "--output", loaderProject.file("src/generated/resources/").absolutePath,
+                            "--existing", loaderProject.file("src/main/resources/").absolutePath
+                        )
+                    }
                 }
             }
 

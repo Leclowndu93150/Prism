@@ -33,7 +33,7 @@ object CommonConfigurator {
         commonProject.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
             neoForge.neoFormVersion = neoFormVersion
 
-            if (versionConfig.parchmentMinecraftVersion != null) {
+            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
                 neoForge.parchment { parchment ->
                     parchment.minecraftVersion.set(versionConfig.parchmentMinecraftVersion)
                     parchment.mappingsVersion.set(versionConfig.parchmentMappingsVersion)
@@ -42,7 +42,7 @@ object CommonConfigurator {
 
             val at = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
             if (at.exists()) {
-                neoForge.setAccessTransformers(at.absolutePath)
+                neoForge.accessTransformers.from(at.absolutePath)
             }
         }
 

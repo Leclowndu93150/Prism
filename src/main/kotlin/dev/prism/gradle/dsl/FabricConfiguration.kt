@@ -6,8 +6,13 @@ open class FabricConfiguration : LoaderConfiguration {
     var loaderVersion: String = ""
     var apiVersion: String? = null
     var yarnMappings: String? = null
+    var enableDatagen: Boolean = false
 
     fun fabricApi(version: String) {
         apiVersion = version
+    }
+
+    fun datagen() {
+        enableDatagen = true
     }
 }

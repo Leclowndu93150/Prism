@@ -35,7 +35,7 @@ object ForgeConfigurator {
 
             legacyForge.validateAccessTransformers.set(true)
 
-            if (versionConfig.parchmentMinecraftVersion != null) {
+            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
                 legacyForge.parchment { parchment ->
                     parchment.minecraftVersion.set(versionConfig.parchmentMinecraftVersion)
                     parchment.mappingsVersion.set(versionConfig.parchmentMappingsVersion)
@@ -44,13 +44,19 @@ object ForgeConfigurator {
 
             val at = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
             if (at.exists()) {
-                legacyForge.setAccessTransformers(at.absolutePath)
+                legacyForge.accessTransformers.from(at.absolutePath)
+            }
+
+            val loaderAt = loaderProject.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (loaderAt.exists()) {
+                legacyForge.accessTransformers.from(loaderAt.absolutePath)
             }
 
             legacyForge.runs { runs ->
                 runs.configureEach { run ->
                     run.systemProperty("forge.logging.markers", "REGISTRIES")
                     run.systemProperty("forge.logging.console.level", "debug")
+                    run.ideName.set("Forge ${run.name.replaceFirstChar { it.uppercase() }} (${versionConfig.minecraftVersion})")
                 }
                 runs.create("client") { run ->
                     run.client()
@@ -85,8 +91,6 @@ object ForgeConfigurator {
         loaderProject.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
-
-        loaderProject.dependencies.add("annotationProcessor", "org.spongepowered:mixin:0.8.5:processor")
 
         JarNaming.configure(loaderProject, metadata, versionConfig, forgeConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata)
