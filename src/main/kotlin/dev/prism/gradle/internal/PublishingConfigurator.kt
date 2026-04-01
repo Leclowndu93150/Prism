@@ -25,9 +25,7 @@ object PublishingConfigurator {
 
             val jarTask = proj.tasks.findByName("remapJar") ?: proj.tasks.findByName("jar")
             if (jarTask != null) {
-                publishMods.file.set(
-                    jarTask.outputs.files.singleFile
-                )
+                publishMods.file.set(jarTask.outputs.files.singleFile)
             }
 
             val changelog = publishingConfig.changelog
@@ -48,13 +46,17 @@ object PublishingConfigurator {
 
             publishMods.modLoaders.add(loaderConfig.loaderName)
 
+            val mcVersions = versionConfig.minecraftVersionRange ?: listOf(versionConfig.minecraftVersion)
+
             publishingConfig.curseforgeConfig?.let { cf ->
                 publishMods.curseforge { curseforge ->
                     curseforge.projectId.set(cf.projectId)
                     cf.accessToken?.let { token ->
                         curseforge.accessToken.set(token)
                     }
-                    curseforge.minecraftVersions.add(versionConfig.minecraftVersion)
+                    for (v in mcVersions) {
+                        curseforge.minecraftVersions.add(v)
+                    }
                 }
             }
 
@@ -64,7 +66,9 @@ object PublishingConfigurator {
                     mr.accessToken?.let { token ->
                         modrinth.accessToken.set(token)
                     }
-                    modrinth.minecraftVersions.add(versionConfig.minecraftVersion)
+                    for (v in mcVersions) {
+                        modrinth.minecraftVersions.add(v)
+                    }
                 }
             }
         }

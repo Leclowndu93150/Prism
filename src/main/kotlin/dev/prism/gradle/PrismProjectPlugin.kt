@@ -1,7 +1,12 @@
 package dev.prism.gradle
 
+import dev.prism.gradle.dsl.FabricConfiguration
+import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PrismExtension
 import dev.prism.gradle.internal.CommonConfigurator
+import dev.prism.gradle.internal.DependencyConfigurator
+import dev.prism.gradle.internal.KotlinConfigurator
 import dev.prism.gradle.internal.LoaderConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
 import org.gradle.api.Plugin
@@ -52,6 +57,8 @@ class PrismProjectPlugin : Plugin<Project> {
                 )
 
             CommonConfigurator.configure(commonProject, versionConfig, extension.metadata, extension.extraRepositories)
+            KotlinConfigurator.apply(commonProject, versionConfig)
+            DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
 
             for (loaderConfig in versionConfig.loaders) {
                 val loaderProject = rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")
@@ -63,6 +70,19 @@ class PrismProjectPlugin : Plugin<Project> {
                 LoaderConfigurator.configure(
                     loaderProject, commonProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories
                 )
+
+                KotlinConfigurator.apply(loaderProject, versionConfig)
+
+                val isFabric = loaderConfig is FabricConfiguration
+                val deps = when (loaderConfig) {
+                    is FabricConfiguration -> loaderConfig.deps
+                    is ForgeConfiguration -> loaderConfig.deps
+                    is NeoForgeConfiguration -> loaderConfig.deps
+                    else -> null
+                }
+                if (deps != null) {
+                    DependencyConfigurator.apply(loaderProject, deps, isFabric)
+                }
 
                 if (extension.publishingConfig.isConfigured) {
                     PublishingConfigurator.configure(

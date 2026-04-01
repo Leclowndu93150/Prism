@@ -7,43 +7,108 @@ Prism automatically adds the following to the common subproject:
 - `org.spongepowered:mixin:0.8.5` (compileOnly)
 - `io.github.llamalad7:mixinextras-common:0.3.5` (compileOnly + annotation processor)
 
-For Fabric subprojects:
+For Fabric, Minecraft, Fabric Loader, and optionally Fabric API are added automatically.
 
-- `com.mojang:minecraft:{mcVersion}`
-- `net.fabricmc:fabric-loader:{loaderVersion}`
-- `net.fabricmc.fabric-api:fabric-api:{apiVersion}` (if `fabricApi()` is called)
+For NeoForge and Forge, the loader handles Minecraft and loader dependencies through the extension.
 
-For NeoForge and Forge subprojects, the loader handles Minecraft and loader dependencies through the extension.
+## Common dependencies
 
-## Adding custom dependencies
-
-Since subprojects have no build files, you add custom dependencies from the root `build.gradle.kts` by accessing the subproject directly:
+Dependencies shared across all loaders for a version:
 
 ```kotlin
-// After the prism {} block
-subprojects {
-    afterEvaluate {
-        if (path.contains("common")) {
-            dependencies {
-                add("implementation", "some:common-library:1.0")
-            }
-        }
+version("1.21.1") {
+    common {
+        implementation("some:shared-library:1.0")
+        compileOnly("some:api:2.0")
     }
+
+    fabric { loaderVersion = "0.16.2" }
+    neoforge { loaderVersion = "21.1.26" }
 }
 ```
 
-Or target a specific subproject:
+Common dependencies are added to the common subproject's configurations and are available to all loader subprojects through the source wiring.
+
+## Per-loader dependencies
+
+Each loader has its own `dependencies` block:
 
 ```kotlin
-project(":1.21.1:fabric").afterEvaluate {
+fabric {
+    loaderVersion = "0.16.2"
+    fabricApi("0.102.1")
+
     dependencies {
-        add("modImplementation", "some:fabric-mod:1.0")
+        modImplementation("curse.maven:jei-238222:4613379")
+        modCompileOnly("modrinth:sodium:0.5.3")
+        jarJar("some:library:[1.0,2.0)")
+    }
+}
+
+neoforge {
+    loaderVersion = "21.1.26"
+
+    dependencies {
+        implementation("curse.maven:jei-238222:4613379")
+        jarJar("some:library:[1.0,2.0)")
     }
 }
 ```
 
-## Common dependencies flow to loaders
+### Available configurations
 
-Dependencies declared on the common subproject's `compileOnly` or `implementation` configurations are available to loader subprojects because the common source is compiled as part of each loader's compilation.
+| Method | Description |
+|--------|-------------|
+| `implementation(dep)` | Compile and runtime dependency |
+| `modImplementation(dep)` | Mod dependency (remapped on Fabric via `modImplementation`) |
+| `compileOnly(dep)` | Compile-time only |
+| `modCompileOnly(dep)` | Mod compile-time only (remapped on Fabric) |
+| `runtimeOnly(dep)` | Runtime only |
+| `modRuntimeOnly(dep)` | Mod runtime only (remapped on Fabric) |
+| `jarJar(dep)` | Embed dependency in output JAR |
 
-Note that common uses `compileOnly` for its dependency on the loader subprojects. This means the common subproject can reference common APIs, but the actual classes come from the loader's classpath at compile time.
+For Fabric subprojects, `mod*` variants are mapped to Loom's remapping configurations (`modImplementation`, `modCompileOnly`, etc.). For NeoForge/Forge, they map to standard Gradle configurations since MDG handles remapping differently.
+
+## Jar-in-Jar
+
+The `jarJar()` method embeds a dependency inside your output JAR:
+
+```kotlin
+fabric {
+    dependencies {
+        jarJar("some:library:1.0")
+    }
+}
+```
+
+On Fabric, this maps to Loom's `include` configuration. On NeoForge/Forge, this maps to MDG's `jarJar` configuration.
+
+## Maven repositories
+
+Prism provides shortcuts for common Minecraft mod repositories:
+
+```kotlin
+prism {
+    curseMaven()      // https://cursemaven.com
+    modrinthMaven()   // https://api.modrinth.com/maven
+    maven("BlameJared", "https://maven.blamejared.com")
+}
+```
+
+These repositories are added to all subprojects.
+
+### CurseMaven dependency format
+
+```
+curse.maven:{slug}-{projectId}:{fileId}
+```
+
+Example: `curse.maven:jei-238222:4613379`
+
+### Modrinth Maven dependency format
+
+```
+maven.modrinth:{slug}:{version}
+```
+
+Example: `maven.modrinth:sodium:mc1.21-0.5.11`

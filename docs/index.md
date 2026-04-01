@@ -10,22 +10,24 @@ Prism wraps [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradl
 - Applies the correct toolchain plugin to each subproject
 - Wires common code into loader compilations
 - Configures run configurations with version-specific names
-- Handles template expansion in metadata files
-- Optionally wraps mod-publish-plugin for CurseForge and Modrinth
+- Version-aware datagen (split client/server for 1.21.4+)
+- Kotlin support with one function call
+- Per-loader dependency blocks with Jar-in-Jar support
+- CurseMaven and Modrinth Maven built in
+- Template expansion in metadata files
+- Multi-version publishing to CurseForge and Modrinth
 
 ## Project layout
 
 ```
 your-mod/
-  build.gradle.kts          # Prism DSL configuration
-  settings.gradle.kts       # Declares versions and loaders
+  build.gradle.kts
+  settings.gradle.kts
   versions/
     1.20.1/
       common/src/main/java/
       fabric/src/main/java/
-      fabric/src/main/resources/fabric.mod.json
       forge/src/main/java/
-      forge/src/main/resources/META-INF/mods.toml
     1.21.1/
       common/src/main/java/
       fabric/src/main/java/
@@ -36,11 +38,11 @@ Each version is completely independent. There is no cross-version shared code.
 
 ## Supported loaders
 
-| Loader   | Plugin used                          | Minecraft versions |
-|----------|--------------------------------------|--------------------|
-| Fabric   | Fabric Loom                          | Any                |
-| NeoForge | ModDevGradle                         | 1.20.1+            |
-| Forge    | ModDevGradle Legacy                  | 1.17 - 1.20.1      |
+| Loader   | Plugin used                | Minecraft versions |
+|----------|----------------------------|--------------------|
+| Fabric   | Fabric Loom                | Any                |
+| NeoForge | ModDevGradle               | 1.20.1+            |
+| Forge    | ModDevGradle Legacy        | 1.17 - 1.20.1      |
 
 ## Next steps
 

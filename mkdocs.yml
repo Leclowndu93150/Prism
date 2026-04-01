@@ -35,6 +35,7 @@ nav:
     - Mappings: configuration/mappings.md
     - Dependencies: configuration/dependencies.md
   - Publishing: publishing.md
+  - CI/CD: ci.md
   - Reference:
     - DSL Reference: reference/dsl.md
     - Template Variables: reference/template-variables.md

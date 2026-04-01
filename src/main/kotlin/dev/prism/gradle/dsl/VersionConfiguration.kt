@@ -7,13 +7,24 @@ open class VersionConfiguration(val minecraftVersion: String) {
     var neoFormVersion: String? = null
     var parchmentMinecraftVersion: String? = null
     var parchmentMappingsVersion: String? = null
+    var kotlinVersion: String? = null
+    var minecraftVersionRange: List<String>? = null
 
     internal var fabricConfig: FabricConfiguration? = null
     internal var forgeConfig: ForgeConfiguration? = null
     internal var neoForgeConfig: NeoForgeConfiguration? = null
+    internal val commonDeps = DependencyBlock()
 
     val resolvedJavaVersion: Int
         get() = javaVersion ?: detectJavaVersion(minecraftVersion)
+
+    fun kotlin(version: String = "2.1.20") {
+        kotlinVersion = version
+    }
+
+    fun common(action: Action<DependencyBlock>) {
+        action.execute(commonDeps)
+    }
 
     fun fabric(action: Action<FabricConfiguration>) {
         if (fabricConfig == null) fabricConfig = FabricConfiguration()
@@ -28,6 +39,10 @@ open class VersionConfiguration(val minecraftVersion: String) {
     fun neoforge(action: Action<NeoForgeConfiguration>) {
         if (neoForgeConfig == null) neoForgeConfig = NeoForgeConfiguration()
         action.execute(neoForgeConfig!!)
+    }
+
+    fun minecraftVersions(vararg versions: String) {
+        minecraftVersionRange = versions.toList()
     }
 
     val loaders: List<LoaderConfiguration>

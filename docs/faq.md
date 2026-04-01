@@ -2,33 +2,109 @@
 
 ## Can I use Kotlin?
 
-Prism does not apply the Kotlin plugin to subprojects. You can apply it manually by accessing the subproject from the root build file:
+Yes. Add `kotlin()` to your version block:
 
 ```kotlin
-project(":1.21.1:fabric").apply {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
+version("1.21.1") {
+    kotlin()  // uses 2.1.20 by default
+    kotlin("2.0.21")  // or pick a version
+
+    fabric { loaderVersion = "0.16.2" }
+    neoforge { loaderVersion = "21.1.26" }
 }
 ```
 
-Native Kotlin support is planned for a future release.
+This applies the Kotlin JVM plugin to both common and all loader subprojects, with the JVM target set to match the Minecraft version.
+
+## How do I add dependencies?
+
+Use the `dependencies` block inside each loader config, or `common` for shared dependencies:
+
+```kotlin
+version("1.21.1") {
+    common {
+        implementation("some:shared-lib:1.0")
+    }
+    fabric {
+        loaderVersion = "0.16.2"
+        dependencies {
+            modImplementation("curse.maven:jei-238222:4613379")
+        }
+    }
+}
+```
+
+See [Dependencies](configuration/dependencies.md) for details.
+
+## How do I use CurseMaven or Modrinth Maven?
+
+```kotlin
+prism {
+    curseMaven()
+    modrinthMaven()
+}
+```
+
+Then use `curse.maven:slug-projectId:fileId` or `maven.modrinth:slug:version` in your dependency blocks.
+
+## How do I embed a library in my JAR?
+
+Use `jarJar()` in the dependency block:
+
+```kotlin
+fabric {
+    dependencies {
+        jarJar("some:library:1.0")  // uses Fabric's include
+    }
+}
+neoforge {
+    dependencies {
+        jarJar("some:library:[1.0,2.0)")  // uses NeoForge's jarJar
+    }
+}
+```
 
 ## Can I share code between versions?
 
 No. Each version is fully independent. If you need the same class in 1.20.1 and 1.21.1, copy it into both `common` folders. This is intentional: Minecraft APIs change significantly between versions, and shared code creates more problems than it solves.
 
+## How does datagen work?
+
+**Fabric**: Call `datagen()` in your fabric config. Requires Fabric API. Creates a datagen run using Fabric API's system properties. Output goes to `src/main/generated`.
+
+**NeoForge**: Prism auto-detects the Minecraft version:
+
+- 1.21.3 and older: creates a single `data` run
+- 1.21.4 and newer: creates split `clientData` and `serverData` runs
+
+Output goes to `src/generated/resources`.
+
+**Forge**: Creates a `data` run. Output goes to `src/generated/resources`.
+
+## Can I publish multiple Minecraft versions?
+
+Yes. Use `minecraftVersions()` in the version block to list all compatible versions:
+
+```kotlin
+version("1.21.1") {
+    minecraftVersions("1.21", "1.21.1")
+    // ...
+}
+```
+
+When publishing, all listed versions will be added to CurseForge and Modrinth.
+
 ## Can I add a subproject build file?
 
-You can, but it may conflict with Prism's configuration. Prism applies plugins and configures tasks from the root project. If your subproject build file also applies plugins or configures the same tasks, you will get errors or unexpected behavior.
+You can, but it may conflict with Prism's configuration. Prism configures everything from the root project. If your subproject build file also applies plugins or configures the same tasks, you will get errors.
 
 ## How does the common project compile?
 
-The common subproject uses ModDevGradle with `neoFormVersion` only (vanilla Minecraft, no loader). This gives you access to all Minecraft classes without any loader modifications.
+The common subproject uses ModDevGradle with `neoFormVersion` only (vanilla Minecraft, no loader). This gives you access to all Minecraft classes without loader modifications.
 
-Common source files are then compiled again as part of each loader's compilation, so they have access to loader APIs at compile time.
+Common source files are compiled again as part of each loader's compilation, so they have access to loader APIs at compile time.
 
 ## NeoForm version resolution fails
-
-If you see an error about NeoForm version resolution:
 
 1. Check your internet connection. Prism fetches version metadata from `maven.neoforged.net`.
 2. If building offline, set `neoFormVersion` manually in the version block.
@@ -36,27 +112,17 @@ If you see an error about NeoForm version resolution:
 
 ## Run configurations are missing
 
-Make sure you reload the Gradle project in IntelliJ after changing the Prism configuration. The run configurations are generated during Gradle sync.
-
-For Fabric, run configs are generated when `ideConfigGenerated(true)` is set, which Prism does automatically.
-
-For NeoForge and Forge, ModDevGradle generates run configs for all declared runs.
+Reload the Gradle project in IntelliJ after changing the Prism configuration. Run configurations are generated during Gradle sync.
 
 ## How do I add access wideners or access transformers?
 
 **Access wideners** (Fabric): Place `{modId}.accesswidener` in `versions/{mc}/common/src/main/resources/`.
 
-**Access transformers** (NeoForge/Forge): Place `accesstransformer.cfg` in `versions/{mc}/common/src/main/resources/META-INF/`.
-
-Prism detects these files automatically and configures the loader plugins.
-
-## Can I publish to CurseForge and Modrinth?
-
-Yes. See [Publishing](publishing.md). Prism wraps mod-publish-plugin and configures it for each loader subproject.
+**Access transformers** (NeoForge/Forge): Place `accesstransformer.cfg` in `versions/{mc}/common/src/main/resources/META-INF/` or in the loader's own `src/main/resources/META-INF/`. Both locations are checked.
 
 ## What Gradle version do I need?
 
-Gradle 8.8 or newer. Gradle 9.x is recommended. This is a requirement from ModDevGradle.
+Gradle 8.8 or newer. Gradle 9.x is recommended.
 
 ## What Java version do I need?
 
@@ -69,4 +135,4 @@ JDK 21. Prism auto-detects the target Java version per Minecraft version:
 | 1.18.x - 1.20.x | 17 |
 | 1.21.x and newer | 21 |
 
-You can override this with `javaVersion` in the version block.
+Override with `javaVersion` in the version block.

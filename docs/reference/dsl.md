@@ -30,6 +30,10 @@ prism {
     metadata { ... }
     version(minecraftVersion: String) { ... }
     publishing { ... }
+
+    curseMaven()                   // add CurseMaven repository
+    modrinthMaven()                // add Modrinth Maven repository
+    maven(name: String, url: String)  // add custom Maven repository
 }
 ```
 
@@ -57,6 +61,17 @@ version("1.21.1") {
     parchmentMinecraftVersion: String?     // requires parchmentMappingsVersion
     parchmentMappingsVersion: String?
 
+    kotlin()                               // enable Kotlin (default 2.1.20)
+    kotlin(version: String)                // enable Kotlin with specific version
+
+    minecraftVersions("1.21", "1.21.1")    // version range for publishing
+
+    common {                               // shared dependencies
+        implementation(dep: String)
+        compileOnly(dep: String)
+        runtimeOnly(dep: String)
+    }
+
     fabric { ... }
     forge { ... }
     neoforge { ... }
@@ -68,9 +83,20 @@ version("1.21.1") {
 ```kotlin
 fabric {
     loaderVersion: String      // required
-    apiVersion: String?        // set via fabricApi("version")
+    apiVersion: String?        // set via fabricApi()
 
     fabricApi(version: String) // shorthand for apiVersion
+    datagen()                  // enable Fabric API datagen run
+
+    dependencies {
+        implementation(dep: String)
+        modImplementation(dep: String)   // remapped by Loom
+        compileOnly(dep: String)
+        modCompileOnly(dep: String)      // remapped by Loom
+        runtimeOnly(dep: String)
+        modRuntimeOnly(dep: String)      // remapped by Loom
+        jarJar(dep: String)              // maps to Loom include
+    }
 }
 ```
 
@@ -80,6 +106,13 @@ fabric {
 forge {
     loaderVersion: String          // required
     loaderVersionRange: String?    // for template expansion
+
+    dependencies {
+        implementation(dep: String)
+        compileOnly(dep: String)
+        runtimeOnly(dep: String)
+        jarJar(dep: String)              // maps to MDG Legacy jarJar
+    }
 }
 ```
 
@@ -89,6 +122,13 @@ forge {
 neoforge {
     loaderVersion: String          // required
     loaderVersionRange: String?    // for template expansion
+
+    dependencies {
+        implementation(dep: String)
+        compileOnly(dep: String)
+        runtimeOnly(dep: String)
+        jarJar(dep: String)              // maps to MDG jarJar
+    }
 }
 ```
 
@@ -111,3 +151,5 @@ publishing {
     }
 }
 ```
+
+Publishing uses `minecraftVersions()` from the version block if set, otherwise the exact Minecraft version.

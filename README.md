@@ -52,6 +52,9 @@ plugins {
 }
 
 prism {
+    curseMaven()
+    modrinthMaven()
+
     metadata {
         modId = "mymod"
         name = "My Mod"
@@ -61,22 +64,50 @@ prism {
     }
 
     version("1.20.1") {
+        kotlin()
+
+        common {
+            implementation("some:shared-lib:1.0")
+        }
+
         fabric {
             loaderVersion = "0.14.19"
             fabricApi("0.91.0")
+            datagen()
+
+            dependencies {
+                modImplementation("curse.maven:jei-238222:4613379")
+            }
         }
         forge {
             loaderVersion = "47.2.0"
+
+            dependencies {
+                jarJar("some:library:[1.0,2.0)")
+            }
         }
     }
 
     version("1.21.1") {
+        minecraftVersions("1.21", "1.21.1")
+
         fabric {
             loaderVersion = "0.16.2"
             fabricApi("0.102.1")
         }
         neoforge {
             loaderVersion = "21.1.26"
+        }
+    }
+
+    publishing {
+        curseforge {
+            accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+            projectId = "123456"
+        }
+        modrinth {
+            accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+            projectId = "abcdef"
         }
     }
 }
@@ -99,9 +130,14 @@ mymod-1.21.1-Neoforge-1.0.0.jar
 - One branch for all versions and loaders
 - Full IntelliJ indexing and run configurations per target
 - Wraps Fabric Loom, ModDevGradle, and MDG Legacy
-- Automatic NeoForm version resolution
+- Kotlin support out of the box
+- Per-loader and common dependency blocks in the DSL
+- Jar-in-Jar support (Fabric include, NeoForge/Forge jarJar)
+- CurseMaven and Modrinth Maven with one function call
+- Version-aware datagen (split clientData/serverData for 1.21.4+, Fabric API datagen)
+- Automatic NeoForm version resolution with offline caching
 - Template variable expansion in metadata files
-- Optional CurseForge and Modrinth publishing via [mod-publish-plugin](https://github.com/modmuss50/mod-publish-plugin)
+- Multi-version publishing to CurseForge and Modrinth
 - Parchment mappings support
 - Access widener and access transformer support
 

@@ -1,5 +1,7 @@
 package dev.prism.gradle.dsl
 
+import org.gradle.api.Action
+
 open class FabricConfiguration : LoaderConfiguration {
     override val loaderName = "fabric"
     override val loaderDisplayName = "Fabric"
@@ -7,6 +9,7 @@ open class FabricConfiguration : LoaderConfiguration {
     var apiVersion: String? = null
     var yarnMappings: String? = null
     var enableDatagen: Boolean = false
+    internal val deps = DependencyBlock()
 
     fun fabricApi(version: String) {
         apiVersion = version
@@ -14,5 +17,9 @@ open class FabricConfiguration : LoaderConfiguration {
 
     fun datagen() {
         enableDatagen = true
+    }
+
+    fun dependencies(action: Action<DependencyBlock>) {
+        action.execute(deps)
     }
 }
