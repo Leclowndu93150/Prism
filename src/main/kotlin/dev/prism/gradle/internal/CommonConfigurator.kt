@@ -1,6 +1,7 @@
 package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.MetadataExtension
+import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
 import net.neoforged.moddevgradle.dsl.NeoForgeExtension
 import org.gradle.api.Project
@@ -12,11 +13,12 @@ object CommonConfigurator {
         commonProject: Project,
         versionConfig: VersionConfiguration,
         metadata: MetadataExtension,
+        extraRepositories: List<RepositoryEntry> = emptyList(),
     ) {
         commonProject.pluginManager.apply("java-library")
         commonProject.pluginManager.apply("net.neoforged.moddev")
 
-        RepositorySetup.configure(commonProject)
+        RepositorySetup.configure(commonProject, extraRepositories)
 
         commonProject.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.toolchain.languageVersion.set(

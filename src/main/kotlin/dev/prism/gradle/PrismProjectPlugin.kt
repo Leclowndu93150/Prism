@@ -51,7 +51,7 @@ class PrismProjectPlugin : Plugin<Project> {
                     "prism { version(\"$mcVersion\") { common() } }"
                 )
 
-            CommonConfigurator.configure(commonProject, versionConfig, extension.metadata)
+            CommonConfigurator.configure(commonProject, versionConfig, extension.metadata, extension.extraRepositories)
 
             for (loaderConfig in versionConfig.loaders) {
                 val loaderProject = rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")
@@ -61,7 +61,7 @@ class PrismProjectPlugin : Plugin<Project> {
                     )
 
                 LoaderConfigurator.configure(
-                    loaderProject, commonProject, versionConfig, loaderConfig, extension.metadata
+                    loaderProject, commonProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories
                 )
 
                 if (extension.publishingConfig.isConfigured) {

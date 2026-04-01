@@ -7,6 +7,7 @@ open class PrismExtension(private val project: Project) {
     val metadata = MetadataExtension()
     internal val versions = mutableMapOf<String, VersionConfiguration>()
     internal val publishingConfig = PublishingConfiguration()
+    internal val extraRepositories = mutableListOf<RepositoryEntry>()
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)
@@ -21,5 +22,19 @@ open class PrismExtension(private val project: Project) {
         action.execute(publishingConfig)
     }
 
+    fun curseMaven() {
+        extraRepositories.add(RepositoryEntry("CurseMaven", "https://cursemaven.com"))
+    }
+
+    fun modrinthMaven() {
+        extraRepositories.add(RepositoryEntry("Modrinth Maven", "https://api.modrinth.com/maven"))
+    }
+
+    fun maven(name: String, url: String) {
+        extraRepositories.add(RepositoryEntry(name, url))
+    }
+
     val providers get() = project.providers
 }
+
+data class RepositoryEntry(val name: String, val url: String)

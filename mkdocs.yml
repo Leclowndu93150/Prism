@@ -1,7 +1,8 @@
 site_name: Prism
 site_description: Multi-version, multi-loader Minecraft mod development.
-repo_url: https://github.com/yourname/prism
-repo_name: yourname/prism
+site_url: https://leclowndu93150.github.io/Prism/
+repo_url: https://github.com/Leclowndu93150/Prism
+repo_name: Leclowndu93150/Prism
 
 theme:
   name: material

@@ -1,9 +1,10 @@
 package dev.prism.gradle.internal
 
+import dev.prism.gradle.dsl.RepositoryEntry
 import org.gradle.api.Project
 
 object RepositorySetup {
-    fun configure(project: Project) {
+    fun configure(project: Project, extraRepositories: List<RepositoryEntry> = emptyList()) {
         project.repositories.apply {
             mavenCentral()
             exclusiveContent { exclusive ->
@@ -30,6 +31,13 @@ object RepositorySetup {
             maven { repo ->
                 repo.name = "ParchmentMC"
                 repo.setUrl("https://maven.parchmentmc.org/")
+            }
+
+            for (entry in extraRepositories) {
+                maven { repo ->
+                    repo.name = entry.name
+                    repo.setUrl(entry.url)
+                }
             }
         }
     }

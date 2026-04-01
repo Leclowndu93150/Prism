@@ -2,6 +2,7 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
+import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
 import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
 import org.gradle.api.Project
@@ -15,11 +16,12 @@ object ForgeConfigurator {
         versionConfig: VersionConfiguration,
         forgeConfig: ForgeConfiguration,
         metadata: MetadataExtension,
+        extraRepositories: List<RepositoryEntry> = emptyList(),
     ) {
         loaderProject.pluginManager.apply("java-library")
         loaderProject.pluginManager.apply("net.neoforged.moddev.legacyforge")
 
-        RepositorySetup.configure(loaderProject)
+        RepositorySetup.configure(loaderProject, extraRepositories)
 
         loaderProject.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.toolchain.languageVersion.set(

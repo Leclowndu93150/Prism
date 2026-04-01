@@ -5,6 +5,7 @@ import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.NeoForgeConfiguration
+import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
 import org.gradle.api.Project
 
@@ -15,16 +16,17 @@ object LoaderConfigurator {
         versionConfig: VersionConfiguration,
         loaderConfig: LoaderConfiguration,
         metadata: MetadataExtension,
+        extraRepositories: List<RepositoryEntry> = emptyList(),
     ) {
         when (loaderConfig) {
             is FabricConfiguration -> FabricConfigurator.configure(
-                loaderProject, commonProject, versionConfig, loaderConfig, metadata
+                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories
             )
             is ForgeConfiguration -> ForgeConfigurator.configure(
-                loaderProject, commonProject, versionConfig, loaderConfig, metadata
+                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories
             )
             is NeoForgeConfiguration -> NeoForgeConfigurator.configure(
-                loaderProject, commonProject, versionConfig, loaderConfig, metadata
+                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories
             )
         }
     }

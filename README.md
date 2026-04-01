@@ -107,7 +107,7 @@ mymod-1.21.1-Neoforge-1.0.0.jar
 
 ## Documentation
 
-Full documentation is available at [prism.dev](https://prism.dev) (or see the `docs/` folder).
+Full documentation is available at [leclowndu93150.github.io/Prism](https://leclowndu93150.github.io/Prism/) (or see the `docs/` folder).
 
 ## License
 
