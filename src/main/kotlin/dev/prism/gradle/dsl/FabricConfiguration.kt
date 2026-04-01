@@ -7,7 +7,7 @@ open class FabricConfiguration : LoaderConfiguration {
     override val loaderDisplayName = "Fabric"
     var loaderVersion: String = ""
     var apiVersion: String? = null
-    var yarnMappings: String? = null
+    var yarnVersion: String? = null
     var enableDatagen: Boolean = false
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
@@ -15,6 +15,10 @@ open class FabricConfiguration : LoaderConfiguration {
 
     fun fabricApi(version: String) {
         apiVersion = version
+    }
+
+    fun yarn(version: String) {
+        yarnVersion = version
     }
 
     fun datagen() {

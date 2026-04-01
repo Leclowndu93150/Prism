@@ -7,6 +7,7 @@ open class PublishingConfiguration {
     var changelog: String? = null
     var changelogFile: String? = null
     var type: ReleaseType = ReleaseType.STABLE
+    var displayName: String? = null
 
     internal var curseforgeConfig: CurseForgeConfig? = null
     internal var modrinthConfig: ModrinthConfig? = null

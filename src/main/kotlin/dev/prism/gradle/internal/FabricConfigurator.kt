@@ -54,15 +54,22 @@ object FabricConfigurator {
         loaderProject.dependencies.add("minecraft", "com.mojang:minecraft:${versionConfig.minecraftVersion}")
 
         if (!unobfuscated) {
-            val mappingsDep = loom.layered { layered ->
-                layered.officialMojangMappings()
-                if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
-                    layered.parchment(
-                        "org.parchmentmc.data:parchment-${versionConfig.parchmentMinecraftVersion}:${versionConfig.parchmentMappingsVersion}@zip"
-                    )
+            if (fabricConfig.yarnVersion != null) {
+                loaderProject.dependencies.add(
+                    "mappings",
+                    "net.fabricmc:yarn:${fabricConfig.yarnVersion}:v2"
+                )
+            } else {
+                val mappingsDep = loom.layered { layered ->
+                    layered.officialMojangMappings()
+                    if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
+                        layered.parchment(
+                            "org.parchmentmc.data:parchment-${versionConfig.parchmentMinecraftVersion}:${versionConfig.parchmentMappingsVersion}@zip"
+                        )
+                    }
                 }
+                loaderProject.dependencies.add("mappings", mappingsDep)
             }
-            loaderProject.dependencies.add("mappings", mappingsDep)
         }
 
         val depConfig = if (unobfuscated) "implementation" else "modImplementation"

@@ -40,7 +40,11 @@ object PublishingConfigurator {
 
             val jarTask = proj.tasks.findByName("remapJar") ?: proj.tasks.findByName("jar")
             if (jarTask != null) {
-                publishMods.file.set(jarTask.outputs.files.singleFile)
+                val jarFile = jarTask.outputs.files.singleFile
+                publishMods.file.set(jarFile)
+
+                val name = publishingConfig.displayName ?: jarFile.name
+                publishMods.displayName.set(name)
             }
 
             val changelog = publishingConfig.changelog
