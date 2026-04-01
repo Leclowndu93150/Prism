@@ -39,7 +39,7 @@ kotlin {
 
 dependencies {
     implementation(gradleApi())
-    implementation("net.fabricmc:fabric-loom:1.9.2")
+    implementation("net.fabricmc:fabric-loom:1.15.5")
     implementation("net.neoforged:moddev-gradle:2.0.141")
     implementation("me.modmuss50:mod-publish-plugin:1.1.0")
 
