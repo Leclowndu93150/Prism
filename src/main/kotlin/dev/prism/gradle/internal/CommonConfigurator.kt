@@ -3,6 +3,8 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
+import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
+import net.neoforged.moddevgradle.dsl.NeoForgeExtension
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
@@ -37,36 +39,10 @@ object CommonConfigurator {
             java.withSourcesJar()
         }
 
-        val canUseNeoForm = hasNeoForm(versionConfig.minecraftVersion)
-
-        if (canUseNeoForm) {
-            val neoFormVersion = versionConfig.neoFormVersion
-                ?: NeoFormVersionResolver.resolveNeoForm(versionConfig.minecraftVersion, commonProject)
-
-            commonProject.pluginManager.apply("net.neoforged.moddev")
-
-            val neoForgeExt = commonProject.extensions.getByName("neoForge")
-            neoForgeExt.javaClass.getMethod("setNeoFormVersion", String::class.java)
-                .invoke(neoForgeExt, neoFormVersion)
-
-            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
-                val parchmentMethod = neoForgeExt.javaClass.getMethod("parchment", org.gradle.api.Action::class.java)
-                parchmentMethod.invoke(neoForgeExt, org.gradle.api.Action<Any> { parchment ->
-                    parchment.javaClass.getMethod("getMinecraftVersion").invoke(parchment).let { prop ->
-                        prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMinecraftVersion)
-                    }
-                    parchment.javaClass.getMethod("getMappingsVersion").invoke(parchment).let { prop ->
-                        prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMappingsVersion)
-                    }
-                })
-            }
-
-            val at = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
-            if (at.exists()) {
-                val atCollection = neoForgeExt.javaClass.getMethod("getAccessTransformers").invoke(neoForgeExt)
-                atCollection.javaClass.getMethod("from", Array<Any>::class.java)
-                    .invoke(atCollection, arrayOf<Any>(at.absolutePath))
-            }
+        if (hasNeoForm(versionConfig.minecraftVersion)) {
+            applyWithNeoForm(commonProject, versionConfig)
+        } else {
+            applyWithLegacyMcp(commonProject, versionConfig)
         }
 
         commonProject.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
@@ -98,5 +74,48 @@ object CommonConfigurator {
         }
 
         TemplateExpansion.configure(commonProject, versionConfig, metadata)
+    }
+
+    private fun applyWithNeoForm(project: Project, versionConfig: VersionConfiguration) {
+        project.pluginManager.apply("net.neoforged.moddev")
+
+        val neoFormVersion = versionConfig.neoFormVersion
+            ?: NeoFormVersionResolver.resolveNeoForm(versionConfig.minecraftVersion, project)
+
+        project.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
+            neoForge.neoFormVersion = neoFormVersion
+
+            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
+                neoForge.parchment { parchment ->
+                    parchment.minecraftVersion.set(versionConfig.parchmentMinecraftVersion)
+                    parchment.mappingsVersion.set(versionConfig.parchmentMappingsVersion)
+                }
+            }
+
+            val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (at.exists()) {
+                neoForge.accessTransformers.from(at.absolutePath)
+            }
+        }
+    }
+
+    private fun applyWithLegacyMcp(project: Project, versionConfig: VersionConfiguration) {
+        project.pluginManager.apply("net.neoforged.moddev.legacyforge")
+
+        project.extensions.configure(LegacyForgeExtension::class.java) { legacyForge ->
+            legacyForge.mcpVersion = versionConfig.minecraftVersion
+
+            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
+                legacyForge.parchment { parchment ->
+                    parchment.minecraftVersion.set(versionConfig.parchmentMinecraftVersion)
+                    parchment.mappingsVersion.set(versionConfig.parchmentMappingsVersion)
+                }
+            }
+
+            val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (at.exists()) {
+                legacyForge.setAccessTransformers(at.absolutePath)
+            }
+        }
     }
 }
