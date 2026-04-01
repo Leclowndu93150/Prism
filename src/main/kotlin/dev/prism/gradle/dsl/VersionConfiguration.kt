@@ -55,6 +55,7 @@ open class VersionConfiguration(val minecraftVersion: String) {
             val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
 
             return when {
+                major >= 26 -> 25
                 major >= 2 || minor >= 21 -> 21
                 minor >= 18 -> 17
                 minor >= 17 -> 16
