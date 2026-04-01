@@ -10,6 +10,18 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 object FabricConfigurator {
+
+    private fun isUnobfuscated(mcVersion: String): Boolean {
+        val parts = mcVersion.split(".")
+        val major = parts.getOrNull(0)?.toIntOrNull() ?: 1
+        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
+        if (major > 1) return true
+        if (minor > 21) return true
+        if (minor == 21 && patch >= 11) return true
+        return false
+    }
+
     fun configure(
         loaderProject: Project,
         commonProject: Project,
@@ -19,6 +31,13 @@ object FabricConfigurator {
         extraRepositories: List<RepositoryEntry> = emptyList(),
     ) {
         loaderProject.pluginManager.apply("java-library")
+
+        val unobfuscated = isUnobfuscated(versionConfig.minecraftVersion)
+
+        if (unobfuscated) {
+            loaderProject.extensions.extraProperties.set("fabric.loom.disableObfuscation", "true")
+        }
+
         loaderProject.pluginManager.apply("fabric-loom")
 
         RepositorySetup.configure(loaderProject, extraRepositories)
@@ -34,15 +53,17 @@ object FabricConfigurator {
 
         loaderProject.dependencies.add("minecraft", "com.mojang:minecraft:${versionConfig.minecraftVersion}")
 
-        val mappingsDep = loom.layered { layered ->
-            layered.officialMojangMappings()
-            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
-                layered.parchment(
-                    "org.parchmentmc.data:parchment-${versionConfig.parchmentMinecraftVersion}:${versionConfig.parchmentMappingsVersion}@zip"
-                )
+        if (!unobfuscated) {
+            val mappingsDep = loom.layered { layered ->
+                layered.officialMojangMappings()
+                if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
+                    layered.parchment(
+                        "org.parchmentmc.data:parchment-${versionConfig.parchmentMinecraftVersion}:${versionConfig.parchmentMappingsVersion}@zip"
+                    )
+                }
             }
+            loaderProject.dependencies.add("mappings", mappingsDep)
         }
-        loaderProject.dependencies.add("mappings", mappingsDep)
 
         loaderProject.dependencies.add(
             "modImplementation",
@@ -57,12 +78,14 @@ object FabricConfigurator {
         }
 
         val aw = commonProject.file("src/main/resources/${metadata.modId}.accesswidener")
-        if (aw.exists()) {
+        if (aw.exists() && !unobfuscated) {
             loom.accessWidenerPath.set(aw)
         }
 
-        loom.mixin { mixin ->
-            mixin.defaultRefmapName.set("${metadata.modId}.refmap.json")
+        if (!unobfuscated) {
+            loom.mixin { mixin ->
+                mixin.defaultRefmapName.set("${metadata.modId}.refmap.json")
+            }
         }
 
         loom.runs { runs ->
