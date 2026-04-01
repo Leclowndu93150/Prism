@@ -10,6 +10,7 @@ open class FabricConfiguration : LoaderConfiguration {
     var yarnMappings: String? = null
     var enableDatagen: Boolean = false
     internal val deps = DependencyBlock()
+    internal val extraRuns = RunsBlock()
 
     fun fabricApi(version: String) {
         apiVersion = version
@@ -21,5 +22,9 @@ open class FabricConfiguration : LoaderConfiguration {
 
     fun dependencies(action: Action<DependencyBlock>) {
         action.execute(deps)
+    }
+
+    fun runs(action: Action<RunsBlock>) {
+        action.execute(extraRuns)
     }
 }

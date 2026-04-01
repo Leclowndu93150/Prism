@@ -125,6 +125,8 @@ object FabricConfigurator {
             }
         }
 
+        RunApplicator.applyFabricRuns(loaderProject, fabricConfig.extraRuns, versionConfig, loom)
+
         JarNaming.configure(loaderProject, metadata, versionConfig, fabricConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)

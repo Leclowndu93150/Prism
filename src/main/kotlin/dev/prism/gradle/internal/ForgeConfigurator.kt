@@ -92,6 +92,10 @@ object ForgeConfigurator {
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
 
+        loaderProject.extensions.configure(LegacyForgeExtension::class.java) { legacyForge ->
+            RunApplicator.applyMdgRuns(loaderProject, forgeConfig.extraRuns, versionConfig, "forge", legacyForge.runs)
+        }
+
         JarNaming.configure(loaderProject, metadata, versionConfig, forgeConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)

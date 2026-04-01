@@ -5,145 +5,72 @@
 <h1 align="center">Prism</h1>
 <p align="center">A Gradle plugin for multi-version, multi-loader Minecraft mod development in a single branch.</p>
 
-Prism lets you target multiple Minecraft versions and mod loaders (Fabric, NeoForge, Forge) from one project, without switching branches. Each version gets its own isolated set of source folders, and Prism handles all the wiring.
-
-## How it works
-
-Prism is a thin wrapper around the real toolchains. It applies [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradle](https://github.com/neoforged/ModDevGradle), and MDG Legacy to subprojects it generates for you. You get full IDE support, run configurations, and all the features of the underlying plugins.
+Prism wraps [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradle](https://github.com/neoforged/ModDevGradle), and MDG Legacy. One DSL, one branch, full IDE support.
 
 ```
 versions/
   1.20.1/
-    common/src/main/java/
-    fabric/src/main/java/
-    forge/src/main/java/
+    common/  fabric/  forge/
   1.21.1/
-    common/src/main/java/
-    fabric/src/main/java/
-    neoforge/src/main/java/
-```
-
-## Quick start
-
-**settings.gradle.kts**
-```kotlin
-plugins {
-    id("dev.prism.settings") version "0.1.0"
-}
-
-prism {
-    version("1.20.1") {
-        common()
-        fabric()
-        forge()
-    }
-    version("1.21.1") {
-        common()
-        fabric()
-        neoforge()
-    }
-}
-```
-
-**build.gradle.kts**
-```kotlin
-plugins {
-    id("dev.prism")
-}
-
-prism {
-    curseMaven()
-    modrinthMaven()
-
-    metadata {
-        modId = "mymod"
-        name = "My Mod"
-        description = "A mod."
-        license = "MIT"
-        author("YourName")
-    }
-
-    version("1.20.1") {
-        kotlin()
-
-        common {
-            implementation("some:shared-lib:1.0")
-        }
-
-        fabric {
-            loaderVersion = "0.14.19"
-            fabricApi("0.91.0")
-            datagen()
-
-            dependencies {
-                modImplementation("curse.maven:jei-238222:4613379")
-            }
-        }
-        forge {
-            loaderVersion = "47.2.0"
-
-            dependencies {
-                jarJar("some:library:[1.0,2.0)")
-            }
-        }
-    }
-
-    version("1.21.1") {
-        minecraftVersions("1.21", "1.21.1")
-
-        fabric {
-            loaderVersion = "0.16.2"
-            fabricApi("0.102.1")
-        }
-        neoforge {
-            loaderVersion = "21.1.26"
-        }
-    }
-
-    publishing {
-        curseforge {
-            accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
-            projectId = "123456"
-        }
-        modrinth {
-            accessToken = providers.environmentVariable("MODRINTH_TOKEN")
-            projectId = "abcdef"
-        }
-    }
-}
-```
-
-No `build.gradle.kts` files are needed in the version subfolders.
-
-## Output
-
-JARs are named `{modId}-{mcVersion}-{Loader}-{version}.jar`:
-
-```
-mymod-1.20.1-Fabric-1.0.0.jar
-mymod-1.20.1-Forge-1.0.0.jar
-mymod-1.21.1-Neoforge-1.0.0.jar
+    common/  fabric/  neoforge/
+  26.1/
+    common/  fabric/  neoforge/
 ```
 
 ## Features
 
-- One branch for all versions and loaders
-- Full IntelliJ indexing and run configurations per target
-- Wraps Fabric Loom, ModDevGradle, and MDG Legacy
-- Kotlin support out of the box
-- Per-loader and common dependency blocks in the DSL
-- Jar-in-Jar support (Fabric include, NeoForge/Forge jarJar)
-- CurseMaven and Modrinth Maven with one function call
-- Version-aware datagen (split clientData/serverData for 1.21.4+, Fabric API datagen)
-- Automatic NeoForm version resolution with offline caching
+- All versions and loaders in one branch
+- Full IntelliJ run configurations per target
+- Kotlin support
+- Per-loader dependency blocks with Jar-in-Jar
+- Custom run configurations with optional username
+- CurseMaven and Modrinth Maven built in
+- Version-aware datagen (split client/server for 1.21.4+)
+- Handles unobfuscated MC (26.x) automatically
+- Auto-detects access wideners and access transformers
 - Template variable expansion in metadata files
-- Multi-version publishing to CurseForge and Modrinth
-- Parchment mappings support
-- Access widener and access transformer support
+- CurseForge and Modrinth publishing
+
+## Quick start
+
+Use the [template](https://github.com/Leclowndu93150/prism-mod-template) or see the [docs](https://leclowndu93150.github.io/Prism/).
+
+```kotlin
+prism {
+    metadata {
+        modId = "mymod"
+        name = "My Mod"
+        license = "MIT"
+    }
+
+    version("1.21.1") {
+        fabric {
+            loaderVersion = "0.18.6"
+            fabricApi("0.116.9+1.21.1")
+
+            runs {
+                client("testClient") {
+                    username = "Dev"
+                }
+            }
+        }
+        neoforge {
+            loaderVersion = "21.1.222"
+        }
+    }
+}
+```
+
+## Output
+
+```
+mymod-1.21.1-Fabric-1.0.0.jar
+mymod-1.21.1-Neoforge-1.0.0.jar
+```
 
 ## Documentation
 
-Full documentation is available at [leclowndu93150.github.io/Prism](https://leclowndu93150.github.io/Prism/) (or see the `docs/` folder).
+[leclowndu93150.github.io/Prism](https://leclowndu93150.github.io/Prism/)
 
 ## License
 

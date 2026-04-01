@@ -97,6 +97,21 @@ fabric {
         modRuntimeOnly(dep: String)      // remapped by Loom
         jarJar(dep: String)              // maps to Loom include
     }
+
+    runs {
+        client("myClient") {            // custom client run
+            username = "Dev"             // optional
+        }
+        server("myServer") { }          // custom server run
+        run("custom") {                 // fully custom run
+            client()                     // or server()
+            username = "TestPlayer"
+            jvmArg("-Xmx4G")
+            programArg("--demo")
+            systemProperty("key", "value")
+            runDir = "runs/custom"       // optional, auto-generated if not set
+        }
+    }
 }
 ```
 
@@ -113,6 +128,11 @@ forge {
         runtimeOnly(dep: String)
         jarJar(dep: String)              // maps to MDG Legacy jarJar
     }
+
+    runs {
+        client("second") { username = "Player2" }
+        server("testServer") { }
+    }
 }
 ```
 
@@ -128,6 +148,11 @@ neoforge {
         compileOnly(dep: String)
         runtimeOnly(dep: String)
         jarJar(dep: String)              // maps to MDG jarJar
+    }
+
+    runs {
+        client("second") { username = "Player2" }
+        server("testServer") { }
     }
 }
 ```

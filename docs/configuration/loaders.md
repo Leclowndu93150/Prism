@@ -92,6 +92,52 @@ The version string passed to MDG Legacy is `{mcVersion}-{loaderVersion}`, e.g. `
 
 Run configurations generated: `client`, `server`, `data`.
 
+## Custom run configurations
+
+Every loader gets default runs (client, server, data). You can add more:
+
+```kotlin
+fabric {
+    loaderVersion = "0.18.6"
+    fabricApi("0.116.9+1.21.1")
+
+    runs {
+        client("testClient") {
+            username = "Dev"
+        }
+        server("secondServer") {
+            jvmArg("-Xmx4G")
+        }
+    }
+}
+
+neoforge {
+    loaderVersion = "21.1.222"
+
+    runs {
+        client("debugClient") {
+            username = "TestPlayer"
+            systemProperty("forge.logging.console.level", "trace")
+        }
+    }
+}
+```
+
+Custom runs appear in IntelliJ alongside the defaults. The `username` field is optional and sets the in-game player name for dev runs.
+
+### Run DSL methods
+
+| Method | Description |
+|--------|-------------|
+| `client(name)` | Creates a client run |
+| `server(name)` | Creates a server run |
+| `run(name) { client() }` | Fully custom run, set type inside |
+| `username = "..."` | Set dev player name |
+| `jvmArg(arg)` | Add JVM argument |
+| `programArg(arg)` | Add program argument |
+| `systemProperty(k, v)` | Add system property |
+| `runDir = "..."` | Custom run directory |
+
 ## Kotlin support
 
 Enable Kotlin for all subprojects of a version:

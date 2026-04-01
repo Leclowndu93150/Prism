@@ -8,8 +8,13 @@ open class NeoForgeConfiguration : LoaderConfiguration {
     var loaderVersion: String = ""
     var loaderVersionRange: String? = null
     internal val deps = DependencyBlock()
+    internal val extraRuns = RunsBlock()
 
     fun dependencies(action: Action<DependencyBlock>) {
         action.execute(deps)
+    }
+
+    fun runs(action: Action<RunsBlock>) {
+        action.execute(extraRuns)
     }
 }

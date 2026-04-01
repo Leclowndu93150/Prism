@@ -125,6 +125,10 @@ object NeoForgeConfigurator {
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
 
+        loaderProject.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
+            RunApplicator.applyMdgRuns(loaderProject, neoForgeConfig.extraRuns, versionConfig, "neoforge", neoForge.runs)
+        }
+
         JarNaming.configure(loaderProject, metadata, versionConfig, neoForgeConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
