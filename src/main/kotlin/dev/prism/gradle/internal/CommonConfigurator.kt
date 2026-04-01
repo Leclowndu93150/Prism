@@ -8,6 +8,18 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 object CommonConfigurator {
+
+    private fun hasNeoForm(minecraftVersion: String): Boolean {
+        val parts = minecraftVersion.split(".")
+        val major = parts.getOrNull(0)?.toIntOrNull() ?: 1
+        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
+        if (major > 1) return true
+        if (minor > 20) return true
+        if (minor == 20 && patch >= 2) return true
+        return false
+    }
+
     fun configure(
         commonProject: Project,
         versionConfig: VersionConfiguration,
@@ -25,14 +37,35 @@ object CommonConfigurator {
             java.withSourcesJar()
         }
 
-        if (versionConfig.neoFormVersion != null) {
-            applyWithNeoForm(commonProject, versionConfig, versionConfig.neoFormVersion!!)
-        } else {
-            val resolved = NeoFormVersionResolver.resolve(versionConfig.minecraftVersion, commonProject)
-            if (resolved.useMcp) {
-                applyWithMcp(commonProject, versionConfig, resolved.version)
-            } else {
-                applyWithNeoForm(commonProject, versionConfig, resolved.version)
+        val canUseNeoForm = hasNeoForm(versionConfig.minecraftVersion)
+
+        if (canUseNeoForm) {
+            val neoFormVersion = versionConfig.neoFormVersion
+                ?: NeoFormVersionResolver.resolveNeoForm(versionConfig.minecraftVersion, commonProject)
+
+            commonProject.pluginManager.apply("net.neoforged.moddev")
+
+            val neoForgeExt = commonProject.extensions.getByName("neoForge")
+            neoForgeExt.javaClass.getMethod("setNeoFormVersion", String::class.java)
+                .invoke(neoForgeExt, neoFormVersion)
+
+            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
+                val parchmentMethod = neoForgeExt.javaClass.getMethod("parchment", org.gradle.api.Action::class.java)
+                parchmentMethod.invoke(neoForgeExt, org.gradle.api.Action<Any> { parchment ->
+                    parchment.javaClass.getMethod("getMinecraftVersion").invoke(parchment).let { prop ->
+                        prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMinecraftVersion)
+                    }
+                    parchment.javaClass.getMethod("getMappingsVersion").invoke(parchment).let { prop ->
+                        prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMappingsVersion)
+                    }
+                })
+            }
+
+            val at = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (at.exists()) {
+                val atCollection = neoForgeExt.javaClass.getMethod("getAccessTransformers").invoke(neoForgeExt)
+                atCollection.javaClass.getMethod("from", Array<Any>::class.java)
+                    .invoke(atCollection, arrayOf<Any>(at.absolutePath))
             }
         }
 
@@ -65,59 +98,5 @@ object CommonConfigurator {
         }
 
         TemplateExpansion.configure(commonProject, versionConfig, metadata)
-    }
-
-    private fun applyWithNeoForm(project: Project, versionConfig: VersionConfiguration, neoFormVersion: String) {
-        project.pluginManager.apply("net.neoforged.moddev")
-
-        val neoForgeExt = project.extensions.getByName("neoForge")
-        neoForgeExt.javaClass.getMethod("setNeoFormVersion", String::class.java)
-            .invoke(neoForgeExt, neoFormVersion)
-
-        if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
-            val parchmentMethod = neoForgeExt.javaClass.getMethod("parchment", org.gradle.api.Action::class.java)
-            parchmentMethod.invoke(neoForgeExt, org.gradle.api.Action<Any> { parchment ->
-                parchment.javaClass.getMethod("getMinecraftVersion").invoke(parchment).let { prop ->
-                    prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMinecraftVersion)
-                }
-                parchment.javaClass.getMethod("getMappingsVersion").invoke(parchment).let { prop ->
-                    prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMappingsVersion)
-                }
-            })
-        }
-
-        val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
-        if (at.exists()) {
-            val atCollection = neoForgeExt.javaClass.getMethod("getAccessTransformers").invoke(neoForgeExt)
-            atCollection.javaClass.getMethod("from", Array<Any>::class.java)
-                .invoke(atCollection, arrayOf<Any>(at.absolutePath))
-        }
-    }
-
-    private fun applyWithMcp(project: Project, versionConfig: VersionConfiguration, mcpVersion: String) {
-        project.pluginManager.apply("net.neoforged.moddev.legacyforge")
-
-        val legacyExt = project.extensions.getByName("legacyForge")
-        legacyExt.javaClass.getMethod("setMcpVersion", String::class.java)
-            .invoke(legacyExt, mcpVersion)
-
-        if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
-            val parchmentMethod = legacyExt.javaClass.getMethod("parchment", org.gradle.api.Action::class.java)
-            parchmentMethod.invoke(legacyExt, org.gradle.api.Action<Any> { parchment ->
-                parchment.javaClass.getMethod("getMinecraftVersion").invoke(parchment).let { prop ->
-                    prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMinecraftVersion)
-                }
-                parchment.javaClass.getMethod("getMappingsVersion").invoke(parchment).let { prop ->
-                    prop.javaClass.getMethod("set", Any::class.java).invoke(prop, versionConfig.parchmentMappingsVersion)
-                }
-            })
-        }
-
-        val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
-        if (at.exists()) {
-            val atCollection = legacyExt.javaClass.getMethod("getAccessTransformers").invoke(legacyExt)
-            atCollection.javaClass.getMethod("from", Array<Any>::class.java)
-                .invoke(atCollection, arrayOf<Any>(at.absolutePath))
-        }
     }
 }
