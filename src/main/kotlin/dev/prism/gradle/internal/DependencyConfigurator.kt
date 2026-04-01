@@ -5,6 +5,8 @@ import org.gradle.api.Project
 
 object DependencyConfigurator {
     fun apply(project: Project, deps: DependencyBlock, isFabric: Boolean = false) {
+        val hasModConfigs = project.configurations.findByName("modImplementation") != null
+
         for (dep in deps.implementations) {
             project.dependencies.add("implementation", dep)
         }
@@ -15,9 +17,9 @@ object DependencyConfigurator {
             project.dependencies.add("runtimeOnly", dep)
         }
 
-        val modImpl = if (isFabric) "modImplementation" else "implementation"
-        val modCompile = if (isFabric) "modCompileOnly" else "compileOnly"
-        val modRuntime = if (isFabric) "modRuntimeOnly" else "runtimeOnly"
+        val modImpl = if (isFabric && hasModConfigs) "modImplementation" else "implementation"
+        val modCompile = if (isFabric && hasModConfigs) "modCompileOnly" else "compileOnly"
+        val modRuntime = if (isFabric && hasModConfigs) "modRuntimeOnly" else "runtimeOnly"
 
         for (dep in deps.modImplementations) {
             project.dependencies.add(modImpl, dep)
@@ -30,15 +32,15 @@ object DependencyConfigurator {
         }
 
         if (deps.jarJarDeps.isNotEmpty()) {
-            if (isFabric) {
+            val includeConfig = project.configurations.findByName("include")
+            if (isFabric && includeConfig != null) {
                 for (dep in deps.jarJarDeps) {
                     project.dependencies.add("include", dep)
                 }
             } else {
                 for (dep in deps.jarJarDeps) {
-                    val jarJarConfig = if (project.configurations.findByName("jarJar") != null) "jarJar" else null
-                    if (jarJarConfig != null) {
-                        project.dependencies.add(jarJarConfig, dep)
+                    if (project.configurations.findByName("jarJar") != null) {
+                        project.dependencies.add("jarJar", dep)
                     }
                     project.dependencies.add("implementation", dep)
                 }

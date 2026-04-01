@@ -65,14 +65,16 @@ object FabricConfigurator {
             loaderProject.dependencies.add("mappings", mappingsDep)
         }
 
+        val depConfig = if (unobfuscated) "implementation" else "modImplementation"
+
         loaderProject.dependencies.add(
-            "modImplementation",
+            depConfig,
             "net.fabricmc:fabric-loader:${fabricConfig.loaderVersion}"
         )
 
         fabricConfig.apiVersion?.let { apiVersion ->
             loaderProject.dependencies.add(
-                "modImplementation",
+                depConfig,
                 "net.fabricmc.fabric-api:fabric-api:$apiVersion"
             )
         }
