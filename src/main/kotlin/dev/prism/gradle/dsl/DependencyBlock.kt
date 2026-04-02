@@ -8,6 +8,7 @@ open class DependencyBlock {
     internal val modCompileOnlys = mutableListOf<String>()
     internal val modRuntimeOnlys = mutableListOf<String>()
     internal val jarJarDeps = mutableListOf<String>()
+    internal val annotationProcessors = mutableListOf<String>()
 
     fun implementation(dep: String) { implementations.add(dep) }
     fun modImplementation(dep: String) { modImplementations.add(dep) }
@@ -16,4 +17,5 @@ open class DependencyBlock {
     fun modCompileOnly(dep: String) { modCompileOnlys.add(dep) }
     fun modRuntimeOnly(dep: String) { modRuntimeOnlys.add(dep) }
     fun jarJar(dep: String) { jarJarDeps.add(dep) }
+    fun annotationProcessor(dep: String) { annotationProcessors.add(dep) }
 }

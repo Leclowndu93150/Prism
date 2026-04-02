@@ -31,6 +31,10 @@ object DependencyConfigurator {
             project.dependencies.add(modRuntime, dep)
         }
 
+        for (dep in deps.annotationProcessors) {
+            project.dependencies.add("annotationProcessor", dep)
+        }
+
         if (deps.jarJarDeps.isNotEmpty()) {
             val includeConfig = project.configurations.findByName("include")
             if (isFabric && includeConfig != null) {

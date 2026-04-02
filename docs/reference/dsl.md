@@ -76,6 +76,7 @@ version("1.21.1") {
         implementation(dep: String)
         compileOnly(dep: String)
         runtimeOnly(dep: String)
+        annotationProcessor(dep: String)
     }
 
     fabric { ... }
@@ -103,6 +104,7 @@ fabric {
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)      // remapped by Loom
         jarJar(dep: String)              // maps to Loom include
+        annotationProcessor(dep: String)
     }
 
     runs {

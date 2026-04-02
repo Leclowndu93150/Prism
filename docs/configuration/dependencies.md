@@ -6,10 +6,12 @@ sidebar_position: 5
 
 ## Built-in dependencies
 
-Prism automatically adds the following to the common subproject:
+Prism automatically adds the following to each version's common subproject:
 
-- `org.spongepowered:mixin:0.8.5` (compileOnly)
-- `io.github.llamalad7:mixinextras-common:0.3.5` (compileOnly + annotation processor)
+- `org.spongepowered:mixin:0.8.5` (compileOnly, always)
+- `io.github.llamalad7:mixinextras-common:0.3.5` (compileOnly + annotation processor, only when Forge is not a loader for that version)
+
+MixinExtras is bundled by Fabric Loader and NeoForge, but not by Forge. If your version targets Forge, MixinExtras is not added to common. You can add it per-loader if needed.
 
 For Fabric, Minecraft, Fabric Loader, and optionally Fabric API are added automatically.
 

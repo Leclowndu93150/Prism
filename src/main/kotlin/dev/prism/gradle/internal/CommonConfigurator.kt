@@ -46,8 +46,12 @@ object CommonConfigurator {
         }
 
         commonProject.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
-        commonProject.dependencies.add("compileOnly", "io.github.llamalad7:mixinextras-common:0.3.5")
-        commonProject.dependencies.add("annotationProcessor", "io.github.llamalad7:mixinextras-common:0.3.5")
+
+        val hasForge = versionConfig.forgeConfig != null
+        if (!hasForge) {
+            commonProject.dependencies.add("compileOnly", "io.github.llamalad7:mixinextras-common:0.3.5")
+            commonProject.dependencies.add("annotationProcessor", "io.github.llamalad7:mixinextras-common:0.3.5")
+        }
 
         val commonJava = commonProject.configurations.create("commonJava") { cfg ->
             cfg.isCanBeResolved = false
