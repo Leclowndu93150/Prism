@@ -10,6 +10,7 @@ import dev.prism.gradle.internal.KotlinConfigurator
 import dev.prism.gradle.internal.LoaderConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
 import dev.prism.gradle.internal.SharedCommonConfigurator
+import dev.prism.gradle.internal.Validation
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -28,10 +29,6 @@ class PrismProjectPlugin : Plugin<Project> {
     }
 
     private fun configureSubprojects(rootProject: Project, extension: PrismExtension) {
-        if (extension.metadata.modId.isEmpty()) {
-            throw IllegalStateException("prism.metadata.modId must be set.")
-        }
-
         if (extension.metadata.version.isEmpty()) {
             extension.metadata.version = rootProject.version.toString()
         }
@@ -39,6 +36,8 @@ class PrismProjectPlugin : Plugin<Project> {
         if (extension.metadata.group.isEmpty()) {
             extension.metadata.group = rootProject.group.toString()
         }
+
+        Validation.validate(extension)
 
         val sharedProject = rootProject.findProject(":common")
         val hasSharedCommon = sharedProject != null
@@ -86,7 +85,14 @@ class PrismProjectPlugin : Plugin<Project> {
     ) {
         val loaderConfig = versionConfig.loaders.first()
         val loaderProject = rootProject.findProject(":$mcVersion")
-            ?: throw IllegalStateException("Project :$mcVersion not found.")
+            ?: throw IllegalStateException(
+                "Prism: Project ':$mcVersion' not found for single-loader ${loaderConfig.loaderDisplayName}.\n" +
+                "Make sure settings.gradle.kts has:\n" +
+                "  version(\"$mcVersion\") {\n" +
+                "      ${loaderConfig.loaderName}()\n" +
+                "  }\n" +
+                "And the directory exists: versions/$mcVersion/"
+            )
 
         LoaderConfigurator.configureSingle(
             loaderProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories,
@@ -130,9 +136,14 @@ class PrismProjectPlugin : Plugin<Project> {
     ) {
         val commonProject = rootProject.findProject(":$mcVersion:common")
             ?: throw IllegalStateException(
-                "Common project :$mcVersion:common not found. " +
-                "Make sure you declared it in settings.gradle.kts with: " +
-                "prism { version(\"$mcVersion\") { common() } }"
+                "Prism: Common project ':$mcVersion:common' not found.\n" +
+                "For multi-loader, settings.gradle.kts needs:\n" +
+                "  version(\"$mcVersion\") {\n" +
+                "      common()\n" +
+                "      fabric()\n" +
+                "      neoforge()\n" +
+                "  }\n" +
+                "Or for single-loader, remove common() and keep only one loader."
             )
 
         CommonConfigurator.configure(commonProject, versionConfig, extension.metadata, extension.extraRepositories)
@@ -146,8 +157,13 @@ class PrismProjectPlugin : Plugin<Project> {
         for (loaderConfig in versionConfig.loaders) {
             val loaderProject = rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")
                 ?: throw IllegalStateException(
-                    "Loader project :$mcVersion:${loaderConfig.loaderName} not found. " +
-                    "Make sure you declared it in settings.gradle.kts."
+                    "Prism: Loader project ':$mcVersion:${loaderConfig.loaderName}' not found.\n" +
+                    "Add ${loaderConfig.loaderName}() to settings.gradle.kts:\n" +
+                    "  version(\"$mcVersion\") {\n" +
+                    "      common()\n" +
+                    "      ${loaderConfig.loaderName}()\n" +
+                    "  }\n" +
+                    "And create: versions/$mcVersion/${loaderConfig.loaderName}/"
                 )
 
             LoaderConfigurator.configure(
