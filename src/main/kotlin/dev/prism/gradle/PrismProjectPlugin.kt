@@ -166,6 +166,12 @@ class PrismProjectPlugin : Plugin<Project> {
             SharedCommonConfigurator.wireInto(commonProject, sharedProject!!)
         }
 
+        if (extension.publishingConfig.hasMaven && extension.publishingConfig.publishCommonJar) {
+            MavenPublishConfigurator.configureCommon(
+                commonProject, versionConfig, extension.metadata, extension.publishingConfig.mavenRepos
+            )
+        }
+
         for (loaderConfig in versionConfig.loaders) {
             val loaderProject = rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")
                 ?: throw IllegalStateException(

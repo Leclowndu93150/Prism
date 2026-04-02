@@ -197,6 +197,7 @@ publishing {
     }
 
     // Maven publishing
+    publishCommonJar: Boolean              // also publish common JARs (for library mods)
     mavenLocal()                           // publish to ~/.m2
     githubPackages(owner, repo)            // GitHub Packages (auto-credentials)
     maven {                                // custom Maven repo

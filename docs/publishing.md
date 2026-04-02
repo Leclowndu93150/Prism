@@ -179,12 +179,40 @@ publishing {
 }
 ```
 
+### Publishing common JARs (for library mods)
+
+If you're building a library mod, other multiloader mods need to depend on your common API. Enable common JAR publishing:
+
+```kotlin
+publishing {
+    publishCommonJar = true
+    mavenLocal()
+}
+```
+
+This publishes each version's common project as a separate artifact alongside the loader JARs:
+
+```
+com.example:mymod-1.21.1-common:1.0.0    # common API
+com.example:mymod-1.21.1-fabric:1.0.0    # fabric implementation
+com.example:mymod-1.21.1-neoforge:1.0.0  # neoforge implementation
+```
+
+Consumers of your library can then:
+- Depend on `mymod-1.21.1-common` in their common
+- Depend on `mymod-1.21.1-fabric` in their fabric
+- Depend on `mymod-1.21.1-neoforge` in their neoforge
+
+Only works for multi-loader versions (versions with `common()`). Single-loader versions don't have a separate common.
+
 ### Maven artifact coordinates
 
 Each loader subproject publishes with:
 - **groupId**: your project group
 - **artifactId**: `{modId}-{mcVersion}-{loader}` (e.g. `mymod-1.21.1-neoforge`)
 - **version**: your project version
+
+With `publishCommonJar = true`, common subprojects also publish as `{modId}-{mcVersion}-common`.
 
 ## Running
 

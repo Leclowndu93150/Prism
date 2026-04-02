@@ -13,6 +13,7 @@ open class PublishingConfiguration {
     internal var modrinthConfig: ModrinthConfig? = null
     internal val pubDeps = PublishingDepsBlock()
     internal val mavenRepos = mutableListOf<MavenRepoConfig>()
+    var publishCommonJar: Boolean = false
 
     val isConfigured: Boolean
         get() = curseforgeConfig != null || modrinthConfig != null

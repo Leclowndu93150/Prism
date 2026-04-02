@@ -33,28 +33,59 @@ object MavenPublishConfigurator {
                     }
                 }
 
-                publishing.repositories { repos ->
-                    for (mavenRepo in mavenRepos) {
-                        if (mavenRepo.isLocal) {
-                            repos.mavenLocal()
-                        } else {
-                            repos.maven { repo ->
-                                repo.name = mavenRepo.name
-                                repo.setUrl(mavenRepo.url!!)
+                addRepositories(publishing, mavenRepos)
+            }
+        }
+    }
 
-                                if (mavenRepo.username != null && mavenRepo.password != null) {
-                                    repo.credentials { creds ->
-                                        creds.username = if (mavenRepo.usernameIsEnv) {
-                                            System.getenv(mavenRepo.username)
-                                        } else {
-                                            mavenRepo.username
-                                        }
-                                        creds.password = if (mavenRepo.passwordIsEnv) {
-                                            System.getenv(mavenRepo.password)
-                                        } else {
-                                            mavenRepo.password
-                                        }
-                                    }
+    fun configureCommon(
+        commonProject: Project,
+        versionConfig: VersionConfiguration,
+        metadata: MetadataExtension,
+        mavenRepos: List<MavenRepoConfig>,
+    ) {
+        if (mavenRepos.isEmpty()) return
+
+        commonProject.pluginManager.apply("maven-publish")
+
+        commonProject.afterEvaluate { proj ->
+            proj.extensions.configure(PublishingExtension::class.java) { publishing ->
+                publishing.publications { publications ->
+                    publications.create("prismCommon", MavenPublication::class.java) { pub ->
+                        pub.groupId = metadata.group.ifEmpty { proj.rootProject.group.toString() }
+                        pub.artifactId = "${metadata.modId}-${versionConfig.minecraftVersion}-common"
+                        pub.version = metadata.version.ifEmpty { proj.rootProject.version.toString() }
+
+                        pub.from(proj.components.findByName("java"))
+                    }
+                }
+
+                addRepositories(publishing, mavenRepos)
+            }
+        }
+    }
+
+    private fun addRepositories(publishing: PublishingExtension, mavenRepos: List<MavenRepoConfig>) {
+        publishing.repositories { repos ->
+            for (mavenRepo in mavenRepos) {
+                if (mavenRepo.isLocal) {
+                    repos.mavenLocal()
+                } else {
+                    repos.maven { repo ->
+                        repo.name = mavenRepo.name
+                        repo.setUrl(mavenRepo.url!!)
+
+                        if (mavenRepo.username != null && mavenRepo.password != null) {
+                            repo.credentials { creds ->
+                                creds.username = if (mavenRepo.usernameIsEnv) {
+                                    System.getenv(mavenRepo.username)
+                                } else {
+                                    mavenRepo.username
+                                }
+                                creds.password = if (mavenRepo.passwordIsEnv) {
+                                    System.getenv(mavenRepo.password)
+                                } else {
+                                    mavenRepo.password
                                 }
                             }
                         }
