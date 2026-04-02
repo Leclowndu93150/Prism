@@ -64,6 +64,19 @@ gradlePlugin {
     }
 }
 
+publishing {
+    repositories {
+        maven {
+            name = "Leclown"
+            url = uri("https://maven.leclowndu93150.dev/releases")
+            credentials {
+                username = System.getenv("MAVEN_USER") ?: ""
+                password = System.getenv("MAVEN_PASS") ?: ""
+            }
+        }
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }

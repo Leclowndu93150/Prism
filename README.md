@@ -29,11 +29,30 @@ versions/
 - Handles unobfuscated MC (26.x) automatically
 - Auto-detects access wideners and access transformers
 - Template variable expansion in metadata files
-- CurseForge and Modrinth publishing
+- CurseForge, Modrinth, and Maven publishing
+- Common JAR publishing for library mods
 
-## Quick start
+## Install
 
-Use the [template](https://github.com/Leclowndu93150/prism-mod-template) or see the [docs](https://prism.leclowndu93150.dev).
+```kotlin
+// settings.gradle.kts
+pluginManagement {
+    repositories {
+        maven { url = uri("https://maven.leclowndu93150.dev/releases") }
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = uri("https://maven.fabricmc.net/") }
+        maven { url = uri("https://maven.neoforged.net/releases") }
+        maven { url = uri("https://repo.spongepowered.org/repository/maven-public/") }
+    }
+}
+
+plugins {
+    id("dev.prism.settings") version "0.1.0"
+}
+```
+
+Or use the [template](https://github.com/Leclowndu93150/prism-mod-template). Full docs at [prism.leclowndu93150.dev](https://prism.leclowndu93150.dev).
 
 ```kotlin
 prism {

@@ -14,30 +14,18 @@ sidebar_position: 2
 
 Use the [Prism Mod Template](https://github.com/Leclowndu93150/prism-mod-template). Click **Use this template** on GitHub, clone your new repo, and open it in IntelliJ.
 
-The template comes with 1.20.1 (Fabric + Forge), 1.21.1 (Fabric + NeoForge), and 26.1 (Fabric + NeoForge) pre-configured, with the Prism JAR bundled in `libs/`.
-
-Edit `build.gradle.kts` to change your mod ID, name, and loader versions. Edit `settings.gradle.kts` to add or remove versions and loaders.
+The template comes with 1.20.1 (Fabric + Forge), 1.21.1 (NeoForge), and 26.1 (Fabric) pre-configured.
 
 ## Manual setup
 
-If you want to set up from scratch instead of using the template:
-
-### 1. Create the project
-
-```bash
-mkdir my-mod && cd my-mod
-gradle wrapper --gradle-version 9.2
-```
-
-Copy `libs/prism-gradle-plugin-0.1.0.jar` from the [template repo](https://github.com/Leclowndu93150/prism-mod-template/tree/main/libs) into your project's `libs/` directory.
-
-### 2. Settings file
+### 1. Settings file
 
 Create `settings.gradle.kts`:
 
 ```kotlin
 pluginManagement {
     repositories {
+        maven { url = uri("https://maven.leclowndu93150.dev/releases") }
         gradlePluginPortal()
         mavenCentral()
         maven { url = uri("https://maven.fabricmc.net/") }
@@ -48,30 +36,12 @@ pluginManagement {
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
+    id("dev.prism.settings") version "0.1.0"
 }
-
-buildscript {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-        maven { url = uri("https://maven.fabricmc.net/") }
-        maven { url = uri("https://maven.neoforged.net/releases") }
-        maven { url = uri("https://repo.spongepowered.org/repository/maven-public/") }
-        maven { url = uri("https://libraries.minecraft.net/") }
-    }
-    dependencies {
-        classpath(files("libs/prism-gradle-plugin-0.1.0.jar"))
-        classpath("net.fabricmc:fabric-loom:1.15.5")
-        classpath("net.neoforged:moddev-gradle:2.0.141")
-        classpath("me.modmuss50:mod-publish-plugin:1.1.0")
-    }
-}
-
-apply(plugin = "dev.prism.settings")
 
 rootProject.name = "my-mod"
 
-extensions.configure<dev.prism.gradle.dsl.PrismSettingsExtension>("prism") {
+prism {
     version("1.21.1") {
         common()
         fabric()
@@ -80,19 +50,21 @@ extensions.configure<dev.prism.gradle.dsl.PrismSettingsExtension>("prism") {
 }
 ```
 
-The `buildscript` block loads Prism and its dependencies onto the classpath. The foojay plugin lets Gradle auto-download the correct JDK per Minecraft version.
+The Prism maven must be listed first in `pluginManagement.repositories`. The foojay plugin lets Gradle auto-download the correct JDK per Minecraft version.
 
-### 3. Build file
+### 2. Build file
 
 Create `build.gradle.kts`:
 
 ```kotlin
-apply(plugin = "dev.prism")
+plugins {
+    id("dev.prism")
+}
 
 group = "com.example"
 version = "1.0.0"
 
-extensions.configure<dev.prism.gradle.dsl.PrismExtension>("prism") {
+prism {
     metadata {
         modId = "mymod"
         name = "My Mod"
@@ -114,9 +86,7 @@ extensions.configure<dev.prism.gradle.dsl.PrismExtension>("prism") {
 }
 ```
 
-No `build.gradle.kts` files are needed inside the version folders.
-
-### 4. Create source directories
+### 3. Create source directories
 
 ```
 versions/
@@ -129,11 +99,11 @@ versions/
     neoforge/src/main/resources/
 ```
 
-### 5. Add metadata files
+### 4. Add metadata files
 
-Place `fabric.mod.json`, `neoforge.mods.toml`, etc. in each loader's `src/main/resources/`. Use `${variable}` placeholders for values Prism expands automatically. See [Template Variables](reference/template-variables.md) for the full list.
+Place `fabric.mod.json`, `neoforge.mods.toml`, etc. in each loader's `src/main/resources/`. Use `${variable}` placeholders that Prism expands automatically. See [Template Variables](reference/template-variables.md) for the full list.
 
-### 6. Build and run
+### 5. Build and run
 
 ```bash
 ./gradlew build                        # build everything
@@ -141,7 +111,7 @@ Place `fabric.mod.json`, `neoforge.mods.toml`, etc. in each loader's `src/main/r
 ./gradlew :1.21.1:neoforge:runClient   # run specific target
 ```
 
-Run configurations appear in IntelliJ with version-specific names like `Fabric Client (1.21.1)` and `NeoForge Client (1.21.1)`.
+Run configurations appear in IntelliJ with names like `Fabric Client (1.21.1)` and `NeoForge Client (1.21.1)`.
 
 ## What goes where
 
@@ -165,11 +135,11 @@ Prism sets the correct JDK per Minecraft version automatically:
 | 1.21.x | 21 |
 | 26.x | 25 |
 
-With foojay, Gradle downloads the right JDK if it's not installed. Override with `javaVersion` in the version block.
+With foojay, Gradle downloads the right JDK if it's not installed.
 
 ## Next steps
 
 - [Loaders](configuration/loaders.md) for loader-specific configuration
 - [Dependencies](configuration/dependencies.md) for adding libraries and mods
-- [Publishing](publishing.md) for CurseForge and Modrinth
+- [Publishing](publishing.md) for CurseForge, Modrinth, and Maven
 - [DSL Reference](reference/dsl.md) for the complete API
