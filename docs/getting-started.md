@@ -10,11 +10,19 @@ sidebar_position: 2
 - JDK for your highest MC target (JDK 25 for 26.x, JDK 21 for 1.21.x, JDK 17 for 1.20.x)
 - IntelliJ IDEA (recommended)
 
-## Quick start (recommended)
+## Quick start
+
+Three ways to create a Prism project:
+
+### IntelliJ plugin (recommended)
+
+Install the [Prism Project Generator](https://github.com/Leclowndu93150/Prism-Generator) IntelliJ plugin. Then File > New > Project > Prism Mod. Configure your versions and loaders in the wizard and it generates everything.
+
+### Template
 
 Use the [Prism Mod Template](https://github.com/Leclowndu93150/prism-mod-template). Click **Use this template** on GitHub, clone your new repo, and open it in IntelliJ.
 
-The template comes with 1.20.1 (Fabric + Forge), 1.21.1 (NeoForge), and 26.1 (Fabric) pre-configured.
+The template comes with 1.20.1 (Fabric + Forge), 1.21.1 (NeoForge), 26.1 (Fabric), and 1.12.2 (Legacy Forge) pre-configured.
 
 ## Manual setup
 

@@ -55,4 +55,6 @@ versions/
 
 ## Next steps
 
-Use the [Prism Mod Template](https://github.com/Leclowndu93150/prism-mod-template) to get started in seconds, or read [Getting Started](getting-started.md) for manual setup.
+- Install the [IntelliJ plugin](https://github.com/Leclowndu93150/Prism-Generator) for a guided project wizard
+- Use the [Mod Template](https://github.com/Leclowndu93150/prism-mod-template) for a quick start
+- Read [Getting Started](getting-started.md) for manual setup

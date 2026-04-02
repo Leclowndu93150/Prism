@@ -32,6 +32,10 @@ versions/
 - CurseForge, Modrinth, and Maven publishing
 - Common JAR publishing for library mods
 
+## Getting started
+
+Install the [IntelliJ plugin](https://github.com/Leclowndu93150/Prism-Generator) for a project wizard, use the [template](https://github.com/Leclowndu93150/prism-mod-template), or set up manually:
+
 ## Install
 
 ```kotlin
