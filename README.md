@@ -33,7 +33,7 @@ versions/
 
 ## Quick start
 
-Use the [template](https://github.com/Leclowndu93150/prism-mod-template) or see the [docs](https://leclowndu93150.github.io/Prism/).
+Use the [template](https://github.com/Leclowndu93150/prism-mod-template) or see the [docs](https://prism.leclowndu93150.dev).
 
 ```kotlin
 prism {
@@ -70,7 +70,7 @@ mymod-1.21.1-Neoforge-1.0.0.jar
 
 ## Documentation
 
-[leclowndu93150.github.io/Prism](https://leclowndu93150.github.io/Prism/)
+[prism.leclowndu93150.dev](https://prism.leclowndu93150.dev)
 
 ## License
 

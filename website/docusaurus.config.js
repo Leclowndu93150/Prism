@@ -1,8 +1,8 @@
 const config = {
   title: 'Prism',
   tagline: 'Multi-version, multi-loader Minecraft mod development.',
-  url: 'https://leclowndu93150.github.io',
-  baseUrl: '/Prism/',
+  url: 'https://prism.leclowndu93150.dev',
+  baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
