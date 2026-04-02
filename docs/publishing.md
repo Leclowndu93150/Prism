@@ -17,7 +17,7 @@ prism {
         // Or read from a file:
         // changelogFile = "CHANGELOG.md"
 
-        type = ReleaseType.STABLE  // STABLE, BETA, or ALPHA
+        type = STABLE  // STABLE, BETA, or ALPHA
 
         // Display name on CurseForge/Modrinth
         // Defaults to the JAR filename (e.g. mymod-1.21.1-NeoForge-1.0.0.jar)
