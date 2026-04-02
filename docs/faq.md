@@ -30,6 +30,20 @@ fabric {
 
 If `yarn()` is not set, Prism uses official Mojang mappings by default. On 26.x (unobfuscated), no mappings are needed and Yarn is not applicable.
 
+## Do I need common() for every version?
+
+No. If a version only targets one loader, skip `common()`:
+
+```kotlin
+version("1.21.1") {
+    neoforge()   // single-loader mode, no common/loader split
+}
+```
+
+The version folder itself becomes the project (`versions/1.21.1/src/main/java/`). No subdirectories needed. Build with `./gradlew :1.21.1:build`.
+
+Use `common()` only when you have multiple loaders and want shared code between them.
+
 ## Can I use Fabric API in common code?
 
 No. The version-specific common project (`versions/{mc}/common/`) only has access to vanilla Minecraft classes. Loader APIs like Fabric API, NeoForge events, or Forge events are only available in the loader-specific folders.

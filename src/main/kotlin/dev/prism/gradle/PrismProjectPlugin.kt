@@ -48,7 +48,6 @@ class PrismProjectPlugin : Plugin<Project> {
             SharedCommonConfigurator.configure(sharedProject!!, extension.metadata, extension.extraRepositories, minJava)
 
             if (extension.versions.values.any { it.kotlinVersion != null }) {
-                val kotlinVersion = extension.versions.values.mapNotNull { it.kotlinVersion }.first()
                 KotlinConfigurator.apply(sharedProject, extension.versions.values.first { it.kotlinVersion != null })
             }
         }
@@ -63,57 +62,118 @@ class PrismProjectPlugin : Plugin<Project> {
                 rootProject.logger.warn("Prism: version '$mcVersion' has parchmentMinecraftVersion set but parchmentMappingsVersion is missing. Parchment will not be applied.")
             }
 
-            val commonProject = rootProject.findProject(":$mcVersion:common")
-                ?: throw IllegalStateException(
-                    "Common project :$mcVersion:common not found. " +
-                    "Make sure you declared it in settings.gradle.kts with: " +
-                    "prism { version(\"$mcVersion\") { common() } }"
-                )
+            val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$mcVersion:common") == null
 
-            CommonConfigurator.configure(commonProject, versionConfig, extension.metadata, extension.extraRepositories)
-            KotlinConfigurator.apply(commonProject, versionConfig)
-            DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
-
-            if (hasSharedCommon) {
-                SharedCommonConfigurator.wireInto(commonProject, sharedProject!!)
-            }
-
-            for (loaderConfig in versionConfig.loaders) {
-                val loaderProject = rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")
-                    ?: throw IllegalStateException(
-                        "Loader project :$mcVersion:${loaderConfig.loaderName} not found. " +
-                        "Make sure you declared it in settings.gradle.kts."
-                    )
-
-                LoaderConfigurator.configure(
-                    loaderProject, commonProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories,
-                    if (hasSharedCommon) sharedProject else null
-                )
-
-                KotlinConfigurator.apply(loaderProject, versionConfig)
-
-                val isFabric = loaderConfig is FabricConfiguration
-                val deps = when (loaderConfig) {
-                    is FabricConfiguration -> loaderConfig.deps
-                    is ForgeConfiguration -> loaderConfig.deps
-                    is NeoForgeConfiguration -> loaderConfig.deps
-                    else -> null
-                }
-                if (deps != null) {
-                    DependencyConfigurator.apply(loaderProject, deps, isFabric)
-                }
-
-                if (extension.publishingConfig.isConfigured) {
-                    PublishingConfigurator.configure(
-                        loaderProject, versionConfig, loaderConfig,
-                        extension.metadata, extension.publishingConfig
-                    )
-                }
+            if (isSingleLoader) {
+                configureSingleLoader(rootProject, mcVersion, versionConfig, extension, sharedProject, hasSharedCommon)
+            } else {
+                configureMultiLoader(rootProject, mcVersion, versionConfig, extension, sharedProject, hasSharedCommon)
             }
         }
 
         if (extension.publishingConfig.isConfigured) {
             PublishingConfigurator.createAggregateTask(rootProject)
+        }
+    }
+
+    private fun configureSingleLoader(
+        rootProject: Project,
+        mcVersion: String,
+        versionConfig: dev.prism.gradle.dsl.VersionConfiguration,
+        extension: PrismExtension,
+        sharedProject: Project?,
+        hasSharedCommon: Boolean,
+    ) {
+        val loaderConfig = versionConfig.loaders.first()
+        val loaderProject = rootProject.findProject(":$mcVersion")
+            ?: throw IllegalStateException("Project :$mcVersion not found.")
+
+        LoaderConfigurator.configureSingle(
+            loaderProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories,
+            if (hasSharedCommon) sharedProject else null
+        )
+
+        KotlinConfigurator.apply(loaderProject, versionConfig)
+
+        DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps)
+
+        val isFabric = loaderConfig is FabricConfiguration
+        val deps = when (loaderConfig) {
+            is FabricConfiguration -> loaderConfig.deps
+            is ForgeConfiguration -> loaderConfig.deps
+            is NeoForgeConfiguration -> loaderConfig.deps
+            else -> null
+        }
+        if (deps != null) {
+            DependencyConfigurator.apply(loaderProject, deps, isFabric)
+        }
+
+        if (hasSharedCommon) {
+            SharedCommonConfigurator.wireInto(loaderProject, sharedProject!!)
+        }
+
+        if (extension.publishingConfig.isConfigured) {
+            PublishingConfigurator.configure(
+                loaderProject, versionConfig, loaderConfig,
+                extension.metadata, extension.publishingConfig
+            )
+        }
+    }
+
+    private fun configureMultiLoader(
+        rootProject: Project,
+        mcVersion: String,
+        versionConfig: dev.prism.gradle.dsl.VersionConfiguration,
+        extension: PrismExtension,
+        sharedProject: Project?,
+        hasSharedCommon: Boolean,
+    ) {
+        val commonProject = rootProject.findProject(":$mcVersion:common")
+            ?: throw IllegalStateException(
+                "Common project :$mcVersion:common not found. " +
+                "Make sure you declared it in settings.gradle.kts with: " +
+                "prism { version(\"$mcVersion\") { common() } }"
+            )
+
+        CommonConfigurator.configure(commonProject, versionConfig, extension.metadata, extension.extraRepositories)
+        KotlinConfigurator.apply(commonProject, versionConfig)
+        DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
+
+        if (hasSharedCommon) {
+            SharedCommonConfigurator.wireInto(commonProject, sharedProject!!)
+        }
+
+        for (loaderConfig in versionConfig.loaders) {
+            val loaderProject = rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")
+                ?: throw IllegalStateException(
+                    "Loader project :$mcVersion:${loaderConfig.loaderName} not found. " +
+                    "Make sure you declared it in settings.gradle.kts."
+                )
+
+            LoaderConfigurator.configure(
+                loaderProject, commonProject, versionConfig, loaderConfig, extension.metadata, extension.extraRepositories,
+                if (hasSharedCommon) sharedProject else null
+            )
+
+            KotlinConfigurator.apply(loaderProject, versionConfig)
+
+            val isFabric = loaderConfig is FabricConfiguration
+            val deps = when (loaderConfig) {
+                is FabricConfiguration -> loaderConfig.deps
+                is ForgeConfiguration -> loaderConfig.deps
+                is NeoForgeConfiguration -> loaderConfig.deps
+                else -> null
+            }
+            if (deps != null) {
+                DependencyConfigurator.apply(loaderProject, deps, isFabric)
+            }
+
+            if (extension.publishingConfig.isConfigured) {
+                PublishingConfigurator.configure(
+                    loaderProject, versionConfig, loaderConfig,
+                    extension.metadata, extension.publishingConfig
+                )
+            }
         }
     }
 }

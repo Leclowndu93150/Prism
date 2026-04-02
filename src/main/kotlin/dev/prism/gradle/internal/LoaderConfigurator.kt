@@ -31,4 +31,25 @@ object LoaderConfigurator {
             )
         }
     }
+
+    fun configureSingle(
+        project: Project,
+        versionConfig: VersionConfiguration,
+        loaderConfig: LoaderConfiguration,
+        metadata: MetadataExtension,
+        extraRepositories: List<RepositoryEntry> = emptyList(),
+        sharedProject: Project? = null,
+    ) {
+        when (loaderConfig) {
+            is FabricConfiguration -> FabricConfigurator.configureSingle(
+                project, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
+            )
+            is ForgeConfiguration -> ForgeConfigurator.configureSingle(
+                project, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
+            )
+            is NeoForgeConfiguration -> NeoForgeConfigurator.configureSingle(
+                project, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
+            )
+        }
+    }
 }

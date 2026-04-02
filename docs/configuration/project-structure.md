@@ -4,22 +4,64 @@ sidebar_position: 1
 
 # Project Structure
 
-## Directory layout
+## Multi-loader layout
 
-All mod source code lives under `versions/`. Each Minecraft version gets its own folder containing a `common` subproject and one or more loader subprojects.
+When targeting multiple loaders per version, each version has a `common` subproject and loader subprojects:
 
 ```
 versions/
-  1.20.1/
-    common/
-      src/main/java/
-      src/main/resources/
-    fabric/
-      src/main/java/
-      src/main/resources/
-    forge/
-      src/main/java/
-      src/main/resources/
+  1.21.1/
+    common/src/main/java/        # shared across loaders
+    fabric/src/main/java/        # Fabric-specific
+    neoforge/src/main/java/      # NeoForge-specific
+```
+
+Settings:
+```kotlin
+prism {
+    version("1.21.1") {
+        common()
+        fabric()
+        neoforge()
+    }
+}
+```
+
+## Single-loader layout
+
+When a version only targets one loader, skip `common()` and put everything in one folder:
+
+```
+versions/
+  1.21.1/
+    src/main/java/               # all code here
+    src/main/resources/
+```
+
+Settings:
+```kotlin
+prism {
+    version("1.21.1") {
+        neoforge()               # no common() = single-loader mode
+    }
+}
+```
+
+In single-loader mode, the version folder IS the project. No common/loader split. The Gradle path is `:1.21.1` instead of `:1.21.1:neoforge`. Build with `./gradlew :1.21.1:build`.
+
+You can mix both modes in the same project:
+
+```kotlin
+prism {
+    version("1.20.1") {
+        common()                 # multi-loader: common + fabric + forge
+        fabric()
+        forge()
+    }
+    version("1.21.1") {
+        neoforge()               # single-loader: just neoforge
+    }
+}
 ```
 
 ## Common code

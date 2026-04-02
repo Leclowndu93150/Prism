@@ -134,4 +134,91 @@ object NeoForgeConfigurator {
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
     }
+
+    fun configureSingle(
+        project: Project,
+        versionConfig: VersionConfiguration,
+        neoForgeConfig: NeoForgeConfiguration,
+        metadata: MetadataExtension,
+        extraRepositories: List<RepositoryEntry> = emptyList(),
+        sharedProject: Project? = null,
+    ) {
+        project.pluginManager.apply("java-library")
+        project.pluginManager.apply("net.neoforged.moddev")
+
+        RepositorySetup.configure(project, extraRepositories)
+
+        project.extensions.configure(JavaPluginExtension::class.java) { java ->
+            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedJavaVersion))
+            java.withSourcesJar()
+        }
+
+        project.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
+            neoForge.version = neoForgeConfig.loaderVersion
+
+            if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
+                neoForge.parchment { p ->
+                    p.minecraftVersion.set(versionConfig.parchmentMinecraftVersion)
+                    p.mappingsVersion.set(versionConfig.parchmentMappingsVersion)
+                }
+            }
+
+            val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
+            if (at.exists()) { neoForge.accessTransformers.from(at.absolutePath) }
+
+            neoForge.runs { runs ->
+                runs.configureEach { run ->
+                    run.systemProperty("neoforge.enabledGameTestNamespaces", metadata.modId)
+                    run.ideName.set("NeoForge ${run.name.replaceFirstChar { it.uppercase() }} (${versionConfig.minecraftVersion})")
+                }
+                runs.create("client") { run ->
+                    run.client()
+                    run.gameDirectory.set(project.file("runs/client"))
+                }
+                runs.create("server") { run ->
+                    run.server()
+                    run.gameDirectory.set(project.file("runs/server"))
+                }
+                if (hasSplitDataRuns(versionConfig.minecraftVersion)) {
+                    runs.create("clientData") { run ->
+                        run.clientData()
+                        run.gameDirectory.set(project.file("runs/clientData"))
+                        run.programArguments.addAll("--mod", metadata.modId, "--all",
+                            "--output", project.file("src/generated/resources/").absolutePath,
+                            "--existing", project.file("src/main/resources/").absolutePath)
+                    }
+                    runs.create("serverData") { run ->
+                        run.serverData()
+                        run.gameDirectory.set(project.file("runs/serverData"))
+                        run.programArguments.addAll("--mod", metadata.modId, "--all",
+                            "--output", project.file("src/generated/resources/").absolutePath,
+                            "--existing", project.file("src/main/resources/").absolutePath)
+                    }
+                } else {
+                    runs.create("data") { run ->
+                        run.data()
+                        run.gameDirectory.set(project.file("runs/data"))
+                        run.programArguments.addAll("--mod", metadata.modId, "--all",
+                            "--output", project.file("src/generated/resources/").absolutePath,
+                            "--existing", project.file("src/main/resources/").absolutePath)
+                    }
+                }
+            }
+
+            neoForge.mods { mods ->
+                mods.create(metadata.modId) { mod ->
+                    mod.sourceSet(project.extensions.getByType(JavaPluginExtension::class.java).sourceSets.getByName("main"))
+                }
+            }
+
+            RunApplicator.applyMdgRuns(project, neoForgeConfig.extraRuns, versionConfig, "neoforge", neoForge.runs)
+        }
+
+        project.extensions.configure(JavaPluginExtension::class.java) { java ->
+            java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
+        }
+
+        JarNaming.configure(project, metadata, versionConfig, neoForgeConfig)
+        TemplateExpansion.configure(project, versionConfig, metadata)
+    }
 }

@@ -15,10 +15,14 @@ prism {
     sharedCommon()   // optional: root-level common/ project shared across all versions
 
     version(minecraftVersion: String) {
-        common()     // always required
-        fabric()     // optional
-        forge()      // optional
-        neoforge()   // optional
+        // Multi-loader: common() + multiple loaders
+        common()     // required for multi-loader
+        fabric()
+        forge()
+        neoforge()
+
+        // Single-loader: just one loader, no common()
+        // neoforge()  // single-loader mode, no common/loader split
     }
 }
 ```

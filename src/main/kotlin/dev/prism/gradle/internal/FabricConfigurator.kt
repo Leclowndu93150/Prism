@@ -139,4 +139,92 @@ object FabricConfigurator {
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
     }
+
+    fun configureSingle(
+        project: Project,
+        versionConfig: VersionConfiguration,
+        fabricConfig: FabricConfiguration,
+        metadata: MetadataExtension,
+        extraRepositories: List<RepositoryEntry> = emptyList(),
+        sharedProject: Project? = null,
+    ) {
+        project.pluginManager.apply("java-library")
+
+        val unobfuscated = isUnobfuscated(versionConfig.minecraftVersion)
+
+        if (unobfuscated) {
+            project.extensions.extraProperties.set("fabric.loom.disableObfuscation", "true")
+        }
+
+        project.pluginManager.apply("fabric-loom")
+
+        RepositorySetup.configure(project, extraRepositories)
+
+        project.extensions.configure(JavaPluginExtension::class.java) { java ->
+            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedJavaVersion))
+            java.withSourcesJar()
+        }
+
+        val loom = project.extensions.getByType(LoomGradleExtensionAPI::class.java)
+
+        project.dependencies.add("minecraft", "com.mojang:minecraft:${versionConfig.minecraftVersion}")
+
+        if (!unobfuscated) {
+            if (fabricConfig.yarnVersion != null) {
+                project.dependencies.add("mappings", "net.fabricmc:yarn:${fabricConfig.yarnVersion}:v2")
+            } else {
+                val mappingsDep = loom.layered { layered ->
+                    layered.officialMojangMappings()
+                    if (versionConfig.parchmentMinecraftVersion != null && versionConfig.parchmentMappingsVersion != null) {
+                        layered.parchment("org.parchmentmc.data:parchment-${versionConfig.parchmentMinecraftVersion}:${versionConfig.parchmentMappingsVersion}@zip")
+                    }
+                }
+                project.dependencies.add("mappings", mappingsDep)
+            }
+        }
+
+        val depConfig = if (unobfuscated) "implementation" else "modImplementation"
+        project.dependencies.add(depConfig, "net.fabricmc:fabric-loader:${fabricConfig.loaderVersion}")
+        fabricConfig.apiVersion?.let { project.dependencies.add(depConfig, "net.fabricmc.fabric-api:fabric-api:$it") }
+
+        val aw = project.file("src/main/resources/${metadata.modId}.accesswidener")
+        if (aw.exists()) {
+            loom.accessWidenerPath.set(aw)
+        }
+
+        if (!unobfuscated) {
+            loom.mixin { mixin -> mixin.defaultRefmapName.set("${metadata.modId}.refmap.json") }
+        }
+
+        loom.runs { runs ->
+            runs.getByName("client") { run ->
+                run.setConfigName("Fabric Client (${versionConfig.minecraftVersion})")
+                run.ideConfigGenerated(true)
+                run.runDir("runs/client")
+            }
+            runs.getByName("server") { run ->
+                run.setConfigName("Fabric Server (${versionConfig.minecraftVersion})")
+                run.ideConfigGenerated(true)
+                run.runDir("runs/server")
+            }
+            if (fabricConfig.apiVersion != null && fabricConfig.enableDatagen) {
+                runs.create("datagen") { run ->
+                    run.client()
+                    run.setConfigName("Fabric Datagen (${versionConfig.minecraftVersion})")
+                    run.ideConfigGenerated(true)
+                    run.runDir("runs/datagen")
+                    run.vmArg("-Dfabric-api.datagen")
+                    run.vmArg("-Dfabric-api.datagen.output-dir=${project.file("src/main/generated").absolutePath}")
+                    run.vmArg("-Dfabric-api.datagen.modid=${metadata.modId}")
+                }
+                project.extensions.configure(JavaPluginExtension::class.java) { java ->
+                    java.sourceSets.getByName("main").resources.srcDir("src/main/generated")
+                }
+            }
+        }
+
+        RunApplicator.applyFabricRuns(project, fabricConfig.extraRuns, versionConfig, loom)
+        JarNaming.configure(project, metadata, versionConfig, fabricConfig)
+        TemplateExpansion.configure(project, versionConfig, metadata)
+    }
 }
