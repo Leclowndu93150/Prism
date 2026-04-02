@@ -9,6 +9,10 @@ open class PublishingConfiguration {
     var type: ReleaseType = ReleaseType.STABLE
     var displayName: String? = null
 
+    val STABLE get() = ReleaseType.STABLE
+    val BETA get() = ReleaseType.BETA
+    val ALPHA get() = ReleaseType.ALPHA
+
     internal var curseforgeConfig: CurseForgeConfig? = null
     internal var modrinthConfig: ModrinthConfig? = null
     internal val pubDeps = PublishingDepsBlock()
