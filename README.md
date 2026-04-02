@@ -48,7 +48,7 @@ pluginManagement {
 }
 
 plugins {
-    id("dev.prism.settings") version "0.1.1"
+    id("dev.prism.settings") version "+"
 }
 ```
 

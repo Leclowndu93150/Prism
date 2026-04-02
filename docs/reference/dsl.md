@@ -16,10 +16,11 @@ prism {
 
     version(minecraftVersion: String) {
         // Multi-loader: common() + multiple loaders
-        common()     // required for multi-loader
+        common()       // required for multi-loader
         fabric()
         forge()
         neoforge()
+        legacyForge()  // 1.7.10-1.12.2 via RetroFuturaGradle
 
         // Single-loader: just one loader, no common()
         // neoforge()  // single-loader mode, no common/loader split
@@ -167,6 +168,26 @@ neoforge {
         client("second") { username = "Player2" }
         server("testServer") { }
     }
+}
+```
+
+### legacyForge
+
+```kotlin
+legacyForge {
+    mcVersion: String              // e.g. "1.12.2", "1.7.10"
+    forgeVersion: String           // e.g. "14.23.5.2847"
+    mappingChannel: String         // default "stable"
+    mappingVersion: String         // default "39"
+    username: String               // default "Developer"
+    useModernJavaSyntax: Boolean   // default false (Java 8)
+
+    accessTransformer(path: String)  // add AT file
+    mixin()                          // enable MixinTweaker
+
+    dependencies { ... }
+    runs { ... }
+    publishingDependencies { ... }
 }
 ```
 

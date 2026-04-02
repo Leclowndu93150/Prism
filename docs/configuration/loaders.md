@@ -110,6 +110,44 @@ The version string passed to MDG Legacy is `{mcVersion}-{loaderVersion}`, e.g. `
 
 Run configurations generated: `client`, `server`, `data`.
 
+## Legacy Forge (1.7.10 - 1.12.2)
+
+Uses [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle) for old Forge versions.
+
+```kotlin
+version("1.12.2") {
+    legacyForge {
+        mcVersion = "1.12.2"
+        forgeVersion = "14.23.5.2847"
+        mappingChannel = "stable"    // default
+        mappingVersion = "39"        // default
+        username = "Developer"       // default
+
+        accessTransformer("src/main/resources/META-INF/mymod_at.cfg")
+        mixin()  // adds MixinTweaker
+
+        dependencies {
+            implementation("some:library:1.0")
+        }
+    }
+}
+```
+
+| Property          | Required | Default      | Description                         |
+|-------------------|----------|--------------|-------------------------------------|
+| `mcVersion`       | Yes      | `1.12.2`     | Minecraft version                   |
+| `forgeVersion`    | Yes      | -            | Forge version                       |
+| `mappingChannel`  | No       | `stable`     | MCP mapping channel                 |
+| `mappingVersion`  | No       | `39`         | MCP mapping version                 |
+| `username`        | No       | `Developer`  | Dev username for run configs        |
+
+Requires the GTNH maven in `pluginManagement`:
+```kotlin
+maven { url = uri("https://nexus.gtnewhorizons.com/repository/public/") }
+```
+
+Java 8 toolchain with Azul JDK. Run configurations: `runClient`, `runServer`.
+
 ## Custom run configurations
 
 Every loader gets default runs (client, server, data). You can add more:

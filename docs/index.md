@@ -46,11 +46,12 @@ versions/
 
 ## Supported loaders
 
-| Loader   | Plugin used                | Minecraft versions |
-|----------|----------------------------|--------------------|
-| Fabric   | Fabric Loom 1.15.5         | Any                |
-| NeoForge | ModDevGradle 2.0.141       | 1.20.2+            |
-| Forge    | ModDevGradle Legacy        | 1.17 - 1.20.1      |
+| Loader       | Plugin used                    | Minecraft versions |
+|--------------|--------------------------------|--------------------|
+| Fabric       | Fabric Loom                    | Any                |
+| NeoForge     | ModDevGradle                   | 1.20.2+            |
+| Forge        | ModDevGradle Legacy            | 1.17 - 1.20.1      |
+| Legacy Forge | RetroFuturaGradle              | 1.7.10 - 1.12.2    |
 
 ## Next steps
 
