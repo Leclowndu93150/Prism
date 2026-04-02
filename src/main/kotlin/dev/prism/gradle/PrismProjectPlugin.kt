@@ -8,6 +8,7 @@ import dev.prism.gradle.internal.CommonConfigurator
 import dev.prism.gradle.internal.DependencyConfigurator
 import dev.prism.gradle.internal.KotlinConfigurator
 import dev.prism.gradle.internal.LoaderConfigurator
+import dev.prism.gradle.internal.MavenPublishConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
 import dev.prism.gradle.internal.SharedCommonConfigurator
 import dev.prism.gradle.internal.Validation
@@ -73,6 +74,10 @@ class PrismProjectPlugin : Plugin<Project> {
         if (extension.publishingConfig.isConfigured) {
             PublishingConfigurator.createAggregateTask(rootProject)
         }
+
+        if (extension.publishingConfig.hasMaven) {
+            MavenPublishConfigurator.createAggregateTask(rootProject)
+        }
     }
 
     private fun configureSingleLoader(
@@ -122,6 +127,13 @@ class PrismProjectPlugin : Plugin<Project> {
             PublishingConfigurator.configure(
                 loaderProject, versionConfig, loaderConfig,
                 extension.metadata, extension.publishingConfig
+            )
+        }
+
+        if (extension.publishingConfig.hasMaven) {
+            MavenPublishConfigurator.configure(
+                loaderProject, versionConfig, loaderConfig,
+                extension.metadata, extension.publishingConfig.mavenRepos
             )
         }
     }
@@ -188,6 +200,13 @@ class PrismProjectPlugin : Plugin<Project> {
                 PublishingConfigurator.configure(
                     loaderProject, versionConfig, loaderConfig,
                     extension.metadata, extension.publishingConfig
+                )
+            }
+
+            if (extension.publishingConfig.hasMaven) {
+                MavenPublishConfigurator.configure(
+                    loaderProject, versionConfig, loaderConfig,
+                    extension.metadata, extension.publishingConfig.mavenRepos
                 )
             }
         }

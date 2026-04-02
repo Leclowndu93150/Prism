@@ -131,14 +131,71 @@ For each loader subproject, Prism applies mod-publish-plugin and sets:
 - CurseForge and Modrinth credentials from the root configuration
 - Publishing dependencies from global + version + loader levels (stacked)
 
+## Maven publishing
+
+Publish your mod as a library to Maven repositories for other mods to depend on.
+
+### Local Maven
+
+```kotlin
+publishing {
+    mavenLocal()
+}
+```
+
+### Custom Maven repository
+
+```kotlin
+publishing {
+    maven {
+        name = "MyMaven"
+        url = "https://maven.example.com/releases"
+        credentialsFromEnv("MAVEN_USER", "MAVEN_PASS")
+    }
+}
+```
+
+### GitHub Packages
+
+```kotlin
+publishing {
+    githubPackages("YourName", "your-repo")
+}
+```
+
+Automatically uses `GITHUB_ACTOR` and `GITHUB_TOKEN` environment variables.
+
+### Multiple Maven repositories
+
+```kotlin
+publishing {
+    mavenLocal()
+    githubPackages("YourName", "your-repo")
+    maven {
+        name = "Production"
+        url = "https://maven.example.com/releases"
+        credentials("admin", "password")  // or credentialsFromEnv()
+    }
+}
+```
+
+### Maven artifact coordinates
+
+Each loader subproject publishes with:
+- **groupId**: your project group
+- **artifactId**: `{modId}-{mcVersion}-{loader}` (e.g. `mymod-1.21.1-neoforge`)
+- **version**: your project version
+
 ## Running
 
 ```bash
-# Publish all targets
+# CurseForge + Modrinth
 ./gradlew publishAllMods
+./gradlew :1.21.1:fabric:publishMods     # specific target
 
-# Publish a specific target
-./gradlew :1.21.1:fabric:publishMods
+# Maven
+./gradlew publishAllMaven
+./gradlew :1.21.1:publish                # specific target
 ```
 
 ## Access tokens

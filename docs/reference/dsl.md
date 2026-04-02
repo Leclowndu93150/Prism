@@ -188,6 +188,23 @@ publishing {
         accessToken: Provider<String>
         projectId: String
     }
+
+    dependencies {                 // publishing deps (global level)
+        requires(slug: String)
+        optional(slug: String)
+        incompatible(slug: String)
+        embeds(slug: String)
+    }
+
+    // Maven publishing
+    mavenLocal()                           // publish to ~/.m2
+    githubPackages(owner, repo)            // GitHub Packages (auto-credentials)
+    maven {                                // custom Maven repo
+        name: String
+        url: String
+        credentials(user, pass)            // inline credentials
+        credentialsFromEnv(userEnv, passEnv) // from environment variables
+    }
 }
 ```
 
