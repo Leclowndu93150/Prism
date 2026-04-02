@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.prism"
-version = "0.1.1"
+version = "0.2.1"
 
 repositories {
     mavenCentral()
@@ -26,6 +26,10 @@ repositories {
         name = "Minecraft"
         url = uri("https://libraries.minecraft.net/")
     }
+    maven {
+        name = "GTNH"
+        url = uri("https://nexus.gtnewhorizons.com/repository/public/")
+    }
 }
 
 java {
@@ -42,6 +46,7 @@ dependencies {
     implementation("net.fabricmc:fabric-loom:1.15.5")
     implementation("net.neoforged:moddev-gradle:2.0.141")
     implementation("me.modmuss50:mod-publish-plugin:1.1.0")
+    compileOnly("com.gtnewhorizons:retrofuturagradle:2.0.2")
 
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")

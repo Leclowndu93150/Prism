@@ -26,6 +26,7 @@ class PrismSettingsExtension(private val settings: Settings) {
             if (config.hasFabric) registerSubproject(mcVersion, "fabric")
             if (config.hasForge) registerSubproject(mcVersion, "forge")
             if (config.hasNeoForge) registerSubproject(mcVersion, "neoforge")
+            if (config.hasLegacyForge) registerSubproject(mcVersion, "legacyforge")
         }
     }
 
@@ -56,15 +57,17 @@ class SettingsVersionConfig(val minecraftVersion: String) {
     var hasFabric = false; private set
     var hasForge = false; private set
     var hasNeoForge = false; private set
+    var hasLegacyForge = false; private set
     var hasCommon = false; private set
 
     fun common() { hasCommon = true }
     fun fabric() { hasFabric = true }
     fun forge() { hasForge = true }
     fun neoforge() { hasNeoForge = true }
+    fun legacyForge() { hasLegacyForge = true }
 
     val loaderCount: Int
-        get() = listOf(hasFabric, hasForge, hasNeoForge).count { it }
+        get() = listOf(hasFabric, hasForge, hasNeoForge, hasLegacyForge).count { it }
 
     val isSingleLoader: Boolean
         get() = loaderCount == 1 && !hasCommon
@@ -75,6 +78,7 @@ class SettingsVersionConfig(val minecraftVersion: String) {
             hasFabric -> "fabric"
             hasForge -> "forge"
             hasNeoForge -> "neoforge"
+            hasLegacyForge -> "legacyforge"
             else -> null
         }
 }

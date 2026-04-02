@@ -2,6 +2,7 @@ package dev.prism.gradle
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PrismExtension
 import dev.prism.gradle.internal.CommonConfigurator
@@ -113,6 +114,7 @@ class PrismProjectPlugin : Plugin<Project> {
             is FabricConfiguration -> loaderConfig.deps
             is ForgeConfiguration -> loaderConfig.deps
             is NeoForgeConfiguration -> loaderConfig.deps
+            is LegacyForgeConfiguration -> loaderConfig.deps
             else -> null
         }
         if (deps != null) {

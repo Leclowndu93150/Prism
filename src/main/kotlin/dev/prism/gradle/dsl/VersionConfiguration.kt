@@ -13,6 +13,7 @@ open class VersionConfiguration(val minecraftVersion: String) {
     internal var fabricConfig: FabricConfiguration? = null
     internal var forgeConfig: ForgeConfiguration? = null
     internal var neoForgeConfig: NeoForgeConfiguration? = null
+    internal var legacyForgeConfig: LegacyForgeConfiguration? = null
     internal val commonDeps = DependencyBlock()
     internal val pubDeps = PublishingDepsBlock()
 
@@ -42,6 +43,11 @@ open class VersionConfiguration(val minecraftVersion: String) {
         action.execute(neoForgeConfig!!)
     }
 
+    fun legacyForge(action: Action<LegacyForgeConfiguration>) {
+        if (legacyForgeConfig == null) legacyForgeConfig = LegacyForgeConfiguration()
+        action.execute(legacyForgeConfig!!)
+    }
+
     fun minecraftVersions(vararg versions: String) {
         minecraftVersionRange = versions.toList()
     }
@@ -51,7 +57,7 @@ open class VersionConfiguration(val minecraftVersion: String) {
     }
 
     val loaders: List<LoaderConfiguration>
-        get() = listOfNotNull(fabricConfig, forgeConfig, neoForgeConfig)
+        get() = listOfNotNull(fabricConfig, forgeConfig, neoForgeConfig, legacyForgeConfig)
 
     companion object {
         fun detectJavaVersion(mcVersion: String): Int {

@@ -2,6 +2,7 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.NeoForgeConfiguration
@@ -29,6 +30,9 @@ object LoaderConfigurator {
             is NeoForgeConfiguration -> NeoForgeConfigurator.configure(
                 loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
             )
+            is LegacyForgeConfiguration -> LegacyForgeConfigurator.configure(
+                loaderProject, commonProject, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
+            )
         }
     }
 
@@ -48,6 +52,9 @@ object LoaderConfigurator {
                 project, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
             )
             is NeoForgeConfiguration -> NeoForgeConfigurator.configureSingle(
+                project, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
+            )
+            is LegacyForgeConfiguration -> LegacyForgeConfigurator.configureSingle(
                 project, versionConfig, loaderConfig, metadata, extraRepositories, sharedProject
             )
         }

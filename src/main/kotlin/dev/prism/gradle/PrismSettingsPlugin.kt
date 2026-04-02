@@ -39,6 +39,10 @@ class PrismSettingsPlugin : Plugin<Settings> {
                     repo.name = "Minecraft"
                     repo.setUrl("https://libraries.minecraft.net/")
                 }
+                repos.maven { repo ->
+                    repo.name = "GTNH"
+                    repo.setUrl("https://nexus.gtnewhorizons.com/repository/public/")
+                }
             }
         }
     }
