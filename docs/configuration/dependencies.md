@@ -47,7 +47,18 @@ fabric {
     dependencies {
         modImplementation("curse.maven:jei-238222:4613379")
         modCompileOnly("modrinth:sodium:0.5.3")
+        implementation("com.google.code.gson:gson:2.10.1")
         jarJar("some:library:[1.0,2.0)")
+    }
+}
+
+forge {
+    loaderVersion = "47.4.16"
+
+    dependencies {
+        modImplementation("curse.maven:jei-238222:7391695")
+        modCompileOnly("curse.maven:polymorph-388800:6450982")
+        implementation("com.google.code.gson:gson:2.10.1")
     }
 }
 
@@ -65,15 +76,19 @@ neoforge {
 
 | Method | Description |
 |--------|-------------|
-| `implementation(dep)` | Compile and runtime dependency |
-| `modImplementation(dep)` | Mod dependency (remapped on Fabric via `modImplementation`) |
-| `compileOnly(dep)` | Compile-time only |
-| `modCompileOnly(dep)` | Mod compile-time only (remapped on Fabric) |
-| `runtimeOnly(dep)` | Runtime only |
-| `modRuntimeOnly(dep)` | Mod runtime only (remapped on Fabric) |
+| `implementation(dep)` | Compile and runtime dependency (no remapping) |
+| `modImplementation(dep)` | Mod dependency, remapped to dev mappings |
+| `compileOnly(dep)` | Compile-time only (no remapping) |
+| `modCompileOnly(dep)` | Mod compile-time only, remapped to dev mappings |
+| `runtimeOnly(dep)` | Runtime only (no remapping) |
+| `modRuntimeOnly(dep)` | Mod runtime only, remapped to dev mappings |
 | `jarJar(dep)` | Embed dependency in output JAR |
 
-For Fabric subprojects, `mod*` variants are mapped to Loom's remapping configurations (`modImplementation`, `modCompileOnly`, etc.). For NeoForge/Forge, they map to standard Gradle configurations since MDG handles remapping differently.
+Use `mod*` variants for **Minecraft mod JARs** (from CurseMaven, Modrinth Maven, or mod maven repos). These remap the dependency from production mappings (SRG/intermediary) to dev mappings so you don't get `NoSuchMethodError` / `NoSuchFieldError` crashes.
+
+Use plain `implementation` / `compileOnly` / `runtimeOnly` for **regular Java libraries** that don't reference Minecraft classes (e.g. Gson, Apache Commons). These don't need remapping.
+
+On Fabric, `mod*` maps to Loom's remapping configurations. On Forge, `mod*` maps to MDG Legacy's remapping transform. On NeoForge, no remapping is needed so `mod*` behaves the same as the plain variants.
 
 ## Jar-in-Jar
 

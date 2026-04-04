@@ -138,9 +138,13 @@ forge {
 
     dependencies {
         implementation(dep: String)
+        modImplementation(dep: String)   // remapped by MDG Legacy
         compileOnly(dep: String)
+        modCompileOnly(dep: String)      // remapped by MDG Legacy
         runtimeOnly(dep: String)
+        modRuntimeOnly(dep: String)      // remapped by MDG Legacy
         jarJar(dep: String)              // maps to MDG Legacy jarJar
+        annotationProcessor(dep: String)
     }
 
     runs {

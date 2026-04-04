@@ -17,9 +17,9 @@ object DependencyConfigurator {
             project.dependencies.add("runtimeOnly", dep)
         }
 
-        val modImpl = if (isFabric && hasModConfigs) "modImplementation" else "implementation"
-        val modCompile = if (isFabric && hasModConfigs) "modCompileOnly" else "compileOnly"
-        val modRuntime = if (isFabric && hasModConfigs) "modRuntimeOnly" else "runtimeOnly"
+        val modImpl = if (hasModConfigs) "modImplementation" else "implementation"
+        val modCompile = if (hasModConfigs) "modCompileOnly" else "compileOnly"
+        val modRuntime = if (hasModConfigs) "modRuntimeOnly" else "runtimeOnly"
 
         for (dep in deps.modImplementations) {
             project.dependencies.add(modImpl, dep)
