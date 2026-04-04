@@ -10,6 +10,9 @@ class PrismSettingsPlugin : Plugin<Settings> {
         settings.extensions.add("prism", extension)
 
         settings.pluginManagement { pm ->
+            pm.plugins {
+                it.id("org.jetbrains.kotlin.jvm").version("2.1.20").apply(false)
+            }
             pm.repositories { repos ->
                 repos.gradlePluginPortal()
                 repos.mavenCentral()
