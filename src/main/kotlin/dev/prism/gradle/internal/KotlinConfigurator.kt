@@ -7,6 +7,13 @@ object KotlinConfigurator {
     fun apply(project: Project, versionConfig: VersionConfiguration) {
         val kotlinVersion = versionConfig.kotlinVersion ?: return
 
+        project.buildscript.repositories.mavenCentral()
+        project.buildscript.repositories.gradlePluginPortal()
+        project.buildscript.dependencies.add(
+            "classpath",
+            "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        )
+
         project.pluginManager.apply("org.jetbrains.kotlin.jvm")
 
         project.tasks.matching { it.javaClass.name.contains("KotlinCompile") }.configureEach { task ->

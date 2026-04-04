@@ -42,11 +42,16 @@ prism {
     version(minecraftVersion: String) { ... }
     publishing { ... }
 
+    kotlin()                               // enable Kotlin for ALL versions (default 2.1.20)
+    kotlin(version: String)                // enable Kotlin for ALL versions with specific version
+
     curseMaven()                   // add CurseMaven repository
     modrinthMaven()                // add Modrinth Maven repository
     maven(name: String, url: String)  // add custom Maven repository
 }
 ```
+
+The top-level `kotlin()` propagates to every version that doesn't already have its own `kotlin()` call. Per-version `kotlin()` takes precedence.
 
 ### metadata
 
@@ -110,6 +115,8 @@ fabric {
         modRuntimeOnly(dep: String)      // remapped by Loom
         jarJar(dep: String)              // maps to Loom include
         annotationProcessor(dep: String)
+        localJar(path: String)                         // local JAR, defaults to compileOnly
+        localJar(path: String, configuration: String)  // local JAR with custom configuration
     }
 
     runs {
@@ -145,6 +152,8 @@ forge {
         modRuntimeOnly(dep: String)      // remapped by MDG Legacy
         jarJar(dep: String)              // maps to MDG Legacy jarJar
         annotationProcessor(dep: String)
+        localJar(path: String)                         // local JAR, defaults to compileOnly
+        localJar(path: String, configuration: String)  // local JAR with custom configuration
     }
 
     runs {
@@ -166,6 +175,8 @@ neoforge {
         compileOnly(dep: String)
         runtimeOnly(dep: String)
         jarJar(dep: String)              // maps to MDG jarJar
+        localJar(path: String)                         // local JAR, defaults to compileOnly
+        localJar(path: String, configuration: String)  // local JAR with custom configuration
     }
 
     runs {

@@ -9,9 +9,14 @@ open class PrismExtension(private val project: Project) {
     internal val publishingConfig = PublishingConfiguration()
     internal val extraRepositories = mutableListOf<RepositoryEntry>()
     internal var sharedCommonEnabled = false
+    internal var globalKotlinVersion: String? = null
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)
+    }
+
+    fun kotlin(version: String = "2.1.20") {
+        globalKotlinVersion = version
     }
 
     fun version(mcVersion: String, action: Action<VersionConfiguration>) {

@@ -83,6 +83,8 @@ neoforge {
 | `runtimeOnly(dep)` | Runtime only (no remapping) |
 | `modRuntimeOnly(dep)` | Mod runtime only, remapped to dev mappings |
 | `jarJar(dep)` | Embed dependency in output JAR |
+| `localJar(path)` | Local JAR file (defaults to compileOnly) |
+| `localJar(path, config)` | Local JAR file with custom configuration |
 
 Use `mod*` variants for **Minecraft mod JARs** (from CurseMaven, Modrinth Maven, or mod maven repos). These remap the dependency from production mappings (SRG/intermediary) to dev mappings so you don't get `NoSuchMethodError` / `NoSuchFieldError` crashes.
 
@@ -103,6 +105,23 @@ fabric {
 ```
 
 On Fabric, this maps to Loom's `include` configuration. On NeoForge/Forge, this maps to MDG's `jarJar` configuration.
+
+## Local JARs
+
+Use `localJar()` to depend on a JAR file from disk:
+
+```kotlin
+neoforge {
+    loaderVersion = "21.1.26"
+
+    dependencies {
+        localJar("libs/some-mod.jar")                          // compileOnly (default)
+        localJar("libs/some-lib.jar", "implementation")        // implementation
+    }
+}
+```
+
+Paths are relative to the root project directory. Absolute paths are also supported.
 
 ## Maven repositories
 

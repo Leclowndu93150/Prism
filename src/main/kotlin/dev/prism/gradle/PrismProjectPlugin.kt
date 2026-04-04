@@ -39,6 +39,14 @@ class PrismProjectPlugin : Plugin<Project> {
             extension.metadata.group = rootProject.group.toString()
         }
 
+        if (extension.globalKotlinVersion != null) {
+            for (versionConfig in extension.versions.values) {
+                if (versionConfig.kotlinVersion == null) {
+                    versionConfig.kotlinVersion = extension.globalKotlinVersion
+                }
+            }
+        }
+
         Validation.validate(extension)
 
         val sharedProject = rootProject.findProject(":common")

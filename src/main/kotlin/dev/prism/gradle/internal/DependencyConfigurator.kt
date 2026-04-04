@@ -50,5 +50,15 @@ object DependencyConfigurator {
                 }
             }
         }
+
+        for (localJar in deps.localJars) {
+            val resolvedPath = if (java.io.File(localJar.path).isAbsolute) {
+                localJar.path
+            } else {
+                "${project.rootProject.projectDir}/${localJar.path}"
+            }
+            val files = project.files(resolvedPath)
+            project.dependencies.add(localJar.configuration, files)
+        }
     }
 }
