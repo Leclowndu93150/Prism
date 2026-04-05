@@ -29,10 +29,13 @@ object AccessWidenerSupport {
 
     fun generateAccessTransformer(project: Project, awFile: File, targetName: String): File {
         val parsed = AccessWidenerParser.parse(awFile)
+        if (parsed.namespace != "named") {
+            project.logger.warn("Prism: Access widener '${awFile.name}' uses namespace '${parsed.namespace}' instead of 'named' (Mojang). The generated access transformer for $targetName may contain incorrect names.")
+        }
         val outputDir = project.layout.buildDirectory.dir("generated/prism/at").get().asFile
         val outputFile = File(outputDir, "${targetName}_accesstransformer.cfg")
         AccessWidenerConverter.writeAccessTransformer(parsed, outputFile)
-        project.logger.lifecycle("Prism: Converted access widener '${awFile.name}' -> '${outputFile.name}' for ${targetName} (${parsed.entries.size} entries)")
+        project.logger.lifecycle("Prism: Converted access widener '${awFile.name}' -> '${outputFile.name}' for $targetName (${parsed.entries.size} entries)")
         return outputFile
     }
 }
