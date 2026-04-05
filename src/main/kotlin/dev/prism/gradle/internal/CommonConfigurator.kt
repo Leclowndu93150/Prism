@@ -3,6 +3,7 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
+import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
 import net.neoforged.moddevgradle.dsl.NeoForgeExtension
 import org.gradle.api.Project
@@ -40,9 +41,9 @@ object CommonConfigurator {
         }
 
         if (hasNeoForm(versionConfig.minecraftVersion)) {
-            applyWithNeoForm(commonProject, versionConfig)
+            applyWithNeoForm(commonProject, versionConfig, metadata)
         } else {
-            applyWithLegacyMcp(commonProject, versionConfig)
+            applyWithLegacyMcp(commonProject, versionConfig, metadata)
         }
 
         commonProject.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
@@ -80,7 +81,7 @@ object CommonConfigurator {
         TemplateExpansion.configure(commonProject, versionConfig, metadata)
     }
 
-    private fun applyWithNeoForm(project: Project, versionConfig: VersionConfiguration) {
+    private fun applyWithNeoForm(project: Project, versionConfig: VersionConfiguration, metadata: MetadataExtension) {
         project.pluginManager.apply("net.neoforged.moddev")
 
         val neoFormVersion = versionConfig.neoFormVersion
@@ -99,11 +100,19 @@ object CommonConfigurator {
             val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
             if (at.exists()) {
                 neoForge.accessTransformers.from(at.absolutePath)
+            } else {
+                val awFile = AccessWidenerSupport.resolveAccessWidener(
+                    project, null, versionConfig.unifiedAccessWidener, metadata.modId
+                )
+                if (awFile != null) {
+                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "common")
+                    neoForge.accessTransformers.from(generatedAt.absolutePath)
+                }
             }
         }
     }
 
-    private fun applyWithLegacyMcp(project: Project, versionConfig: VersionConfiguration) {
+    private fun applyWithLegacyMcp(project: Project, versionConfig: VersionConfiguration, metadata: MetadataExtension) {
         project.pluginManager.apply("net.neoforged.moddev.legacyforge")
 
         project.extensions.configure(LegacyForgeExtension::class.java) { legacyForge ->
@@ -119,6 +128,14 @@ object CommonConfigurator {
             val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
             if (at.exists()) {
                 legacyForge.setAccessTransformers(at.absolutePath)
+            } else {
+                val awFile = AccessWidenerSupport.resolveAccessWidener(
+                    project, null, versionConfig.unifiedAccessWidener, metadata.modId
+                )
+                if (awFile != null) {
+                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "common")
+                    legacyForge.setAccessTransformers(generatedAt.absolutePath)
+                }
             }
         }
     }

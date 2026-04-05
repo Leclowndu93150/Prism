@@ -9,6 +9,7 @@ open class VersionConfiguration(val minecraftVersion: String) {
     var parchmentMappingsVersion: String? = null
     var kotlinVersion: String? = null
     var minecraftVersionRange: List<String>? = null
+    var unifiedAccessWidener: String? = null
 
     internal var fabricConfig: FabricConfiguration? = null
     internal var forgeConfig: ForgeConfiguration? = null
@@ -46,6 +47,10 @@ open class VersionConfiguration(val minecraftVersion: String) {
     fun legacyForge(action: Action<LegacyForgeConfiguration>) {
         if (legacyForgeConfig == null) legacyForgeConfig = LegacyForgeConfiguration()
         action.execute(legacyForgeConfig!!)
+    }
+
+    fun accessWidener(path: String) {
+        unifiedAccessWidener = path
     }
 
     fun minecraftVersions(vararg versions: String) {

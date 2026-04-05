@@ -42,7 +42,7 @@ fabric {
 
 Yarn mappings are only available for obfuscated versions (pre-26.x). On 26.x, Minecraft is unobfuscated and no mappings are needed.
 
-Access wideners are picked up from `common/src/main/resources/{modId}.accesswidener`.
+Access wideners are picked up from `common/src/main/resources/{modId}.accesswidener` or from the path set via `accessWidener()` in the version block.
 
 ### Datagen
 
@@ -73,7 +73,7 @@ version("1.21.1") {
 | `loaderVersion`       | Yes      | NeoForge version                         |
 | `loaderVersionRange`  | No       | Version range for template expansion     |
 
-Access transformers are picked up from both `common/src/main/resources/META-INF/accesstransformer.cfg` and the loader's own resources.
+Access transformers are picked up from both `common/src/main/resources/META-INF/accesstransformer.cfg` and the loader's own resources. If no AT file exists but an `.accesswidener` file is found (via `accessWidener()` or auto-detection), Prism automatically converts it to AT format.
 
 ### Datagen
 

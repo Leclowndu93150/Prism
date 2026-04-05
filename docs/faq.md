@@ -168,6 +168,25 @@ Access wideners work on all versions including 26.x. Unobfuscated means names ar
 
 Both locations are checked and combined.
 
+## Can I use a single access widener for all loaders?
+
+Yes. Use `accessWidener()` in your version block to point to a single `.accesswidener` file:
+
+```kotlin
+version("1.21.1") {
+    accessWidener("src/main/resources/mymod.accesswidener")
+
+    fabric { loaderVersion = "0.18.6" }
+    neoforge { loaderVersion = "21.1.26" }
+}
+```
+
+Prism will use the file as-is for Fabric, and automatically convert it to an `accesstransformer.cfg` for NeoForge and Forge. The conversion is a pure format translation (both use Mojang-mapped names at dev time). The generated AT file is placed in `build/generated/prism/at/`.
+
+If a loader subproject already has its own `accesstransformer.cfg`, the conversion is skipped for that loader.
+
+This works for Forge (1.17-1.20.1) and NeoForge (1.20.2+). Legacy Forge (1.7.10-1.12.2) uses MCP mappings and requires manual access transformers via `accessTransformer("path")`.
+
 ## How does the common project compile?
 
 For 1.20.2+, the common subproject uses ModDevGradle with `neoFormVersion` (vanilla Minecraft, no loader).

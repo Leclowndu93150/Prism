@@ -4,6 +4,7 @@ import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
+import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
@@ -43,14 +44,27 @@ object ForgeConfigurator {
                 }
             }
 
-            val at = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
-            if (at.exists()) {
-                legacyForge.accessTransformers.from(at.absolutePath)
-            }
-
+            val commonAt = commonProject.file("src/main/resources/META-INF/accesstransformer.cfg")
             val loaderAt = loaderProject.file("src/main/resources/META-INF/accesstransformer.cfg")
+            var hasExplicitAt = false
+
+            if (commonAt.exists()) {
+                legacyForge.accessTransformers.from(commonAt.absolutePath)
+                hasExplicitAt = true
+            }
             if (loaderAt.exists()) {
                 legacyForge.accessTransformers.from(loaderAt.absolutePath)
+                hasExplicitAt = true
+            }
+
+            if (!hasExplicitAt) {
+                val awFile = AccessWidenerSupport.resolveAccessWidener(
+                    loaderProject, commonProject, versionConfig.unifiedAccessWidener, metadata.modId
+                )
+                if (awFile != null) {
+                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(loaderProject, awFile, "forge")
+                    legacyForge.accessTransformers.from(generatedAt.absolutePath)
+                }
             }
 
             legacyForge.runs { runs ->
@@ -132,7 +146,17 @@ object ForgeConfigurator {
             }
 
             val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
-            if (at.exists()) { legacyForge.accessTransformers.from(at.absolutePath) }
+            if (at.exists()) {
+                legacyForge.accessTransformers.from(at.absolutePath)
+            } else {
+                val awFile = AccessWidenerSupport.resolveAccessWidener(
+                    project, null, versionConfig.unifiedAccessWidener, metadata.modId
+                )
+                if (awFile != null) {
+                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "forge")
+                    legacyForge.accessTransformers.from(generatedAt.absolutePath)
+                }
+            }
 
             legacyForge.runs { runs ->
                 runs.configureEach { run ->

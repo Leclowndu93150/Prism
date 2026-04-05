@@ -87,6 +87,8 @@ version("1.21.1") {
     kotlin()                               // enable Kotlin (default 2.1.20)
     kotlin(version: String)                // enable Kotlin with specific version
 
+    accessWidener(path: String)            // unified AW file, auto-converted to AT for Forge/NeoForge
+
     minecraftVersions("1.21", "1.21.1")    // version range for publishing
 
     common {                               // shared dependencies

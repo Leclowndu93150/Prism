@@ -87,11 +87,13 @@ object FabricConfigurator {
             )
         }
 
-        val commonAw = commonProject.file("src/main/resources/${metadata.modId}.accesswidener")
         val loaderAw = loaderProject.file("src/main/resources/${metadata.modId}.accesswidener")
+        val commonAw = commonProject.file("src/main/resources/${metadata.modId}.accesswidener")
+        val unifiedAw = versionConfig.unifiedAccessWidener?.let { loaderProject.rootProject.file(it) }
         val aw = when {
             loaderAw.exists() -> loaderAw
             commonAw.exists() -> commonAw
+            unifiedAw != null && unifiedAw.exists() -> unifiedAw
             else -> null
         }
         if (aw != null) {
@@ -187,8 +189,14 @@ object FabricConfigurator {
         project.dependencies.add(depConfig, "net.fabricmc:fabric-loader:${fabricConfig.loaderVersion}")
         fabricConfig.apiVersion?.let { project.dependencies.add(depConfig, "net.fabricmc.fabric-api:fabric-api:$it") }
 
-        val aw = project.file("src/main/resources/${metadata.modId}.accesswidener")
-        if (aw.exists()) {
+        val localAw = project.file("src/main/resources/${metadata.modId}.accesswidener")
+        val unifiedAw = versionConfig.unifiedAccessWidener?.let { project.rootProject.file(it) }
+        val aw = when {
+            localAw.exists() -> localAw
+            unifiedAw != null && unifiedAw.exists() -> unifiedAw
+            else -> null
+        }
+        if (aw != null) {
             loom.accessWidenerPath.set(aw)
         }
 
