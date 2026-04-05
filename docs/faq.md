@@ -197,6 +197,67 @@ In both cases, common has full access to vanilla Minecraft classes but not loade
 
 Common source files are recompiled as part of each loader's compilation, so they have access to the full loader classpath at build time.
 
+## Can I have multiple mods in one project?
+
+Yes. Use `module()` to create a multi-mod workspace where each module is an independent mod with its own modId, metadata, and publishing:
+
+```kotlin
+// settings.gradle.kts
+prism {
+    module("corpse-curios") {
+        version("1.21.1") { common(); neoforge(); fabric() }
+    }
+    module("corpse-cosmetic") {
+        version("1.21.1") { neoforge() }
+    }
+}
+
+// build.gradle.kts
+prism {
+    curseMaven()
+
+    module("corpse-curios") {
+        metadata {
+            modId = "corpse_curios_compat"
+            name = "Corpse x Curios Compat"
+        }
+        version("1.21.1") {
+            neoforge { loaderVersion = "21.1.26" }
+            fabric { loaderVersion = "0.18.6"; fabricApi("0.102.1") }
+        }
+        publishing {
+            curseforge { projectId = "111111" }
+        }
+    }
+
+    module("corpse-cosmetic") {
+        metadata {
+            modId = "corpse_cosmetic_compat"
+            name = "Corpse x Cosmetic Armor Compat"
+        }
+        version("1.21.1") {
+            neoforge { loaderVersion = "21.1.26" }
+        }
+        publishing {
+            curseforge { projectId = "222222" }
+        }
+    }
+}
+```
+
+Directory layout:
+```
+modules/
+  corpse-curios/versions/1.21.1/common/
+  corpse-curios/versions/1.21.1/neoforge/
+  corpse-curios/versions/1.21.1/fabric/
+  corpse-cosmetic/versions/1.21.1/neoforge/
+```
+
+Gradle subprojects: `:corpse-curios:1.21.1:neoforge`, `:corpse-cosmetic:1.21.1:neoforge`, etc. Build a single module with `./gradlew :corpse-curios:1.21.1:neoforge:build` or all with `./gradlew build`.
+
+Modules can coexist with the standard single-mod `version()` blocks if needed.
+
 ## NeoForm version resolution fails
 
 1. Check your internet connection. Prism fetches from `maven.neoforged.net`.

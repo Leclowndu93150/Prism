@@ -26,6 +26,15 @@ prism {
         // Single-loader: just one loader, no common()
         // neoforge()  // single-loader mode, no common/loader split
     }
+
+    // Multi-mod workspace (opt-in)
+    module(moduleName: String) {
+        version(minecraftVersion: String) {
+            common()
+            fabric()
+            neoforge()
+        }
+    }
 }
 ```
 
@@ -51,6 +60,8 @@ prism {
         mixinExtras()                      // add Mixin + MixinExtras as compileOnly
         dependencies { ... }               // additional dependencies
     }
+
+    module(moduleName: String) { ... }     // multi-mod workspace (see below)
 
     curseMaven()                   // add CurseMaven repository
     modrinthMaven()                // add Modrinth Maven repository
@@ -214,6 +225,37 @@ legacyForge {
     publishingDependencies { ... }
 }
 ```
+
+### module
+
+For multi-mod workspaces. Each module is an independent mod with its own metadata and publishing.
+
+```kotlin
+module("corpse-curios") {
+    metadata {
+        modId = "corpse_curios_compat"
+        name = "Corpse x Curios Compat"
+        author("MyName")
+    }
+
+    kotlin()                               // enable Kotlin for this module
+
+    version("1.21.1") {
+        neoforge { loaderVersion = "21.1.26" }
+        fabric {
+            loaderVersion = "0.18.6"
+            fabricApi("0.102.1")
+        }
+    }
+
+    publishing {
+        curseforge { projectId = "123456" }
+        modrinth { projectId = "abcdef" }
+    }
+}
+```
+
+Modules use the directory layout `modules/{moduleName}/versions/{mc}/{loader}/` and create Gradle subprojects like `:corpse-curios:1.21.1:neoforge`. Repositories (`curseMaven()`, `modrinthMaven()`, etc.) are shared from the top-level `prism` block.
 
 ### publishing
 

@@ -1,6 +1,7 @@
 package dev.prism.gradle.internal.accesswidener
 
 import org.gradle.api.Project
+import org.gradle.language.jvm.tasks.ProcessResources
 import java.io.File
 
 object AccessWidenerSupport {
@@ -36,6 +37,14 @@ object AccessWidenerSupport {
         val outputFile = File(outputDir, "${targetName}_accesstransformer.cfg")
         AccessWidenerConverter.writeAccessTransformer(parsed, outputFile)
         project.logger.lifecycle("Prism: Converted access widener '${awFile.name}' -> '${outputFile.name}' for $targetName (${parsed.entries.size} entries)")
+
+        project.tasks.withType(ProcessResources::class.java).configureEach { task ->
+            task.from(outputFile) { copy ->
+                copy.into("META-INF")
+                copy.rename { "accesstransformer.cfg" }
+            }
+        }
+
         return outputFile
     }
 }

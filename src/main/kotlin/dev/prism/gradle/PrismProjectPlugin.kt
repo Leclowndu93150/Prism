@@ -3,14 +3,17 @@ package dev.prism.gradle
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
+import dev.prism.gradle.dsl.ModuleConfiguration
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PrismExtension
+import dev.prism.gradle.dsl.VersionConfiguration
 import dev.prism.gradle.internal.CommonConfigurator
 import dev.prism.gradle.internal.DependencyConfigurator
 import dev.prism.gradle.internal.KotlinConfigurator
 import dev.prism.gradle.internal.LoaderConfigurator
 import dev.prism.gradle.internal.MavenPublishConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
+import dev.prism.gradle.internal.RepositorySetup
 import dev.prism.gradle.internal.SharedCommonConfigurator
 import dev.prism.gradle.internal.Validation
 import org.gradle.api.Plugin
@@ -87,12 +90,16 @@ class PrismProjectPlugin : Plugin<Project> {
         if (extension.publishingConfig.hasMaven) {
             MavenPublishConfigurator.createAggregateTask(rootProject)
         }
+
+        for ((moduleName, moduleConfig) in extension.modules) {
+            configureModule(rootProject, moduleName, moduleConfig, extension)
+        }
     }
 
     private fun configureSingleLoader(
         rootProject: Project,
         mcVersion: String,
-        versionConfig: dev.prism.gradle.dsl.VersionConfiguration,
+        versionConfig: VersionConfiguration,
         extension: PrismExtension,
         sharedProject: Project?,
         hasSharedCommon: Boolean,
@@ -151,7 +158,7 @@ class PrismProjectPlugin : Plugin<Project> {
     private fun configureMultiLoader(
         rootProject: Project,
         mcVersion: String,
-        versionConfig: dev.prism.gradle.dsl.VersionConfiguration,
+        versionConfig: VersionConfiguration,
         extension: PrismExtension,
         sharedProject: Project?,
         hasSharedCommon: Boolean,
@@ -223,6 +230,169 @@ class PrismProjectPlugin : Plugin<Project> {
                 MavenPublishConfigurator.configure(
                     loaderProject, versionConfig, loaderConfig,
                     extension.metadata, extension.publishingConfig.mavenRepos
+                )
+            }
+        }
+    }
+
+    private fun configureModule(
+        rootProject: Project,
+        moduleName: String,
+        moduleConfig: ModuleConfiguration,
+        extension: PrismExtension,
+    ) {
+        if (moduleConfig.metadata.version.isEmpty()) {
+            moduleConfig.metadata.version = rootProject.version.toString()
+        }
+        if (moduleConfig.metadata.group.isEmpty()) {
+            moduleConfig.metadata.group = rootProject.group.toString()
+        }
+
+        if (moduleConfig.kotlinVersion != null) {
+            for (versionConfig in moduleConfig.versions.values) {
+                if (versionConfig.kotlinVersion == null) {
+                    versionConfig.kotlinVersion = moduleConfig.kotlinVersion
+                }
+            }
+        }
+
+        for ((mcVersion, versionConfig) in moduleConfig.versions) {
+            if (versionConfig.loaders.isEmpty()) {
+                rootProject.logger.warn("Prism: module '$moduleName' version '$mcVersion' has no loaders configured, skipping.")
+                continue
+            }
+
+            val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$moduleName:$mcVersion:common") == null
+
+            if (isSingleLoader) {
+                configureModuleSingleLoader(rootProject, moduleName, mcVersion, versionConfig, moduleConfig, extension)
+            } else {
+                configureModuleMultiLoader(rootProject, moduleName, mcVersion, versionConfig, moduleConfig, extension)
+            }
+        }
+
+        if (moduleConfig.publishingConfig.isConfigured) {
+            val moduleProject = rootProject.findProject(":$moduleName")
+            if (moduleProject != null) {
+                PublishingConfigurator.createAggregateTask(moduleProject)
+            }
+        }
+
+        if (moduleConfig.publishingConfig.hasMaven) {
+            val moduleProject = rootProject.findProject(":$moduleName")
+            if (moduleProject != null) {
+                MavenPublishConfigurator.createAggregateTask(moduleProject)
+            }
+        }
+    }
+
+    private fun configureModuleSingleLoader(
+        rootProject: Project,
+        moduleName: String,
+        mcVersion: String,
+        versionConfig: VersionConfiguration,
+        moduleConfig: ModuleConfiguration,
+        extension: PrismExtension,
+    ) {
+        val loaderConfig = versionConfig.loaders.first()
+        val loaderProject = rootProject.findProject(":$moduleName:$mcVersion")
+            ?: throw IllegalStateException(
+                "Prism: Project ':$moduleName:$mcVersion' not found for module '$moduleName'."
+            )
+
+        RepositorySetup.configure(loaderProject, extension.extraRepositories)
+
+        LoaderConfigurator.configureSingle(
+            loaderProject, versionConfig, loaderConfig, moduleConfig.metadata, extension.extraRepositories
+        )
+
+        KotlinConfigurator.apply(loaderProject, versionConfig)
+        DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps)
+
+        val isFabric = loaderConfig is FabricConfiguration
+        val deps = when (loaderConfig) {
+            is FabricConfiguration -> loaderConfig.deps
+            is ForgeConfiguration -> loaderConfig.deps
+            is NeoForgeConfiguration -> loaderConfig.deps
+            is LegacyForgeConfiguration -> loaderConfig.deps
+            else -> null
+        }
+        if (deps != null) {
+            DependencyConfigurator.apply(loaderProject, deps, isFabric)
+        }
+
+        if (moduleConfig.publishingConfig.isConfigured) {
+            PublishingConfigurator.configure(
+                loaderProject, versionConfig, loaderConfig,
+                moduleConfig.metadata, moduleConfig.publishingConfig
+            )
+        }
+
+        if (moduleConfig.publishingConfig.hasMaven) {
+            MavenPublishConfigurator.configure(
+                loaderProject, versionConfig, loaderConfig,
+                moduleConfig.metadata, moduleConfig.publishingConfig.mavenRepos
+            )
+        }
+    }
+
+    private fun configureModuleMultiLoader(
+        rootProject: Project,
+        moduleName: String,
+        mcVersion: String,
+        versionConfig: VersionConfiguration,
+        moduleConfig: ModuleConfiguration,
+        extension: PrismExtension,
+    ) {
+        val commonProject = rootProject.findProject(":$moduleName:$mcVersion:common")
+            ?: throw IllegalStateException(
+                "Prism: Common project ':$moduleName:$mcVersion:common' not found for module '$moduleName'."
+            )
+
+        CommonConfigurator.configure(commonProject, versionConfig, moduleConfig.metadata, extension.extraRepositories)
+        KotlinConfigurator.apply(commonProject, versionConfig)
+        DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
+
+        if (moduleConfig.publishingConfig.hasMaven && moduleConfig.publishingConfig.publishCommonJar) {
+            MavenPublishConfigurator.configureCommon(
+                commonProject, versionConfig, moduleConfig.metadata, moduleConfig.publishingConfig.mavenRepos
+            )
+        }
+
+        for (loaderConfig in versionConfig.loaders) {
+            val loaderProject = rootProject.findProject(":$moduleName:$mcVersion:${loaderConfig.loaderName}")
+                ?: throw IllegalStateException(
+                    "Prism: Loader project ':$moduleName:$mcVersion:${loaderConfig.loaderName}' not found for module '$moduleName'."
+                )
+
+            LoaderConfigurator.configure(
+                loaderProject, commonProject, versionConfig, loaderConfig, moduleConfig.metadata, extension.extraRepositories
+            )
+
+            KotlinConfigurator.apply(loaderProject, versionConfig)
+
+            val isFabric = loaderConfig is FabricConfiguration
+            val deps = when (loaderConfig) {
+                is FabricConfiguration -> loaderConfig.deps
+                is ForgeConfiguration -> loaderConfig.deps
+                is NeoForgeConfiguration -> loaderConfig.deps
+                else -> null
+            }
+            if (deps != null) {
+                DependencyConfigurator.apply(loaderProject, deps, isFabric)
+            }
+
+            if (moduleConfig.publishingConfig.isConfigured) {
+                PublishingConfigurator.configure(
+                    loaderProject, versionConfig, loaderConfig,
+                    moduleConfig.metadata, moduleConfig.publishingConfig
+                )
+            }
+
+            if (moduleConfig.publishingConfig.hasMaven) {
+                MavenPublishConfigurator.configure(
+                    loaderProject, versionConfig, loaderConfig,
+                    moduleConfig.metadata, moduleConfig.publishingConfig.mavenRepos
                 )
             }
         }

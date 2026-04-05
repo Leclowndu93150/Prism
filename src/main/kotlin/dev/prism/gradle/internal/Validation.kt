@@ -4,6 +4,7 @@ import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
+import dev.prism.gradle.dsl.ModuleConfiguration
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PrismExtension
 import dev.prism.gradle.dsl.VersionConfiguration
@@ -11,20 +12,48 @@ import dev.prism.gradle.dsl.VersionConfiguration
 object Validation {
 
     fun validate(extension: PrismExtension) {
-        validateMetadata(extension.metadata)
+        val hasModules = extension.modules.isNotEmpty()
+        val hasVersions = extension.versions.isNotEmpty()
 
-        if (extension.versions.isEmpty()) {
+        if (!hasModules && !hasVersions) {
             throw IllegalStateException(
-                "Prism: No versions configured. Add at least one version block:\n" +
-                "  prism {\n" +
-                "      version(\"1.21.1\") {\n" +
-                "          neoforge { loaderVersion = \"21.1.222\" }\n" +
+                "Prism: No versions or modules configured. Add at least one version or module block."
+            )
+        }
+
+        if (hasVersions) {
+            validateMetadata(extension.metadata)
+            for ((mcVersion, versionConfig) in extension.versions) {
+                validateVersion(mcVersion, versionConfig)
+            }
+        }
+
+        for ((moduleName, moduleConfig) in extension.modules) {
+            validateModule(moduleName, moduleConfig)
+        }
+    }
+
+    fun validateModule(moduleName: String, module: ModuleConfiguration) {
+        if (module.metadata.modId.isEmpty()) {
+            throw IllegalStateException(
+                "Prism: metadata.modId is required for module '$moduleName'.\n" +
+                "  module(\"$moduleName\") {\n" +
+                "      metadata {\n" +
+                "          modId = \"my_mod\"\n" +
                 "      }\n" +
                 "  }"
             )
         }
 
-        for ((mcVersion, versionConfig) in extension.versions) {
+        validateMetadata(module.metadata)
+
+        if (module.versions.isEmpty()) {
+            throw IllegalStateException(
+                "Prism: Module '$moduleName' has no versions configured."
+            )
+        }
+
+        for ((mcVersion, versionConfig) in module.versions) {
             validateVersion(mcVersion, versionConfig)
         }
     }

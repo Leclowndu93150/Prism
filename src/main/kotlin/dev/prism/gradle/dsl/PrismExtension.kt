@@ -11,6 +11,7 @@ open class PrismExtension(private val project: Project) {
     internal var sharedCommonEnabled = false
     internal var globalKotlinVersion: String? = null
     internal val sharedCommonConfig = SharedCommonConfiguration()
+    internal val modules = mutableMapOf<String, ModuleConfiguration>()
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)
@@ -31,6 +32,11 @@ open class PrismExtension(private val project: Project) {
 
     fun publishing(action: Action<PublishingConfiguration>) {
         action.execute(publishingConfig)
+    }
+
+    fun module(moduleName: String, action: Action<ModuleConfiguration>) {
+        val config = modules.getOrPut(moduleName) { ModuleConfiguration(moduleName, project) }
+        action.execute(config)
     }
 
     fun curseMaven() {
