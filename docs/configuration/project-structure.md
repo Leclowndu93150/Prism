@@ -80,24 +80,27 @@ Each loader subproject has access to:
 
 ## Shared common (cross-version)
 
-By default, each version is fully independent. If you have pure Java code (interfaces, annotations, utilities) that doesn't touch Minecraft APIs and should be shared across all versions, you can enable a root-level `common/` project.
+By default, each version is fully independent. If you have code that should be shared across all versions, you can enable a shared `common` project.
 
 **settings.gradle.kts:**
 ```kotlin
-extensions.configure<PrismSettingsExtension>("prism") {
-    sharedCommon()
+prism {
+    sharedCommon()                   // creates common/ in project root
+    // or
+    sharedCommon("versions/common")  // creates common/ inside versions/
 
     version("1.20.1") { common(); fabric(); forge() }
     version("1.21.1") { common(); fabric(); neoforge() }
 }
 ```
 
-This creates a `:common` project at `common/` in the root. Its source is compiled into every version's common project automatically.
+This creates a `:common` project. Its source is compiled into every version's common project automatically.
 
 ```
-common/                        <-- shared across ALL versions
-  src/main/java/
 versions/
+  common/                      <-- shared across ALL versions (with sharedCommon("versions/common"))
+    src/main/java/
+    src/main/resources/
   1.20.1/
     common/                    <-- version-specific, depends on shared common
     fabric/
@@ -106,7 +109,25 @@ versions/
     neoforge/
 ```
 
-The shared common compiles with the lowest Java version across your targets (e.g. Java 17 if you target 1.20.1). It has no access to Minecraft classes. Use it for things like config interfaces, annotation definitions, or utility methods.
+The shared common compiles with the lowest Java version across your targets (e.g. Java 17 if you target 1.20.1). It has no access to Minecraft classes by default.
+
+### Mixins in shared common
+
+If your shared common code needs Mixin or MixinExtras (e.g. for cross-version mixins that target non-Minecraft classes like a library mod), enable them in the build file:
+
+```kotlin
+prism {
+    sharedCommon {
+        mixin()           // adds Mixin as compileOnly
+        mixinExtras()     // adds Mixin + MixinExtras as compileOnly
+        dependencies {
+            localJar("libs/some-library.jar")  // additional deps
+        }
+    }
+}
+```
+
+Mixin classes and mixin JSON files from shared common are merged into each loader's compilation, so they work correctly at runtime. Place your mixin JSON in `src/main/resources/` of the shared common and reference it in your loader's mod metadata.
 
 ## Independence between versions
 

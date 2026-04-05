@@ -2,6 +2,7 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
+import dev.prism.gradle.dsl.SharedCommonConfiguration
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
@@ -13,6 +14,7 @@ object SharedCommonConfigurator {
         metadata: MetadataExtension,
         extraRepositories: List<RepositoryEntry>,
         javaVersion: Int,
+        sharedCommonConfig: SharedCommonConfiguration = SharedCommonConfiguration(),
     ) {
         sharedProject.pluginManager.apply("java-library")
 
@@ -29,6 +31,16 @@ object SharedCommonConfigurator {
         sharedProject.dependencies.add("compileOnly", "com.mojang:logging:1.2.7")
         sharedProject.dependencies.add("compileOnly", "it.unimi.dsi:fastutil:8.5.13")
         sharedProject.dependencies.add("compileOnly", "org.jetbrains:annotations:24.1.0")
+
+        if (sharedCommonConfig.hasMixin) {
+            sharedProject.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
+        }
+        if (sharedCommonConfig.hasMixinExtras) {
+            sharedProject.dependencies.add("compileOnly", "io.github.llamalad7:mixinextras-common:0.3.5")
+            sharedProject.dependencies.add("annotationProcessor", "io.github.llamalad7:mixinextras-common:0.3.5")
+        }
+
+        DependencyConfigurator.apply(sharedProject, sharedCommonConfig.deps)
 
         val sharedJava = sharedProject.configurations.create("sharedJava") { cfg ->
             cfg.isCanBeResolved = false

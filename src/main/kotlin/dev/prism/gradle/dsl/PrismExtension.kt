@@ -10,6 +10,7 @@ open class PrismExtension(private val project: Project) {
     internal val extraRepositories = mutableListOf<RepositoryEntry>()
     internal var sharedCommonEnabled = false
     internal var globalKotlinVersion: String? = null
+    internal val sharedCommonConfig = SharedCommonConfiguration()
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)
@@ -17,6 +18,10 @@ open class PrismExtension(private val project: Project) {
 
     fun kotlin(version: String = "2.1.20") {
         globalKotlinVersion = version
+    }
+
+    fun sharedCommon(action: Action<SharedCommonConfiguration>) {
+        action.execute(sharedCommonConfig)
     }
 
     fun version(mcVersion: String, action: Action<VersionConfiguration>) {

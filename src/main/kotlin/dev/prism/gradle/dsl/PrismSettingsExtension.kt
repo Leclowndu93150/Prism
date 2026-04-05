@@ -7,12 +7,18 @@ import java.io.File
 class PrismSettingsExtension(private val settings: Settings) {
     internal val versions = mutableMapOf<String, SettingsVersionConfig>()
     internal var hasSharedCommon = false
+    internal var sharedCommonPath: String = "common"
 
     fun sharedCommon() {
+        sharedCommon("common")
+    }
+
+    fun sharedCommon(path: String) {
         if (hasSharedCommon) return
         hasSharedCommon = true
+        sharedCommonPath = path
         settings.include(":common")
-        settings.project(":common").projectDir = File(settings.settingsDir, "common")
+        settings.project(":common").projectDir = File(settings.settingsDir, path)
     }
 
     fun version(mcVersion: String, action: Action<SettingsVersionConfig>) {

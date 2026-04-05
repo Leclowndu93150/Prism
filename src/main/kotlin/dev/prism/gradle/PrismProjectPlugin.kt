@@ -54,7 +54,7 @@ class PrismProjectPlugin : Plugin<Project> {
 
         if (hasSharedCommon) {
             val minJava = extension.versions.values.minOfOrNull { it.resolvedJavaVersion } ?: 21
-            SharedCommonConfigurator.configure(sharedProject!!, extension.metadata, extension.extraRepositories, minJava)
+            SharedCommonConfigurator.configure(sharedProject!!, extension.metadata, extension.extraRepositories, minJava, extension.sharedCommonConfig)
 
             if (extension.versions.values.any { it.kotlinVersion != null }) {
                 KotlinConfigurator.apply(sharedProject, extension.versions.values.first { it.kotlinVersion != null })

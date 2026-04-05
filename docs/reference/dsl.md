@@ -12,7 +12,8 @@ Applied in `settings.gradle.kts`. Registers subprojects and configures repositor
 
 ```kotlin
 prism {
-    sharedCommon()   // optional: root-level common/ project shared across all versions
+    sharedCommon()                   // optional: common/ in project root
+    sharedCommon("versions/common")  // optional: common/ inside versions/
 
     version(minecraftVersion: String) {
         // Multi-loader: common() + multiple loaders
@@ -44,6 +45,12 @@ prism {
 
     kotlin()                               // enable Kotlin for ALL versions (default 2.1.20)
     kotlin(version: String)                // enable Kotlin for ALL versions with specific version
+
+    sharedCommon {                         // configure the shared common project
+        mixin()                            // add Mixin as compileOnly
+        mixinExtras()                      // add Mixin + MixinExtras as compileOnly
+        dependencies { ... }               // additional dependencies
+    }
 
     curseMaven()                   // add CurseMaven repository
     modrinthMaven()                // add Modrinth Maven repository
