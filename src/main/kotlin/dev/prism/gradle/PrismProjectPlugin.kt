@@ -91,6 +91,10 @@ class PrismProjectPlugin : Plugin<Project> {
             MavenPublishConfigurator.createAggregateTask(rootProject)
         }
 
+        if (extension.modules.isNotEmpty()) {
+            RepositorySetup.configure(rootProject, extension.extraRepositories)
+        }
+
         for ((moduleName, moduleConfig) in extension.modules) {
             configureModule(rootProject, moduleName, moduleConfig, extension)
         }
