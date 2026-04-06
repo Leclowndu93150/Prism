@@ -37,7 +37,7 @@ class PrismSettingsExtension(private val settings: Settings) {
         }
     }
 
-    fun module(moduleName: String, action: Action<SettingsModuleConfig>) {
+    fun mod(moduleName: String, action: Action<SettingsModuleConfig>) {
         val config = modules.getOrPut(moduleName) { SettingsModuleConfig(moduleName) }
         action.execute(config)
 

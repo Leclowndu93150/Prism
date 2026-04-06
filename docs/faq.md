@@ -199,15 +199,15 @@ Common source files are recompiled as part of each loader's compilation, so they
 
 ## Can I have multiple mods in one project?
 
-Yes. Use `module()` to create a multi-mod workspace where each module is an independent mod with its own modId, metadata, and publishing:
+Yes. Use `mod()` to create a multi-mod workspace where each module is an independent mod with its own modId, metadata, and publishing:
 
 ```kotlin
 // settings.gradle.kts
 prism {
-    module("corpse-curios") {
+    mod("corpse-curios") {
         version("1.21.1") { common(); neoforge(); fabric() }
     }
-    module("corpse-cosmetic") {
+    mod("corpse-cosmetic") {
         version("1.21.1") { neoforge() }
     }
 }
@@ -216,7 +216,7 @@ prism {
 prism {
     curseMaven()
 
-    module("corpse-curios") {
+    mod("corpse-curios") {
         metadata {
             modId = "corpse_curios_compat"
             name = "Corpse x Curios Compat"
@@ -230,7 +230,7 @@ prism {
         }
     }
 
-    module("corpse-cosmetic") {
+    mod("corpse-cosmetic") {
         metadata {
             modId = "corpse_cosmetic_compat"
             name = "Corpse x Cosmetic Armor Compat"

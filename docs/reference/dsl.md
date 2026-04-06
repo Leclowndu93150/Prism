@@ -28,7 +28,7 @@ prism {
     }
 
     // Multi-mod workspace (opt-in)
-    module(moduleName: String) {
+    mod(moduleName: String) {
         version(minecraftVersion: String) {
             common()
             fabric()
@@ -61,7 +61,7 @@ prism {
         dependencies { ... }               // additional dependencies
     }
 
-    module(moduleName: String) { ... }     // multi-mod workspace (see below)
+    mod(moduleName: String) { ... }     // multi-mod workspace (see below)
 
     curseMaven()                   // add CurseMaven repository
     modrinthMaven()                // add Modrinth Maven repository
@@ -231,7 +231,7 @@ legacyForge {
 For multi-mod workspaces. Each module is an independent mod with its own metadata and publishing.
 
 ```kotlin
-module("corpse-curios") {
+mod("corpse-curios") {
     metadata {
         modId = "corpse_curios_compat"
         name = "Corpse x Curios Compat"

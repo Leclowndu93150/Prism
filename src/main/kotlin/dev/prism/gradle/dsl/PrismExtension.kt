@@ -34,7 +34,7 @@ open class PrismExtension(private val project: Project) {
         action.execute(publishingConfig)
     }
 
-    fun module(moduleName: String, action: Action<ModuleConfiguration>) {
+    fun mod(moduleName: String, action: Action<ModuleConfiguration>) {
         val config = modules.getOrPut(moduleName) { ModuleConfiguration(moduleName, project) }
         action.execute(config)
     }

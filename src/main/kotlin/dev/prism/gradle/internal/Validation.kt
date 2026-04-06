@@ -37,7 +37,7 @@ object Validation {
         if (module.metadata.modId.isEmpty()) {
             throw IllegalStateException(
                 "Prism: metadata.modId is required for module '$moduleName'.\n" +
-                "  module(\"$moduleName\") {\n" +
+                "  mod(\"$moduleName\") {\n" +
                 "      metadata {\n" +
                 "          modId = \"my_mod\"\n" +
                 "      }\n" +
