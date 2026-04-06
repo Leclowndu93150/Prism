@@ -95,16 +95,25 @@ object MavenPublishConfigurator {
         }
     }
 
-    fun createAggregateTask(rootProject: Project) {
-        rootProject.tasks.register("publishAllMaven") { task ->
+    fun createAggregateTask(project: Project) {
+        if (project.tasks.findByName("publishAllMaven") != null) return
+
+        project.tasks.register("publishAllMaven") { task ->
             task.group = "publishing"
             task.description = "Publishes all mod JARs to configured Maven repositories"
+        }
 
-            rootProject.subprojects.forEach { sub ->
-                sub.tasks.matching { it.name == "publish" }.configureEach {
-                    task.dependsOn(it)
-                }
-            }
+        project.childProjects.values.forEach { child ->
+            wireMavenTasks(project, child)
+        }
+    }
+
+    private fun wireMavenTasks(aggregateProject: Project, child: Project) {
+        child.tasks.matching { it.name == "publish" }.configureEach { publishTask ->
+            aggregateProject.tasks.named("publishAllMaven").configure { it.dependsOn(publishTask) }
+        }
+        child.childProjects.values.forEach { grandchild ->
+            wireMavenTasks(aggregateProject, grandchild)
         }
     }
 }

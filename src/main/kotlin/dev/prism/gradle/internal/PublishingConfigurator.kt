@@ -135,16 +135,25 @@ object PublishingConfigurator {
         }
     }
 
-    fun createAggregateTask(rootProject: Project) {
-        rootProject.tasks.register("publishAllMods") { task ->
+    fun createAggregateTask(project: Project) {
+        if (project.tasks.findByName("publishAllMods") != null) return
+
+        project.tasks.register("publishAllMods") { task ->
             task.group = "publishing"
             task.description = "Publishes all mod loader JARs to configured platforms"
+        }
 
-            rootProject.subprojects.forEach { sub ->
-                sub.tasks.matching { it.name == "publishMods" }.configureEach {
-                    task.dependsOn(it)
-                }
-            }
+        project.childProjects.values.forEach { child ->
+            wirePublishTasks(project, child)
+        }
+    }
+
+    private fun wirePublishTasks(aggregateProject: Project, child: Project) {
+        child.tasks.matching { it.name == "publishMods" }.configureEach { publishTask ->
+            aggregateProject.tasks.named("publishAllMods").configure { it.dependsOn(publishTask) }
+        }
+        child.childProjects.values.forEach { grandchild ->
+            wirePublishTasks(aggregateProject, grandchild)
         }
     }
 }
