@@ -95,7 +95,7 @@ object MavenPublishConfigurator {
         }
     }
 
-    fun createAggregateTask(project: Project) {
+    fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
         if (project.tasks.findByName("publishAllMaven") != null) return
 
         project.tasks.register("publishAllMaven") { task ->
@@ -103,8 +103,10 @@ object MavenPublishConfigurator {
             task.description = "Publishes all mod JARs to configured Maven repositories"
         }
 
-        project.childProjects.values.forEach { child ->
-            wireMavenTasks(project, child)
+        project.childProjects.forEach { (name, child) ->
+            if (name !in excludeChildren) {
+                wireMavenTasks(project, child)
+            }
         }
     }
 

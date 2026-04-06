@@ -83,12 +83,14 @@ class PrismProjectPlugin : Plugin<Project> {
             }
         }
 
+        val moduleNames = extension.modules.keys.toSet()
+
         if (extension.publishingConfig.isConfigured) {
-            PublishingConfigurator.createAggregateTask(rootProject)
+            PublishingConfigurator.createAggregateTask(rootProject, moduleNames)
         }
 
         if (extension.publishingConfig.hasMaven) {
-            MavenPublishConfigurator.createAggregateTask(rootProject)
+            MavenPublishConfigurator.createAggregateTask(rootProject, moduleNames)
         }
 
         if (extension.modules.isNotEmpty()) {

@@ -135,7 +135,9 @@ object PublishingConfigurator {
         }
     }
 
-    fun createAggregateTask(project: Project) {
+    private val PLATFORM_TASKS = listOf("publishCurseforge", "publishModrinth", "publishMods")
+
+    fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
         if (project.tasks.findByName("publishAllMods") != null) return
 
         project.tasks.register("publishAllMods") { task ->
@@ -143,14 +145,29 @@ object PublishingConfigurator {
             task.description = "Publishes all mod loader JARs to configured platforms"
         }
 
-        project.childProjects.values.forEach { child ->
-            wirePublishTasks(project, child)
+        for (taskName in PLATFORM_TASKS) {
+            if (project.tasks.findByName(taskName) == null) {
+                project.tasks.register(taskName) { task ->
+                    task.group = "publishing"
+                }
+            }
+        }
+
+        project.childProjects.forEach { (name, child) ->
+            if (name !in excludeChildren) {
+                wirePublishTasks(project, child)
+            }
         }
     }
 
     private fun wirePublishTasks(aggregateProject: Project, child: Project) {
         child.tasks.matching { it.name == "publishMods" }.configureEach { publishTask ->
             aggregateProject.tasks.named("publishAllMods").configure { it.dependsOn(publishTask) }
+        }
+        for (taskName in PLATFORM_TASKS) {
+            child.tasks.matching { it.name == taskName }.configureEach { platformTask ->
+                aggregateProject.tasks.named(taskName).configure { it.dependsOn(platformTask) }
+            }
         }
         child.childProjects.values.forEach { grandchild ->
             wirePublishTasks(aggregateProject, grandchild)
