@@ -256,6 +256,11 @@ class PrismProjectPlugin : Plugin<Project> {
             }
         }
 
+        val moduleProject = rootProject.findProject(":$moduleName")
+        if (moduleProject != null) {
+            RepositorySetup.configure(moduleProject, extension.extraRepositories)
+        }
+
         for ((mcVersion, versionConfig) in moduleConfig.versions) {
             if (versionConfig.loaders.isEmpty()) {
                 rootProject.logger.warn("Prism: module '$moduleName' version '$mcVersion' has no loaders configured, skipping.")
