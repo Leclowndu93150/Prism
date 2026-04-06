@@ -76,38 +76,32 @@ class PrismSettingsExtension(private val settings: Settings) {
         }
     }
 
+    private fun ensureModuleParent(moduleName: String) {
+        val modulePath = ":$moduleName"
+        settings.include(modulePath)
+        settings.project(modulePath).projectDir = File(settings.settingsDir, "modules/$moduleName")
+    }
+
     private fun registerModuleSingleProject(moduleName: String, mcVersion: String) {
         val path = ":$moduleName:$mcVersion"
         if (settings.findProject(path) != null) return
 
+        ensureModuleParent(moduleName)
         settings.include(path)
         settings.project(path).projectDir = File(settings.settingsDir, "modules/$moduleName/versions/$mcVersion")
-
-        val parentPath = ":$moduleName"
-        if (settings.findProject(parentPath) == null) {
-            settings.include(parentPath)
-            settings.project(parentPath).projectDir = File(settings.settingsDir, "modules/$moduleName")
-        }
     }
 
     private fun registerModuleSubproject(moduleName: String, mcVersion: String, loader: String) {
         val path = ":$moduleName:$mcVersion:$loader"
         if (settings.findProject(path) != null) return
 
+        ensureModuleParent(moduleName)
         settings.include(path)
         settings.project(path).projectDir = File(settings.settingsDir, "modules/$moduleName/versions/$mcVersion/$loader")
 
         val versionPath = ":$moduleName:$mcVersion"
-        if (settings.findProject(versionPath) == null) {
-            settings.include(versionPath)
-            settings.project(versionPath).projectDir = File(settings.settingsDir, "modules/$moduleName/versions/$mcVersion")
-        }
-
-        val modulePath = ":$moduleName"
-        if (settings.findProject(modulePath) == null) {
-            settings.include(modulePath)
-            settings.project(modulePath).projectDir = File(settings.settingsDir, "modules/$moduleName")
-        }
+        settings.include(versionPath)
+        settings.project(versionPath).projectDir = File(settings.settingsDir, "modules/$moduleName/versions/$mcVersion")
     }
 }
 
