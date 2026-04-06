@@ -7,14 +7,10 @@ object RepositorySetup {
     fun configure(project: Project, extraRepositories: List<RepositoryEntry> = emptyList()) {
         project.repositories.apply {
             mavenCentral()
-            exclusiveContent { exclusive ->
-                exclusive.forRepository {
-                    maven { repo ->
-                        repo.name = "Sponge"
-                        repo.setUrl("https://repo.spongepowered.org/repository/maven-public")
-                    }
-                }
-                exclusive.filter { it.includeGroupAndSubgroups("org.spongepowered") }
+            maven { repo ->
+                repo.name = "Sponge"
+                repo.setUrl("https://repo.spongepowered.org/repository/maven-public/")
+                repo.content { it.includeGroupAndSubgroups("org.spongepowered") }
             }
             maven { repo ->
                 repo.name = "NeoForge"
