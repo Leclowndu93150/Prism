@@ -8,6 +8,19 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 object SharedCommonConfigurator {
+    fun applyDownstreamSupportDeps(
+        project: Project,
+        sharedCommonConfig: SharedCommonConfiguration = SharedCommonConfiguration(),
+    ) {
+        if (sharedCommonConfig.hasMixin) {
+            project.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
+        }
+        if (sharedCommonConfig.hasMixinExtras) {
+            project.dependencies.add("compileOnly", "io.github.llamalad7:mixinextras-common:0.3.5")
+            project.dependencies.add("annotationProcessor", "io.github.llamalad7:mixinextras-common:0.3.5")
+        }
+    }
+
 
     fun configure(
         sharedProject: Project,
@@ -32,13 +45,7 @@ object SharedCommonConfigurator {
         sharedProject.dependencies.add("compileOnly", "it.unimi.dsi:fastutil:8.5.13")
         sharedProject.dependencies.add("compileOnly", "org.jetbrains:annotations:24.1.0")
 
-        if (sharedCommonConfig.hasMixin) {
-            sharedProject.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
-        }
-        if (sharedCommonConfig.hasMixinExtras) {
-            sharedProject.dependencies.add("compileOnly", "io.github.llamalad7:mixinextras-common:0.3.5")
-            sharedProject.dependencies.add("annotationProcessor", "io.github.llamalad7:mixinextras-common:0.3.5")
-        }
+        applyDownstreamSupportDeps(sharedProject, sharedCommonConfig)
 
         DependencyConfigurator.apply(sharedProject, sharedCommonConfig.deps)
 

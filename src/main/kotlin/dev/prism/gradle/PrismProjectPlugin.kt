@@ -129,6 +129,7 @@ class PrismProjectPlugin : Plugin<Project> {
         KotlinConfigurator.apply(loaderProject, versionConfig)
 
         DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps)
+        CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
 
         val isFabric = loaderConfig is FabricConfiguration
         val deps = when (loaderConfig) {
@@ -143,6 +144,8 @@ class PrismProjectPlugin : Plugin<Project> {
         }
 
         if (hasSharedCommon) {
+            SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
+            DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric)
             SharedCommonConfigurator.wireInto(loaderProject, sharedProject!!)
         }
 
@@ -186,6 +189,8 @@ class PrismProjectPlugin : Plugin<Project> {
         DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
 
         if (hasSharedCommon) {
+            SharedCommonConfigurator.applyDownstreamSupportDeps(commonProject, extension.sharedCommonConfig)
+            DependencyConfigurator.apply(commonProject, extension.sharedCommonConfig.deps)
             SharedCommonConfigurator.wireInto(commonProject, sharedProject!!)
         }
 
@@ -215,6 +220,9 @@ class PrismProjectPlugin : Plugin<Project> {
             KotlinConfigurator.apply(loaderProject, versionConfig)
 
             val isFabric = loaderConfig is FabricConfiguration
+            DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps, isFabric)
+            CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
+
             val deps = when (loaderConfig) {
                 is FabricConfiguration -> loaderConfig.deps
                 is ForgeConfiguration -> loaderConfig.deps
@@ -223,6 +231,11 @@ class PrismProjectPlugin : Plugin<Project> {
             }
             if (deps != null) {
                 DependencyConfigurator.apply(loaderProject, deps, isFabric)
+            }
+
+            if (hasSharedCommon) {
+                SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
+                DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric)
             }
 
             if (extension.publishingConfig.isConfigured) {
