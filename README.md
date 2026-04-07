@@ -28,8 +28,12 @@ versions/
 - Version-aware datagen (split client/server for 1.21.4+)
 - Handles unobfuscated MC (26.x) automatically
 - Auto-detects access wideners and access transformers
+- Explicit mixin/refmap controls with recursive mixin config detection
 - Template variable expansion in metadata files
 - CurseForge, Modrinth, and Maven publishing
+- Publish artifact overrides for CurseForge/Modrinth
+- Raw Gradle and raw underlying-plugin hooks
+- `prismDoctor` task for auditing resolved wiring
 - Common JAR publishing for library mods
 
 ## Getting started

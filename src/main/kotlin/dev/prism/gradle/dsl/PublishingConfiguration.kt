@@ -8,6 +8,8 @@ open class PublishingConfiguration {
     var changelogFile: String? = null
     var type: ReleaseType = ReleaseType.STABLE
     var displayName: String? = null
+    var artifactTaskName: String? = null
+    var artifactPath: String? = null
 
     val STABLE get() = ReleaseType.STABLE
     val BETA get() = ReleaseType.BETA
@@ -37,6 +39,14 @@ open class PublishingConfiguration {
 
     fun dependencies(action: Action<PublishingDepsBlock>) {
         action.execute(pubDeps)
+    }
+
+    fun artifactTask(name: String) {
+        artifactTaskName = name
+    }
+
+    fun artifactFile(path: String) {
+        artifactPath = path
     }
 
     fun mavenLocal() {

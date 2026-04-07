@@ -1,6 +1,8 @@
 package dev.prism.gradle.dsl
 
 import org.gradle.api.Action
+import org.gradle.api.Project
+import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
 
 open class ForgeConfiguration : LoaderConfiguration {
     override val loaderName = "forge"
@@ -10,6 +12,11 @@ open class ForgeConfiguration : LoaderConfiguration {
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
     internal val pubDeps = PublishingDepsBlock()
+    internal val mixinOptions = MixinOptions()
+    internal val rawProjectActions = mutableListOf<Action<Project>>()
+    internal val rawLegacyForgeActions = mutableListOf<Action<LegacyForgeExtension>>()
+    internal val extraConfigurations = mutableSetOf<String>()
+    internal val remapConfigurations = mutableSetOf<String>()
 
     fun dependencies(action: Action<DependencyBlock>) {
         action.execute(deps)
@@ -21,5 +28,26 @@ open class ForgeConfiguration : LoaderConfiguration {
 
     fun publishingDependencies(action: Action<PublishingDepsBlock>) {
         action.execute(pubDeps)
+    }
+
+    fun mixins(action: Action<MixinOptions>) {
+        action.execute(mixinOptions)
+    }
+
+    fun rawProject(action: Action<Project>) {
+        rawProjectActions.add(action)
+    }
+
+    fun rawLegacyForge(action: Action<LegacyForgeExtension>) {
+        rawLegacyForgeActions.add(action)
+    }
+
+    fun configuration(name: String) {
+        extraConfigurations.add(name)
+    }
+
+    fun remapConfiguration(name: String) {
+        extraConfigurations.add(name)
+        remapConfigurations.add(name)
     }
 }

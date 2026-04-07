@@ -1,6 +1,7 @@
 package dev.prism.gradle.dsl
 
 import org.gradle.api.Action
+import org.gradle.api.Project
 
 open class LegacyForgeConfiguration : LoaderConfiguration {
     override val loaderName = "legacyforge"
@@ -16,6 +17,8 @@ open class LegacyForgeConfiguration : LoaderConfiguration {
     internal val pubDeps = PublishingDepsBlock()
     internal val mixinTweakers = mutableListOf<String>()
     internal val accessTransformers = mutableListOf<String>()
+    internal val rawProjectActions = mutableListOf<Action<Project>>()
+    internal val extraConfigurations = mutableSetOf<String>()
 
     fun mixin(refmap: String = "") {
         mixinTweakers.add("org.spongepowered.asm.launch.MixinTweaker")
@@ -35,5 +38,13 @@ open class LegacyForgeConfiguration : LoaderConfiguration {
 
     fun publishingDependencies(action: Action<PublishingDepsBlock>) {
         action.execute(pubDeps)
+    }
+
+    fun rawProject(action: Action<Project>) {
+        rawProjectActions.add(action)
+    }
+
+    fun configuration(name: String) {
+        extraConfigurations.add(name)
     }
 }

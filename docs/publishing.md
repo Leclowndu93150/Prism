@@ -23,6 +23,10 @@ prism {
         // Defaults to the JAR filename (e.g. mymod-1.21.1-NeoForge-1.0.0.jar)
         // displayName = "My Mod v1.0.0"
 
+        // Optional override for CurseForge/Modrinth artifact selection
+        // artifactTask("reobfJar")
+        // artifactFile("build/libs/custom.jar")
+
         curseforge {
             accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
             projectId = "123456"
@@ -130,6 +134,8 @@ For each loader subproject, Prism applies mod-publish-plugin and sets:
 - `changelog`, `version`, and `type` from the root configuration
 - CurseForge and Modrinth credentials from the root configuration
 - Publishing dependencies from global + version + loader levels (stacked)
+
+If you need to override the file sent to CurseForge/Modrinth, use `artifactTask()` or `artifactFile()`. This only affects platform publishing; Maven publishing still uses the Gradle Java component unless you override it through raw Gradle hooks.
 
 ## Maven publishing
 

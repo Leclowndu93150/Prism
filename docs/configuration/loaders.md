@@ -44,6 +44,21 @@ Yarn mappings are only available for obfuscated versions (pre-26.x). On 26.x, Mi
 
 Access wideners are picked up from `common/src/main/resources/{modId}.accesswidener` or from the path set via `accessWidener()` in the version block.
 
+### Mixins and raw hooks
+
+```kotlin
+fabric {
+    mixins {
+        config("mymod.mixins.json")
+        refmap("mymod.refmap.json")
+        disableAutoDetect()
+    }
+
+    rawLoom { loom -> }
+    rawProject { project -> }
+}
+```
+
 ### Datagen
 
 When `datagen()` is called and Fabric API is present, Prism creates a `datagen` run configuration that uses Fabric API's datagen system. Generated resources output to `src/main/generated` and are automatically added to the source set.
@@ -74,6 +89,19 @@ version("1.21.1") {
 | `loaderVersionRange`  | No       | Version range for template expansion     |
 
 Access transformers are picked up from both `common/src/main/resources/META-INF/accesstransformer.cfg` and the loader's own resources. If no AT file exists but an `.accesswidener` file is found (via `accessWidener()` or auto-detection), Prism automatically converts it to AT format.
+
+### Mixins and raw hooks
+
+```kotlin
+neoforge {
+    mixins {
+        config("mymod.mixins.json")
+    }
+
+    rawNeoForge { ext -> }
+    rawProject { project -> }
+}
+```
 
 ### Datagen
 
@@ -109,6 +137,33 @@ version("1.20.1") {
 The version string passed to MDG Legacy is `{mcVersion}-{loaderVersion}`, e.g. `1.20.1-47.2.0`.
 
 Run configurations generated: `client`, `server`, `data`.
+
+### Custom remap configurations
+
+```kotlin
+forge {
+    loaderVersion = "47.4.16"
+    remapConfiguration("optionalMods")
+
+    dependencies {
+        modConfiguration("optionalMods", "curse.maven:jei-238222:7391695")
+    }
+}
+```
+
+### Mixins and raw hooks
+
+```kotlin
+forge {
+    mixins {
+        config("mymod.mixins.json")
+        refmap("mymod.refmap.json")
+    }
+
+    rawLegacyForge { ext -> }
+    rawProject { project -> }
+}
+```
 
 ## Legacy Forge (1.7.10 - 1.12.2)
 
@@ -147,6 +202,8 @@ maven { url = uri("https://nexus.gtnewhorizons.com/repository/public/") }
 ```
 
 Java 8 toolchain with Azul JDK. Run configurations: `runClient`, `runServer`.
+
+Use `rawProject {}` when you need plain RetroFuturaGradle customization that Prism does not model directly.
 
 ## Custom run configurations
 

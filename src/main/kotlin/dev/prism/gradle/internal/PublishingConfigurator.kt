@@ -13,12 +13,19 @@ import dev.prism.gradle.dsl.ReleaseType
 import dev.prism.gradle.dsl.VersionConfiguration
 import me.modmuss50.mpp.ModPublishExtension
 import org.gradle.api.Project
+import java.io.File
 
 object PublishingConfigurator {
-    internal fun selectPublishTask(project: Project) =
-        project.tasks.findByName("reobfJar")
+    internal fun selectPublishTask(project: Project, publishingConfig: PublishingConfiguration? = null) =
+        publishingConfig?.artifactTaskName?.let(project.tasks::findByName)
+            ?: project.tasks.findByName("reobfJar")
             ?: project.tasks.findByName("remapJar")
             ?: project.tasks.findByName("jar")
+
+    internal fun resolvePublishFile(project: Project, publishingConfig: PublishingConfiguration): File? {
+        publishingConfig.artifactPath?.let { return project.rootProject.file(it) }
+        return selectPublishTask(project, publishingConfig)?.outputs?.files?.singleFile
+    }
 
     fun configure(
         loaderProject: Project,
@@ -43,13 +50,14 @@ object PublishingConfigurator {
         loaderProject.afterEvaluate { proj ->
             val publishMods = proj.extensions.getByType(ModPublishExtension::class.java)
 
-            val jarTask = selectPublishTask(proj)
-            if (jarTask != null) {
-                val jarFile = jarTask.outputs.files.singleFile
+            val jarFile = resolvePublishFile(proj, publishingConfig)
+            if (jarFile != null) {
                 publishMods.file.set(jarFile)
 
                 val name = publishingConfig.displayName ?: jarFile.name
                 publishMods.displayName.set(name)
+            } else {
+                proj.logger.warn("Prism: No publishable artifact found for ${proj.path}")
             }
 
             val changelog = publishingConfig.changelog

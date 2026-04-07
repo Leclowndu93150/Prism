@@ -59,6 +59,7 @@ prism {
         mixin()                            // add Mixin as compileOnly
         mixinExtras()                      // add Mixin + MixinExtras as compileOnly
         dependencies { ... }               // additional dependencies
+        rawProject { project -> ... }      // escape hatch for :common
     }
 
     mod(moduleName: String) { ... }     // multi-mod workspace (see below)
@@ -101,12 +102,17 @@ version("1.21.1") {
     accessWidener(path: String)            // unified AW file, auto-converted to AT for Forge/NeoForge
 
     minecraftVersions("1.21", "1.21.1")    // version range for publishing
+    rawCommonProject { project -> ... }    // escape hatch for versions/{mc}/common
 
     common {                               // shared dependencies
+        api(dep: String)
         implementation(dep: String)
+        compileOnlyApi(dep: String)
         compileOnly(dep: String)
         runtimeOnly(dep: String)
         annotationProcessor(dep: String)
+        configuration(name: String, dep: String)
+        modConfiguration(name: String, dep: String)
     }
 
     fabric { ... }
@@ -127,9 +133,13 @@ fabric {
     datagen()                  // enable Fabric API datagen run
 
     dependencies {
+        api(dep: String)
         implementation(dep: String)
+        modApi(dep: String)
         modImplementation(dep: String)   // remapped by Loom
+        compileOnlyApi(dep: String)
         compileOnly(dep: String)
+        modCompileOnlyApi(dep: String)
         modCompileOnly(dep: String)      // remapped by Loom
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)      // remapped by Loom
@@ -137,7 +147,22 @@ fabric {
         annotationProcessor(dep: String)
         localJar(path: String)                         // local JAR, defaults to compileOnly
         localJar(path: String, configuration: String)  // local JAR with custom configuration
+        configuration(name: String, dep: String)
+        modConfiguration(name: String, dep: String)
     }
+
+    configuration(name: String)            // create a custom Gradle configuration
+
+    mixins {
+        autoDetect(enabled: Boolean)
+        disableAutoDetect()
+        config(path: String)
+        configs(vararg paths: String)
+        refmap(name: String)
+    }
+
+    rawLoom { loom -> ... }
+    rawProject { project -> ... }
 
     runs {
         client("myClient") {            // custom client run
@@ -164,9 +189,13 @@ forge {
     loaderVersionRange: String?    // for template expansion
 
     dependencies {
+        api(dep: String)
         implementation(dep: String)
+        modApi(dep: String)              // remapped by MDG Legacy
         modImplementation(dep: String)   // remapped by MDG Legacy
+        compileOnlyApi(dep: String)
         compileOnly(dep: String)
+        modCompileOnlyApi(dep: String)   // remapped by MDG Legacy
         modCompileOnly(dep: String)      // remapped by MDG Legacy
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)      // remapped by MDG Legacy
@@ -174,7 +203,23 @@ forge {
         annotationProcessor(dep: String)
         localJar(path: String)                         // local JAR, defaults to compileOnly
         localJar(path: String, configuration: String)  // local JAR with custom configuration
+        configuration(name: String, dep: String)
+        modConfiguration(name: String, dep: String)
     }
+
+    configuration(name: String)
+    remapConfiguration(name: String)      // create custom + mod{Name} via MDG Legacy
+
+    mixins {
+        autoDetect(enabled: Boolean)
+        disableAutoDetect()
+        config(path: String)
+        configs(vararg paths: String)
+        refmap(name: String)
+    }
+
+    rawLegacyForge { ext -> ... }
+    rawProject { project -> ... }
 
     runs {
         client("second") { username = "Player2" }
@@ -191,13 +236,33 @@ neoforge {
     loaderVersionRange: String?    // for template expansion
 
     dependencies {
+        api(dep: String)
         implementation(dep: String)
+        modApi(dep: String)
+        compileOnlyApi(dep: String)
         compileOnly(dep: String)
+        modCompileOnlyApi(dep: String)
+        modCompileOnly(dep: String)
         runtimeOnly(dep: String)
+        modRuntimeOnly(dep: String)
         jarJar(dep: String)              // maps to MDG jarJar
         localJar(path: String)                         // local JAR, defaults to compileOnly
         localJar(path: String, configuration: String)  // local JAR with custom configuration
+        configuration(name: String, dep: String)
+        modConfiguration(name: String, dep: String)
     }
+
+    configuration(name: String)
+
+    mixins {
+        autoDetect(enabled: Boolean)
+        disableAutoDetect()
+        config(path: String)
+        configs(vararg paths: String)
+    }
+
+    rawNeoForge { ext -> ... }
+    rawProject { project -> ... }
 
     runs {
         client("second") { username = "Player2" }
@@ -223,6 +288,8 @@ legacyForge {
     dependencies { ... }
     runs { ... }
     publishingDependencies { ... }
+    configuration(name: String)
+    rawProject { project -> ... }
 }
 ```
 
@@ -258,6 +325,33 @@ mod("corpse-curios") {
 Modules use the directory layout `modules/{moduleName}/versions/{mc}/{loader}/` and create Gradle subprojects like `:corpse-curios:1.21.1:neoforge`. Repositories (`curseMaven()`, `modrinthMaven()`, etc.) are shared from the top-level `prism` block.
 
 ### publishing
+
+```kotlin
+publishing {
+    changelog = "..."
+    changelogFile = "CHANGELOG.md"
+    displayName = "My Mod"
+    artifactTask("reobfJar")           // CurseForge/Modrinth override
+    artifactFile("build/libs/mod.jar") // CurseForge/Modrinth override
+    type = STABLE
+
+    curseforge { ... }
+    modrinth { ... }
+    dependencies { ... }
+
+    mavenLocal()
+    maven { ... }
+    githubPackages("owner", "repo")
+}
+```
+
+## Doctor task
+
+```bash
+./gradlew prismDoctor
+```
+
+Prints the resolved loader projects, underlying plugin, mapping mode, chosen publish task, available `mod*` configurations, and mixin settings.
 
 ```kotlin
 publishing {

@@ -13,6 +13,8 @@ import dev.prism.gradle.internal.KotlinConfigurator
 import dev.prism.gradle.internal.LoaderConfigurator
 import dev.prism.gradle.internal.MavenPublishConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
+import dev.prism.gradle.internal.PrismDoctor
+import dev.prism.gradle.internal.PrismWarnings
 import dev.prism.gradle.internal.RepositorySetup
 import dev.prism.gradle.internal.SharedCommonConfigurator
 import dev.prism.gradle.internal.Validation
@@ -58,6 +60,9 @@ class PrismProjectPlugin : Plugin<Project> {
         if (hasSharedCommon) {
             val minJava = extension.versions.values.minOfOrNull { it.resolvedJavaVersion } ?: 21
             SharedCommonConfigurator.configure(sharedProject!!, extension.metadata, extension.extraRepositories, minJava, extension.sharedCommonConfig)
+            for (action in extension.sharedCommonConfig.rawProjectActions) {
+                action.execute(sharedProject)
+            }
 
             if (extension.versions.values.any { it.kotlinVersion != null }) {
                 KotlinConfigurator.apply(sharedProject, extension.versions.values.first { it.kotlinVersion != null })
@@ -100,6 +105,8 @@ class PrismProjectPlugin : Plugin<Project> {
         for ((moduleName, moduleConfig) in extension.modules) {
             configureModule(rootProject, moduleName, moduleConfig, extension)
         }
+
+        PrismDoctor.register(rootProject, extension)
     }
 
     private fun configureSingleLoader(
@@ -149,6 +156,8 @@ class PrismProjectPlugin : Plugin<Project> {
             SharedCommonConfigurator.wireInto(loaderProject, sharedProject!!)
         }
 
+        PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, extension.publishingConfig)
+
         if (extension.publishingConfig.isConfigured) {
             PublishingConfigurator.configure(
                 loaderProject, versionConfig, loaderConfig,
@@ -187,6 +196,9 @@ class PrismProjectPlugin : Plugin<Project> {
         CommonConfigurator.configure(commonProject, versionConfig, extension.metadata, extension.extraRepositories)
         KotlinConfigurator.apply(commonProject, versionConfig)
         DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
+        for (action in versionConfig.rawCommonProjectActions) {
+            action.execute(commonProject)
+        }
 
         if (hasSharedCommon) {
             SharedCommonConfigurator.applyDownstreamSupportDeps(commonProject, extension.sharedCommonConfig)
@@ -237,6 +249,8 @@ class PrismProjectPlugin : Plugin<Project> {
                 SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
                 DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric)
             }
+
+            PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, extension.publishingConfig)
 
             if (extension.publishingConfig.isConfigured) {
                 PublishingConfigurator.configure(
@@ -332,6 +346,7 @@ class PrismProjectPlugin : Plugin<Project> {
 
         KotlinConfigurator.apply(loaderProject, versionConfig)
         DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps)
+        CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
 
         val isFabric = loaderConfig is FabricConfiguration
         val deps = when (loaderConfig) {
@@ -344,6 +359,8 @@ class PrismProjectPlugin : Plugin<Project> {
         if (deps != null) {
             DependencyConfigurator.apply(loaderProject, deps, isFabric)
         }
+
+        PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, moduleConfig.publishingConfig)
 
         if (moduleConfig.publishingConfig.isConfigured) {
             PublishingConfigurator.configure(
@@ -376,6 +393,9 @@ class PrismProjectPlugin : Plugin<Project> {
         CommonConfigurator.configure(commonProject, versionConfig, moduleConfig.metadata, extension.extraRepositories)
         KotlinConfigurator.apply(commonProject, versionConfig)
         DependencyConfigurator.apply(commonProject, versionConfig.commonDeps)
+        for (action in versionConfig.rawCommonProjectActions) {
+            action.execute(commonProject)
+        }
 
         if (moduleConfig.publishingConfig.hasMaven && moduleConfig.publishingConfig.publishCommonJar) {
             MavenPublishConfigurator.configureCommon(
@@ -396,6 +416,8 @@ class PrismProjectPlugin : Plugin<Project> {
             KotlinConfigurator.apply(loaderProject, versionConfig)
 
             val isFabric = loaderConfig is FabricConfiguration
+            DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps, isFabric)
+            CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
             val deps = when (loaderConfig) {
                 is FabricConfiguration -> loaderConfig.deps
                 is ForgeConfiguration -> loaderConfig.deps
@@ -405,6 +427,8 @@ class PrismProjectPlugin : Plugin<Project> {
             if (deps != null) {
                 DependencyConfigurator.apply(loaderProject, deps, isFabric)
             }
+
+            PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, moduleConfig.publishingConfig)
 
             if (moduleConfig.publishingConfig.isConfigured) {
                 PublishingConfigurator.configure(
