@@ -1,6 +1,7 @@
 package dev.prism.gradle.dsl
 
 import org.gradle.api.Action
+import org.gradle.api.Project
 
 open class VersionConfiguration(val minecraftVersion: String) {
     var javaVersion: Int? = null
@@ -17,6 +18,7 @@ open class VersionConfiguration(val minecraftVersion: String) {
     internal var legacyForgeConfig: LegacyForgeConfiguration? = null
     internal val commonDeps = DependencyBlock()
     internal val pubDeps = PublishingDepsBlock()
+    internal val rawCommonProjectActions = mutableListOf<Action<Project>>()
 
     val resolvedJavaVersion: Int
         get() = javaVersion ?: detectJavaVersion(minecraftVersion)
@@ -27,6 +29,10 @@ open class VersionConfiguration(val minecraftVersion: String) {
 
     fun common(action: Action<DependencyBlock>) {
         action.execute(commonDeps)
+    }
+
+    fun rawCommonProject(action: Action<Project>) {
+        rawCommonProjectActions.add(action)
     }
 
     fun fabric(action: Action<FabricConfiguration>) {

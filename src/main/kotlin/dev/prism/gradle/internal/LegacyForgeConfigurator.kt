@@ -47,6 +47,7 @@ object LegacyForgeConfigurator {
     ) {
         project.pluginManager.apply("java-library")
         project.pluginManager.apply("com.gtnewhorizons.retrofuturagradle")
+        legacyConfig.extraConfigurations.forEach { project.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(project, extraRepositories)
 
@@ -94,5 +95,9 @@ object LegacyForgeConfigurator {
         }
 
         JarNaming.configure(project, metadata, versionConfig, legacyConfig)
+
+        for (action in legacyConfig.rawProjectActions) {
+            action.execute(project)
+        }
     }
 }

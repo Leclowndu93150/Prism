@@ -40,6 +40,7 @@ object FabricConfigurator {
         }
 
         loaderProject.pluginManager.apply("fabric-loom")
+        fabricConfig.extraConfigurations.forEach { loaderProject.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(loaderProject, extraRepositories)
 
@@ -100,9 +101,11 @@ object FabricConfigurator {
             loom.accessWidenerPath.set(aw)
         }
 
-        if (!unobfuscated) {
+        val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(loaderProject, commonProject, fabricConfig.mixinOptions)
+
+        if (!unobfuscated && mixinConfigs.isNotEmpty()) {
             loom.mixin { mixin ->
-                mixin.defaultRefmapName.set("${metadata.modId}.refmap.json")
+                mixin.defaultRefmapName.set(fabricConfig.mixinOptions.refmapName ?: "${metadata.modId}.refmap.json")
             }
         }
 
@@ -137,11 +140,19 @@ object FabricConfigurator {
 
         RunApplicator.applyFabricRuns(loaderProject, fabricConfig.extraRuns, versionConfig, loom)
 
-        MixinAutoDetect.injectFabricMixins(loaderProject, commonProject)
+        MixinAutoDetect.injectFabricMixins(loaderProject, mixinConfigs)
+
+        for (action in fabricConfig.rawLoomActions) {
+            action.execute(loom)
+        }
 
         JarNaming.configure(loaderProject, metadata, versionConfig, fabricConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
+
+        for (action in fabricConfig.rawProjectActions) {
+            action.execute(loaderProject)
+        }
     }
 
     fun configureSingle(
@@ -161,6 +172,7 @@ object FabricConfigurator {
         }
 
         project.pluginManager.apply("fabric-loom")
+        fabricConfig.extraConfigurations.forEach { project.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(project, extraRepositories)
 
@@ -202,8 +214,10 @@ object FabricConfigurator {
             loom.accessWidenerPath.set(aw)
         }
 
-        if (!unobfuscated) {
-            loom.mixin { mixin -> mixin.defaultRefmapName.set("${metadata.modId}.refmap.json") }
+        val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(project, null, fabricConfig.mixinOptions)
+
+        if (!unobfuscated && mixinConfigs.isNotEmpty()) {
+            loom.mixin { mixin -> mixin.defaultRefmapName.set(fabricConfig.mixinOptions.refmapName ?: "${metadata.modId}.refmap.json") }
         }
 
         loom.runs { runs ->
@@ -234,8 +248,17 @@ object FabricConfigurator {
         }
 
         RunApplicator.applyFabricRuns(project, fabricConfig.extraRuns, versionConfig, loom)
-        MixinAutoDetect.injectFabricMixins(project)
+        MixinAutoDetect.injectFabricMixins(project, mixinConfigs)
+
+        for (action in fabricConfig.rawLoomActions) {
+            action.execute(loom)
+        }
+
         JarNaming.configure(project, metadata, versionConfig, fabricConfig)
         TemplateExpansion.configure(project, versionConfig, metadata)
+
+        for (action in fabricConfig.rawProjectActions) {
+            action.execute(project)
+        }
     }
 }

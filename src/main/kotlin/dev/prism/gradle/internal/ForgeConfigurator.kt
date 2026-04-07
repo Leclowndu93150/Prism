@@ -6,6 +6,7 @@ import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
 import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
+import net.neoforged.moddevgradle.legacyforge.dsl.ObfuscationExtension
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.tasks.Jar
@@ -23,6 +24,7 @@ object ForgeConfigurator {
     ) {
         loaderProject.pluginManager.apply("java-library")
         loaderProject.pluginManager.apply("net.neoforged.moddev.legacyforge")
+        forgeConfig.extraConfigurations.forEach { loaderProject.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(loaderProject, extraRepositories)
 
@@ -108,15 +110,23 @@ object ForgeConfigurator {
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
 
-        configureMixins(loaderProject, metadata, commonProject)
+        configureCustomRemapConfigurations(loaderProject, forgeConfig)
+        configureMixins(loaderProject, metadata, forgeConfig, commonProject)
 
         loaderProject.extensions.configure(LegacyForgeExtension::class.java) { legacyForge ->
             RunApplicator.applyMdgRuns(loaderProject, forgeConfig.extraRuns, versionConfig, "forge", legacyForge.runs)
+            for (action in forgeConfig.rawLegacyForgeActions) {
+                action.execute(legacyForge)
+            }
         }
 
         JarNaming.configure(loaderProject, metadata, versionConfig, forgeConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
+
+        for (action in forgeConfig.rawProjectActions) {
+            action.execute(loaderProject)
+        }
     }
 
     fun configureSingle(
@@ -129,6 +139,7 @@ object ForgeConfigurator {
     ) {
         project.pluginManager.apply("java-library")
         project.pluginManager.apply("net.neoforged.moddev.legacyforge")
+        forgeConfig.extraConfigurations.forEach { project.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(project, extraRepositories)
 
@@ -191,23 +202,44 @@ object ForgeConfigurator {
             }
 
             RunApplicator.applyMdgRuns(project, forgeConfig.extraRuns, versionConfig, "forge", legacyForge.runs)
+            for (action in forgeConfig.rawLegacyForgeActions) {
+                action.execute(legacyForge)
+            }
         }
 
         project.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
 
-        configureMixins(project, metadata)
+        configureCustomRemapConfigurations(project, forgeConfig)
+        configureMixins(project, metadata, forgeConfig)
 
         JarNaming.configure(project, metadata, versionConfig, forgeConfig)
         TemplateExpansion.configure(project, versionConfig, metadata)
+
+        for (action in forgeConfig.rawProjectActions) {
+            action.execute(project)
+        }
     }
 
-    private fun configureMixins(project: Project, metadata: MetadataExtension, commonProject: Project? = null) {
-        val mixinConfigs = MixinAutoDetect.findMixinConfigs(project).toMutableList()
-        if (commonProject != null) {
-            mixinConfigs.addAll(MixinAutoDetect.findMixinConfigs(commonProject))
+    private fun configureCustomRemapConfigurations(project: Project, forgeConfig: ForgeConfiguration) {
+        if (forgeConfig.remapConfigurations.isEmpty()) return
+        val obfuscation = project.extensions.findByType(ObfuscationExtension::class.java) ?: return
+        for (configurationName in forgeConfig.remapConfigurations) {
+            val configuration = project.configurations.maybeCreate(configurationName)
+            if (project.configurations.findByName("mod${configurationName.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}") == null) {
+                obfuscation.createRemappingConfiguration(configuration)
+            }
         }
+    }
+
+    private fun configureMixins(
+        project: Project,
+        metadata: MetadataExtension,
+        forgeConfig: ForgeConfiguration,
+        commonProject: Project? = null,
+    ) {
+        val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(project, commonProject, forgeConfig.mixinOptions)
         if (mixinConfigs.isEmpty()) return
 
         project.dependencies.add("annotationProcessor", "org.spongepowered:mixin:0.8.5:processor")
@@ -225,7 +257,7 @@ object ForgeConfigurator {
 
         try {
             mixinExt.javaClass.getMethod("add", org.gradle.api.tasks.SourceSet::class.java, String::class.java)
-                .invoke(mixinExt, mainSourceSet, "${metadata.modId}.refmap.json")
+                .invoke(mixinExt, mainSourceSet, forgeConfig.mixinOptions.refmapName ?: "${metadata.modId}.refmap.json")
         } catch (_: Exception) {}
 
         val mixinConfigsStr = mixinConfigs.joinToString(",")

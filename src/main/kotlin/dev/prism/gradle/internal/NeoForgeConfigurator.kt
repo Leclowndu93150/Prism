@@ -34,6 +34,7 @@ object NeoForgeConfigurator {
     ) {
         loaderProject.pluginManager.apply("java-library")
         loaderProject.pluginManager.apply("net.neoforged.moddev")
+        neoForgeConfig.extraConfigurations.forEach { loaderProject.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(loaderProject, extraRepositories)
 
@@ -144,11 +145,22 @@ object NeoForgeConfigurator {
             RunApplicator.applyMdgRuns(loaderProject, neoForgeConfig.extraRuns, versionConfig, "neoforge", neoForge.runs)
         }
 
-        MixinAutoDetect.injectNeoForgeMixins(loaderProject, commonProject)
+        val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(loaderProject, commonProject, neoForgeConfig.mixinOptions)
+        MixinAutoDetect.injectNeoForgeMixins(loaderProject, mixinConfigs)
+
+        loaderProject.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
+            for (action in neoForgeConfig.rawNeoForgeActions) {
+                action.execute(neoForge)
+            }
+        }
 
         JarNaming.configure(loaderProject, metadata, versionConfig, neoForgeConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
+
+        for (action in neoForgeConfig.rawProjectActions) {
+            action.execute(loaderProject)
+        }
     }
 
     fun configureSingle(
@@ -161,6 +173,7 @@ object NeoForgeConfigurator {
     ) {
         project.pluginManager.apply("java-library")
         project.pluginManager.apply("net.neoforged.moddev")
+        neoForgeConfig.extraConfigurations.forEach { project.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(project, extraRepositories)
 
@@ -238,15 +251,23 @@ object NeoForgeConfigurator {
             }
 
             RunApplicator.applyMdgRuns(project, neoForgeConfig.extraRuns, versionConfig, "neoforge", neoForge.runs)
+            for (action in neoForgeConfig.rawNeoForgeActions) {
+                action.execute(neoForge)
+            }
         }
 
         project.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
 
-        MixinAutoDetect.injectNeoForgeMixins(project)
+        val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(project, null, neoForgeConfig.mixinOptions)
+        MixinAutoDetect.injectNeoForgeMixins(project, mixinConfigs)
 
         JarNaming.configure(project, metadata, versionConfig, neoForgeConfig)
         TemplateExpansion.configure(project, versionConfig, metadata)
+
+        for (action in neoForgeConfig.rawProjectActions) {
+            action.execute(project)
+        }
     }
 }

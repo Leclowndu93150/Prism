@@ -143,14 +143,72 @@ fabric {
 
 See [Loaders](configuration/loaders.md#custom-run-configurations) for the full run DSL.
 
+## How do I escape to raw Gradle or the underlying plugin?
+
+Use the raw hooks when Prism's DSL does not expose a setting yet:
+
+```kotlin
+version("1.21.1") {
+    rawCommonProject { project -> }
+
+    fabric {
+        rawLoom { loom -> }
+        rawProject { project -> }
+    }
+
+    forge {
+        rawLegacyForge { ext -> }
+        rawProject { project -> }
+    }
+
+    neoforge {
+        rawNeoForge { ext -> }
+        rawProject { project -> }
+    }
+}
+
+sharedCommon {
+    rawProject { project -> }
+}
+```
+
+The underlying-plugin hooks run after Prism's own configuration, so they are suitable for overrides.
+
+## How do I control mixin auto-detection?
+
+Use the `mixins` block on Fabric, Forge, or NeoForge:
+
+```kotlin
+forge {
+    mixins {
+        config("mymod.mixins.json")
+        refmap("mymod.refmap.json")
+        disableAutoDetect()
+    }
+}
+```
+
+By default Prism auto-detects `*.mixins.json` files from `src/main/resources` recursively. Disable auto-detect if you want full manual control.
+
 ## How does publishing work?
 
 See [Publishing](publishing.md). Key points:
 
 - Display name on CurseForge/Modrinth defaults to the JAR filename (e.g. `mymod-1.21.1-NeoForge-1.0.0.jar`)
 - Override with `displayName` in the publishing block
+- Override the uploaded artifact with `artifactTask()` or `artifactFile()` when needed
 - Publishing dependencies (requires, optional, incompatible) can be set globally, per version, or per loader
 - All three levels stack
+
+## Is there a diagnostic task?
+
+Yes:
+
+```bash
+./gradlew prismDoctor
+```
+
+It prints the resolved loader projects, underlying plugin, mapping mode, chosen publish task, available remap configurations, and mixin settings.
 
 ## How do I add access wideners or access transformers?
 

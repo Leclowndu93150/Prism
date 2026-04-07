@@ -1,5 +1,6 @@
 package dev.prism.gradle.internal
 
+import dev.prism.gradle.dsl.MixinOptions
 import org.gradle.api.Project
 import org.gradle.language.jvm.tasks.ProcessResources
 import java.io.File
@@ -7,12 +8,7 @@ import java.io.File
 object MixinAutoDetect {
     fun findMixinConfigs(project: Project): List<String> {
         val resourcesDir = project.file("src/main/resources")
-        if (!resourcesDir.exists()) return emptyList()
-
-        return resourcesDir.listFiles()
-            ?.filter { it.name.endsWith(".mixins.json") }
-            ?.map { it.name }
-            ?: emptyList()
+        return findMixinConfigsRecursive(resourcesDir)
     }
 
     fun findMixinConfigsRecursive(vararg dirs: File): List<String> {
@@ -25,11 +21,19 @@ object MixinAutoDetect {
         }
     }
 
-    fun injectNeoForgeMixins(project: Project, commonProject: Project? = null) {
-        val mixinConfigs = findMixinConfigs(project).toMutableList()
-        if (commonProject != null) {
-            mixinConfigs.addAll(findMixinConfigs(commonProject))
+    fun resolveMixinConfigs(project: Project, commonProject: Project? = null, mixinOptions: MixinOptions? = null): List<String> {
+        val mixinConfigs = linkedSetOf<String>()
+        if (mixinOptions?.autoDetect != false) {
+            mixinConfigs.addAll(findMixinConfigs(project))
+            if (commonProject != null) {
+                mixinConfigs.addAll(findMixinConfigs(commonProject))
+            }
         }
+        mixinOptions?.explicitConfigs?.forEach(mixinConfigs::add)
+        return mixinConfigs.toList()
+    }
+
+    fun injectNeoForgeMixins(project: Project, mixinConfigs: List<String>) {
         if (mixinConfigs.isEmpty()) return
 
         project.tasks.named("processResources", ProcessResources::class.java) { task ->
@@ -53,11 +57,7 @@ object MixinAutoDetect {
         }
     }
 
-    fun injectFabricMixins(project: Project, commonProject: Project? = null) {
-        val mixinConfigs = findMixinConfigs(project).toMutableList()
-        if (commonProject != null) {
-            mixinConfigs.addAll(findMixinConfigs(commonProject))
-        }
+    fun injectFabricMixins(project: Project, mixinConfigs: List<String>) {
         if (mixinConfigs.isEmpty()) return
 
         project.tasks.named("processResources", ProcessResources::class.java) { task ->

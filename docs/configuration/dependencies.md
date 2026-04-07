@@ -76,21 +76,50 @@ neoforge {
 
 | Method | Description |
 |--------|-------------|
+| `api(dep)` | Exported API dependency |
 | `implementation(dep)` | Compile and runtime dependency (no remapping) |
+| `modApi(dep)` | Exported mod dependency, remapped when supported |
+| `compileOnlyApi(dep)` | Exported compile-only API dependency |
 | `modImplementation(dep)` | Mod dependency, remapped to dev mappings |
 | `compileOnly(dep)` | Compile-time only (no remapping) |
+| `modCompileOnlyApi(dep)` | Exported compile-only mod dependency, remapped when supported |
 | `modCompileOnly(dep)` | Mod compile-time only, remapped to dev mappings |
 | `runtimeOnly(dep)` | Runtime only (no remapping) |
 | `modRuntimeOnly(dep)` | Mod runtime only, remapped to dev mappings |
 | `jarJar(dep)` | Embed dependency in output JAR |
 | `localJar(path)` | Local JAR file (defaults to compileOnly) |
 | `localJar(path, config)` | Local JAR file with custom configuration |
+| `configuration(name, dep)` | Add a dependency to a custom Gradle configuration |
+| `modConfiguration(name, dep)` | Add a dependency to `mod{Name}` when present |
 
 Use `mod*` variants for **Minecraft mod JARs** (from CurseMaven, Modrinth Maven, or mod maven repos). These remap the dependency from production mappings (SRG/intermediary) to dev mappings so you don't get `NoSuchMethodError` / `NoSuchFieldError` crashes.
 
 Use plain `implementation` / `compileOnly` / `runtimeOnly` for **regular Java libraries** that don't reference Minecraft classes (e.g. Gson, Apache Commons). These don't need remapping.
 
 On Fabric, `mod*` maps to Loom's remapping configurations. On Forge, `mod*` maps to MDG Legacy's remapping transform. On NeoForge, no remapping is needed so `mod*` behaves the same as the plain variants.
+
+## Custom configurations
+
+Create an extra configuration in the loader block, then add dependencies to it:
+
+```kotlin
+forge {
+    loaderVersion = "47.4.16"
+    configuration("localRuntime")
+    remapConfiguration("optionalMods")
+
+    dependencies {
+        configuration("localRuntime", "com.example:helper:1.0")
+        modConfiguration("optionalMods", "curse.maven:jei-238222:7391695")
+    }
+}
+```
+
+Notes:
+
+- `configuration("name")` creates a plain custom Gradle configuration for that loader project.
+- `remapConfiguration("name")` is currently Forge-only and creates both `name` and `mod{Name}` through MDG Legacy.
+- `modConfiguration(name, dep)` falls back to the plain configuration with a warning if `mod{Name}` does not exist.
 
 ## Jar-in-Jar
 

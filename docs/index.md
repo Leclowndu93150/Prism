@@ -24,6 +24,8 @@ Prism wraps [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradl
 - Template variable expansion in metadata files
 - CurseForge and Modrinth publishing with platform-specific dependencies
 - Optional shared common across all versions for pure Java API code
+- Raw project and underlying-plugin hooks when the Prism DSL is not enough
+- `prismDoctor` for auditing resolved wiring, publish artifacts, and remap configs
 
 ## Project layout
 
