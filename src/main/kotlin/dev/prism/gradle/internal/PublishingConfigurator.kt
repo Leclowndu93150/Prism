@@ -15,6 +15,11 @@ import me.modmuss50.mpp.ModPublishExtension
 import org.gradle.api.Project
 
 object PublishingConfigurator {
+    internal fun selectPublishTask(project: Project) =
+        project.tasks.findByName("reobfJar")
+            ?: project.tasks.findByName("remapJar")
+            ?: project.tasks.findByName("jar")
+
     fun configure(
         loaderProject: Project,
         versionConfig: VersionConfiguration,
@@ -38,7 +43,7 @@ object PublishingConfigurator {
         loaderProject.afterEvaluate { proj ->
             val publishMods = proj.extensions.getByType(ModPublishExtension::class.java)
 
-            val jarTask = proj.tasks.findByName("remapJar") ?: proj.tasks.findByName("jar")
+            val jarTask = selectPublishTask(proj)
             if (jarTask != null) {
                 val jarFile = jarTask.outputs.files.singleFile
                 publishMods.file.set(jarFile)
