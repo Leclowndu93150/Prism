@@ -107,6 +107,8 @@ object ForgeConfigurator {
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
 
+        configureMixins(loaderProject, metadata, commonProject)
+
         loaderProject.extensions.configure(LegacyForgeExtension::class.java) { legacyForge ->
             RunApplicator.applyMdgRuns(loaderProject, forgeConfig.extraRuns, versionConfig, "forge", legacyForge.runs)
         }
@@ -194,7 +196,33 @@ object ForgeConfigurator {
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
 
+        configureMixins(project, metadata)
+
         JarNaming.configure(project, metadata, versionConfig, forgeConfig)
         TemplateExpansion.configure(project, versionConfig, metadata)
+    }
+
+    private fun configureMixins(project: Project, metadata: MetadataExtension, commonProject: Project? = null) {
+        val mixinConfigs = MixinAutoDetect.findMixinConfigs(project).toMutableList()
+        if (commonProject != null) {
+            mixinConfigs.addAll(MixinAutoDetect.findMixinConfigs(commonProject))
+        }
+        if (mixinConfigs.isEmpty()) return
+
+        val mixinExt = project.extensions.findByName("mixin") ?: return
+        val mainSourceSet = project.extensions.getByType(JavaPluginExtension::class.java)
+            .sourceSets.getByName("main")
+
+        for (config in mixinConfigs) {
+            try {
+                mixinExt.javaClass.getMethod("config", String::class.java).invoke(mixinExt, config)
+                project.logger.lifecycle("Prism: Registered mixin config '$config' for Forge")
+            } catch (_: Exception) {}
+        }
+
+        try {
+            mixinExt.javaClass.getMethod("add", org.gradle.api.tasks.SourceSet::class.java, String::class.java)
+                .invoke(mixinExt, mainSourceSet, "${metadata.modId}.refmap.json")
+        } catch (_: Exception) {}
     }
 }
