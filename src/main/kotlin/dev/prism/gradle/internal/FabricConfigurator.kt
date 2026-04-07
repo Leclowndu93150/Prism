@@ -137,6 +137,8 @@ object FabricConfigurator {
 
         RunApplicator.applyFabricRuns(loaderProject, fabricConfig.extraRuns, versionConfig, loom)
 
+        MixinAutoDetect.injectFabricMixins(loaderProject, commonProject)
+
         JarNaming.configure(loaderProject, metadata, versionConfig, fabricConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
@@ -232,6 +234,7 @@ object FabricConfigurator {
         }
 
         RunApplicator.applyFabricRuns(project, fabricConfig.extraRuns, versionConfig, loom)
+        MixinAutoDetect.injectFabricMixins(project)
         JarNaming.configure(project, metadata, versionConfig, fabricConfig)
         TemplateExpansion.configure(project, versionConfig, metadata)
     }

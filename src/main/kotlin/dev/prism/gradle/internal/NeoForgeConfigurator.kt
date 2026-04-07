@@ -144,6 +144,8 @@ object NeoForgeConfigurator {
             RunApplicator.applyMdgRuns(loaderProject, neoForgeConfig.extraRuns, versionConfig, "neoforge", neoForge.runs)
         }
 
+        MixinAutoDetect.injectNeoForgeMixins(loaderProject, commonProject)
+
         JarNaming.configure(loaderProject, metadata, versionConfig, neoForgeConfig)
         CommonLoaderWiring.wire(loaderProject, commonProject, metadata, sharedProject)
         TemplateExpansion.configure(loaderProject, versionConfig, metadata)
@@ -241,6 +243,8 @@ object NeoForgeConfigurator {
         project.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.sourceSets.getByName("main").resources.srcDir("src/generated/resources")
         }
+
+        MixinAutoDetect.injectNeoForgeMixins(project)
 
         JarNaming.configure(project, metadata, versionConfig, neoForgeConfig)
         TemplateExpansion.configure(project, versionConfig, metadata)
