@@ -8,6 +8,7 @@ import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 object ForgeConfigurator {
@@ -226,5 +227,10 @@ object ForgeConfigurator {
             mixinExt.javaClass.getMethod("add", org.gradle.api.tasks.SourceSet::class.java, String::class.java)
                 .invoke(mixinExt, mainSourceSet, "${metadata.modId}.refmap.json")
         } catch (_: Exception) {}
+
+        val mixinConfigsStr = mixinConfigs.joinToString(",")
+        project.tasks.withType(Jar::class.java).configureEach { jar ->
+            jar.manifest.attributes["MixinConfigs"] = mixinConfigsStr
+        }
     }
 }
