@@ -209,6 +209,8 @@ object ForgeConfigurator {
         }
         if (mixinConfigs.isEmpty()) return
 
+        project.dependencies.add("annotationProcessor", "org.spongepowered:mixin:0.8.5:processor")
+
         val mixinExt = project.extensions.findByName("mixin") ?: return
         val mainSourceSet = project.extensions.getByType(JavaPluginExtension::class.java)
             .sourceSets.getByName("main")
