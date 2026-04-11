@@ -5,11 +5,15 @@ plugins {
 }
 
 group = "dev.prism"
-version = "0.4.0"
+version = "0.4.1"
 
 repositories {
     mavenCentral()
     gradlePluginPortal()
+    maven {
+        name = "MinecraftForge"
+        url = uri("https://maven.minecraftforge.net/")
+    }
     maven {
         name = "Fabric"
         url = uri("https://maven.fabricmc.net/")
@@ -47,6 +51,7 @@ dependencies {
     implementation("net.neoforged:moddev-gradle:2.0.141")
     implementation("me.modmuss50:mod-publish-plugin:1.1.0")
     implementation("com.gtnewhorizons:retrofuturagradle:2.0.2")
+    implementation("net.minecraftforge:forgegradle:7.0.20")
 
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")

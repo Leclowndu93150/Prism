@@ -43,7 +43,9 @@ object AccessWidenerParser {
             .map { it.substringBefore('#').trim() }
             .filter { it.isNotEmpty() }
 
-        require(lines.isNotEmpty()) { "Access widener file is empty: ${file.path}" }
+        if (lines.isEmpty()) {
+            return AccessWidenerFile("named", emptyList())
+        }
 
         val header = lines[0]
         val headerParts = header.split("\\s+".toRegex())

@@ -2,6 +2,7 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.ModuleConfiguration
@@ -79,6 +80,12 @@ object Validation {
     }
 
     private fun validateVersion(mcVersion: String, config: VersionConfiguration) {
+        if (config.forgeConfig != null && config.lexForgeConfig != null) {
+            throw IllegalStateException(
+                "Prism: version '$mcVersion' declares both forge { } (MDG Legacy) and lexForge { } (FG7). " +
+                "Use forge { } for Forge <1.21.1 and lexForge { } for Forge >=1.21.1."
+            )
+        }
         for (loader in config.loaders) {
             validateLoader(mcVersion, loader)
         }
@@ -88,6 +95,7 @@ object Validation {
         val loaderVersion = when (loader) {
             is FabricConfiguration -> loader.loaderVersion
             is ForgeConfiguration -> loader.loaderVersion
+            is LexForgeConfiguration -> loader.loaderVersion
             is NeoForgeConfiguration -> loader.loaderVersion
             else -> return
         }

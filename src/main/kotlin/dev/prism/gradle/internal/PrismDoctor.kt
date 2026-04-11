@@ -2,6 +2,7 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MixinOptions
@@ -63,7 +64,7 @@ object PrismDoctor {
             appendLine("  underlying: ${underlyingPlugin(loaderConfig)}")
             appendLine("  mappings: ${mappingMode(versionConfig, loaderConfig)}")
             appendLine("  mixins: ${describeMixins(loaderConfig)}")
-            appendLine("  publishTask: ${project?.let { PublishingConfigurator.selectPublishTask(it, publishingConfig)?.name } ?: "n/a"}")
+            appendLine("  publishTask: ${project?.let { PublishingConfigurator.selectPublishTask(it, loaderConfig, publishingConfig)?.name } ?: "n/a"}")
             appendLine("  modConfigs: ${project?.configurations?.names?.filter { it.startsWith("mod") }?.sorted()?.joinToString().orEmpty()}")
         }
 
@@ -88,6 +89,7 @@ object PrismDoctor {
     private fun underlyingPlugin(loaderConfig: LoaderConfiguration) = when (loaderConfig) {
         is FabricConfiguration -> "fabric-loom"
         is ForgeConfiguration -> "net.neoforged.moddev.legacyforge"
+        is LexForgeConfiguration -> "net.minecraftforge.gradle"
         is NeoForgeConfiguration -> "net.neoforged.moddev"
         is LegacyForgeConfiguration -> "com.gtnewhorizons.retrofuturagradle"
         else -> "unknown"
@@ -100,6 +102,11 @@ object PrismDoctor {
             "named dev / intermediary production"
         }
         is ForgeConfiguration -> "official dev / srg production"
+        is LexForgeConfiguration -> {
+            val channel = loaderConfig.mappingsChannel
+                ?: if (versionConfig.parchmentMappingsVersion != null) "parchment" else "official"
+            "fg7 $channel"
+        }
         is NeoForgeConfiguration -> "neoform named dev"
         is LegacyForgeConfiguration -> "mcp"
         else -> "unknown"
@@ -109,6 +116,7 @@ object PrismDoctor {
         val options: MixinOptions? = when (loaderConfig) {
             is FabricConfiguration -> loaderConfig.mixinOptions
             is ForgeConfiguration -> loaderConfig.mixinOptions
+            is LexForgeConfiguration -> loaderConfig.mixinOptions
             is NeoForgeConfiguration -> loaderConfig.mixinOptions
             else -> null
         }

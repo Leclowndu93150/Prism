@@ -102,7 +102,7 @@ object CommonConfigurator {
             }
 
             val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
-            if (at.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(at)) {
                 neoForge.accessTransformers.from(at.absolutePath)
             } else {
                 val awFile = AccessWidenerSupport.resolveAccessWidener(
@@ -130,7 +130,7 @@ object CommonConfigurator {
             }
 
             val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
-            if (at.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(at)) {
                 legacyForge.setAccessTransformers(at.absolutePath)
             } else {
                 val awFile = AccessWidenerSupport.resolveAccessWidener(

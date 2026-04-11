@@ -2,10 +2,13 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.MixinOptions
 import org.gradle.api.Project
+import org.gradle.jvm.tasks.Jar
 import org.gradle.language.jvm.tasks.ProcessResources
 import java.io.File
 
 object MixinAutoDetect {
+    private val MIXIN_SOURCE_EXTENSIONS = setOf("java", "kt", "kts", "groovy")
+
     fun findMixinConfigs(project: Project): List<String> {
         val resourcesDir = project.file("src/main/resources")
         return findMixinConfigsRecursive(resourcesDir)
@@ -33,6 +36,29 @@ object MixinAutoDetect {
         return mixinConfigs.toList()
     }
 
+    fun hasMixinSources(project: Project, commonProject: Project? = null): Boolean {
+        if (hasMixinSourcesInProject(project)) return true
+        return commonProject?.let(::hasMixinSourcesInProject) == true
+    }
+
+    private fun hasMixinSourcesInProject(project: Project): Boolean {
+        val sourceRoots = listOf(
+            project.file("src/main/java"),
+            project.file("src/main/kotlin"),
+            project.file("src/main/groovy"),
+        )
+
+        return sourceRoots.any { root ->
+            if (!root.exists()) return@any false
+            root.walkTopDown()
+                .filter { it.isFile && it.extension in MIXIN_SOURCE_EXTENSIONS }
+                .any { file ->
+                    val text = runCatching { file.readText() }.getOrDefault("")
+                    "@Mixin(" in text || "org.spongepowered.asm.mixin.Mixin" in text
+                }
+        }
+    }
+
     fun injectNeoForgeMixins(project: Project, mixinConfigs: List<String>) {
         if (mixinConfigs.isEmpty()) return
 
@@ -54,6 +80,14 @@ object MixinAutoDetect {
                     project.logger.lifecycle("Prism: Auto-registered ${missingConfigs.size} mixin config(s) in neoforge.mods.toml: $missingConfigs")
                 }
             }
+        }
+    }
+
+    fun addMixinConfigsManifest(project: Project, mixinConfigs: List<String>) {
+        if (mixinConfigs.isEmpty()) return
+        val mixinConfigsStr = mixinConfigs.joinToString(",")
+        project.tasks.withType(Jar::class.java).configureEach { jar ->
+            jar.manifest.attributes["MixinConfigs"] = mixinConfigsStr
         }
     }
 

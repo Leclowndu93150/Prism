@@ -112,7 +112,79 @@ Prism detects the Minecraft version and configures datagen accordingly:
 
 Generated resources output to `src/generated/resources` and are automatically added to the source set.
 
-## Forge (Legacy)
+## LexForge (1.21.1+)
+
+Uses [ForgeGradle 7](https://github.com/MinecraftForge/ForgeGradle) for modern Forge (1.21.1 and later). "LexForge" is MinecraftForge proper — named to distinguish it from NeoForge, which is a separate fork with its own toolchain.
+
+```kotlin
+version("1.21.1") {
+    lexForge {
+        loaderVersion = "52.0.0"
+
+        dependencies {
+            implementation("some:forge-mod:1.0")
+        }
+    }
+}
+```
+
+In `settings.gradle.kts`:
+
+```kotlin
+prism {
+    version("1.21.1") {
+        lexForge()
+    }
+}
+```
+
+The loader subproject path is `:1.21.1:lexforge` (directory `versions/1.21.1/lexforge/`).
+
+| Property              | Required | Description                                    |
+|-----------------------|----------|------------------------------------------------|
+| `loaderVersion`       | Yes      | Forge version (without MC prefix)              |
+| `loaderVersionRange`  | No       | Version range for template expansion           |
+| `mappings(c, v)`      | No       | Mappings channel and version                   |
+
+The Forge dependency is resolved as `net.minecraftforge:forge:{mcVersion}-{loaderVersion}` via FG7's Minecraft Mavenizer.
+
+### Mappings
+
+Prism picks the mappings channel in this order:
+
+1. Explicit `mappings("channel", "version")` from the DSL
+2. Parchment — if `parchmentMinecraftVersion` and `parchmentMappingsVersion` are set at the version level, Prism uses channel `parchment` with version `{parchmentMappingsVersion}-{parchmentMinecraftVersion}`
+3. Official — channel `official` with the Minecraft version
+
+```kotlin
+version("1.21.1") {
+    parchmentMinecraftVersion = "1.21.1"
+    parchmentMappingsVersion = "2024.11.17"
+
+    lexForge {
+        loaderVersion = "52.0.0"
+    }
+}
+```
+
+### Mixins
+
+FG7 does not ship a mixin Gradle extension. Prism still auto-detects `.mixins.json` configs, adds the Sponge Mixin annotation processor, and writes the `MixinConfigs` attribute into the jar manifest so Forge discovers them at runtime. Refmap generation uses Sponge Mixin's defaults; to customize (refmap filename, source set binding), apply the `org.spongepowered.mixin` plugin yourself via `rawProject { }`.
+
+### Raw hooks
+
+```kotlin
+lexForge {
+    loaderVersion = "52.0.0"
+
+    rawLexForge { minecraft -> }
+    rawProject { project -> }
+}
+```
+
+Run configurations generated: `client`, `server`, `data`.
+
+## Forge (1.17 - 1.20.1)
 
 Uses [ModDevGradle Legacy](https://github.com/neoforged/ModDevGradle) for Forge 1.17 through 1.20.1.
 

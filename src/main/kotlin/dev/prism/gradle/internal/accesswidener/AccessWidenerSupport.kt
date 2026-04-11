@@ -12,6 +12,33 @@ object AccessWidenerSupport {
         unifiedAwPath: String?,
         modId: String
     ): File? {
+        val candidate = findAccessWidenerCandidate(project, commonProject, unifiedAwPath, modId) ?: return null
+
+        val parsed = runCatching { AccessWidenerParser.parse(candidate) }.getOrNull()
+        if (parsed == null || parsed.entries.isEmpty()) {
+            project.logger.info("Prism: Ignoring empty access widener '${candidate.name}' at ${candidate.path}")
+            return null
+        }
+
+        return candidate
+    }
+
+    fun hasAccessTransformerEntries(file: File): Boolean {
+        if (!file.exists()) return false
+        return file.useLines { lines ->
+            lines.any { line ->
+                val stripped = line.substringBefore('#').trim()
+                stripped.isNotEmpty()
+            }
+        }
+    }
+
+    private fun findAccessWidenerCandidate(
+        project: Project,
+        commonProject: Project?,
+        unifiedAwPath: String?,
+        modId: String,
+    ): File? {
         if (unifiedAwPath != null) {
             val rootFile = project.rootProject.file(unifiedAwPath)
             if (rootFile.exists()) return rootFile
