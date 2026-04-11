@@ -2,6 +2,7 @@ package dev.prism.gradle
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.ModuleConfiguration
 import dev.prism.gradle.dsl.NeoForgeConfiguration
@@ -79,6 +80,8 @@ class PrismProjectPlugin : Plugin<Project> {
                 rootProject.logger.warn("Prism: version '$mcVersion' has parchmentMinecraftVersion set but parchmentMappingsVersion is missing. Parchment will not be applied.")
             }
 
+            PrismWarnings.reportVersionLoaderMismatches(rootProject, mcVersion, versionConfig)
+
             val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$mcVersion:common") == null
 
             if (isSingleLoader) {
@@ -142,6 +145,7 @@ class PrismProjectPlugin : Plugin<Project> {
         val deps = when (loaderConfig) {
             is FabricConfiguration -> loaderConfig.deps
             is ForgeConfiguration -> loaderConfig.deps
+            is LexForgeConfiguration -> loaderConfig.deps
             is NeoForgeConfiguration -> loaderConfig.deps
             is LegacyForgeConfiguration -> loaderConfig.deps
             else -> null
@@ -238,6 +242,7 @@ class PrismProjectPlugin : Plugin<Project> {
             val deps = when (loaderConfig) {
                 is FabricConfiguration -> loaderConfig.deps
                 is ForgeConfiguration -> loaderConfig.deps
+                is LexForgeConfiguration -> loaderConfig.deps
                 is NeoForgeConfiguration -> loaderConfig.deps
                 else -> null
             }
@@ -352,6 +357,7 @@ class PrismProjectPlugin : Plugin<Project> {
         val deps = when (loaderConfig) {
             is FabricConfiguration -> loaderConfig.deps
             is ForgeConfiguration -> loaderConfig.deps
+            is LexForgeConfiguration -> loaderConfig.deps
             is NeoForgeConfiguration -> loaderConfig.deps
             is LegacyForgeConfiguration -> loaderConfig.deps
             else -> null
@@ -421,6 +427,7 @@ class PrismProjectPlugin : Plugin<Project> {
             val deps = when (loaderConfig) {
                 is FabricConfiguration -> loaderConfig.deps
                 is ForgeConfiguration -> loaderConfig.deps
+                is LexForgeConfiguration -> loaderConfig.deps
                 is NeoForgeConfiguration -> loaderConfig.deps
                 else -> null
             }

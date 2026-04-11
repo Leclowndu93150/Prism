@@ -4,6 +4,7 @@ import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
+import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
@@ -12,14 +13,8 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion
 object FabricConfigurator {
 
     private fun isUnobfuscated(mcVersion: String): Boolean {
-        val parts = mcVersion.split(".")
-        val major = parts.getOrNull(0)?.toIntOrNull() ?: 1
-        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
-        val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
-        if (major > 1) return true
-        if (minor > 21) return true
-        if (minor == 21 && patch >= 11) return true
-        return false
+        val major = mcVersion.split(".").getOrNull(0)?.toIntOrNull() ?: 1
+        return major >= 2
     }
 
     fun configure(
@@ -88,15 +83,9 @@ object FabricConfigurator {
             )
         }
 
-        val loaderAw = loaderProject.file("src/main/resources/${metadata.modId}.accesswidener")
-        val commonAw = commonProject.file("src/main/resources/${metadata.modId}.accesswidener")
-        val unifiedAw = versionConfig.unifiedAccessWidener?.let { loaderProject.rootProject.file(it) }
-        val aw = when {
-            loaderAw.exists() -> loaderAw
-            commonAw.exists() -> commonAw
-            unifiedAw != null && unifiedAw.exists() -> unifiedAw
-            else -> null
-        }
+        val aw = AccessWidenerSupport.resolveAccessWidener(
+            loaderProject, commonProject, versionConfig.unifiedAccessWidener, metadata.modId
+        )
         if (aw != null) {
             loom.accessWidenerPath.set(aw)
         }
@@ -203,13 +192,9 @@ object FabricConfigurator {
         project.dependencies.add(depConfig, "net.fabricmc:fabric-loader:${fabricConfig.loaderVersion}")
         fabricConfig.apiVersion?.let { project.dependencies.add(depConfig, "net.fabricmc.fabric-api:fabric-api:$it") }
 
-        val localAw = project.file("src/main/resources/${metadata.modId}.accesswidener")
-        val unifiedAw = versionConfig.unifiedAccessWidener?.let { project.rootProject.file(it) }
-        val aw = when {
-            localAw.exists() -> localAw
-            unifiedAw != null && unifiedAw.exists() -> unifiedAw
-            else -> null
-        }
+        val aw = AccessWidenerSupport.resolveAccessWidener(
+            project, null, versionConfig.unifiedAccessWidener, metadata.modId
+        )
         if (aw != null) {
             loom.accessWidenerPath.set(aw)
         }

@@ -9,7 +9,6 @@ import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
 import net.neoforged.moddevgradle.legacyforge.dsl.ObfuscationExtension
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 object ForgeConfigurator {
@@ -51,11 +50,11 @@ object ForgeConfigurator {
             val loaderAt = loaderProject.file("src/main/resources/META-INF/accesstransformer.cfg")
             var hasExplicitAt = false
 
-            if (commonAt.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(commonAt)) {
                 legacyForge.accessTransformers.from(commonAt.absolutePath)
                 hasExplicitAt = true
             }
-            if (loaderAt.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(loaderAt)) {
                 legacyForge.accessTransformers.from(loaderAt.absolutePath)
                 hasExplicitAt = true
             }
@@ -160,7 +159,7 @@ object ForgeConfigurator {
             }
 
             val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
-            if (at.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(at)) {
                 legacyForge.accessTransformers.from(at.absolutePath)
             } else {
                 val awFile = AccessWidenerSupport.resolveAccessWidener(
@@ -241,6 +240,13 @@ object ForgeConfigurator {
     ) {
         val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(project, commonProject, forgeConfig.mixinOptions)
         if (mixinConfigs.isEmpty()) return
+        if (!MixinAutoDetect.hasMixinSources(project, commonProject)) {
+            project.logger.lifecycle(
+                "Prism: Found Forge mixin config(s) $mixinConfigs for ${project.path}, but no @Mixin classes. " +
+                    "Skipping Forge mixin AP/refmap wiring."
+            )
+            return
+        }
 
         project.dependencies.add("annotationProcessor", "org.spongepowered:mixin:0.8.5:processor")
 
@@ -260,9 +266,6 @@ object ForgeConfigurator {
                 .invoke(mixinExt, mainSourceSet, forgeConfig.mixinOptions.refmapName ?: "${metadata.modId}.refmap.json")
         } catch (_: Exception) {}
 
-        val mixinConfigsStr = mixinConfigs.joinToString(",")
-        project.tasks.withType(Jar::class.java).configureEach { jar ->
-            jar.manifest.attributes["MixinConfigs"] = mixinConfigsStr
-        }
+        MixinAutoDetect.addMixinConfigsManifest(project, mixinConfigs)
     }
 }

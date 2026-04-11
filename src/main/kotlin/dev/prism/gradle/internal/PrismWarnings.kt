@@ -2,11 +2,13 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MixinOptions
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PublishingConfiguration
+import dev.prism.gradle.dsl.VersionConfiguration
 import org.gradle.api.Project
 
 object PrismWarnings {
@@ -14,6 +16,7 @@ object PrismWarnings {
         val mixins = when (loaderConfig) {
             is FabricConfiguration -> loaderConfig.mixinOptions
             is ForgeConfiguration -> loaderConfig.mixinOptions
+            is LexForgeConfiguration -> loaderConfig.mixinOptions
             is NeoForgeConfiguration -> loaderConfig.mixinOptions
             else -> null
         }
@@ -21,13 +24,40 @@ object PrismWarnings {
         warnOnEmptyExplicitMixins(project, loaderConfig, mixins)
 
         if (publishingConfig != null && publishingConfig.isConfigured) {
-            val task = PublishingConfigurator.selectPublishTask(project, publishingConfig)
+            val task = PublishingConfigurator.selectPublishTask(project, loaderConfig, publishingConfig)
             if (task == null) {
                 project.logger.warn("Prism: No publish artifact task found for ${project.path}. Configure publishing.artifactTask() or artifactFile() if needed.")
-            } else if (loaderConfig is ForgeConfiguration && task.name == "jar") {
-                project.logger.warn("Prism: ${project.path} is publishing the plain jar. Expected reobfJar for Forge unless explicitly overridden.")
             }
         }
+    }
+
+    fun reportVersionLoaderMismatches(project: Project, mcVersion: String, versionConfig: VersionConfiguration) {
+        val atLeast1211 = compareMcVersion(mcVersion, "1.21.1") >= 0
+
+        if (versionConfig.forgeConfig != null && atLeast1211) {
+            project.logger.warn(
+                "Prism: version '$mcVersion' uses forge { } (MDG Legacy) but $mcVersion >= 1.21.1. " +
+                "Use lexForge { } for Forge 1.21.1+."
+            )
+        }
+        if (versionConfig.lexForgeConfig != null && !atLeast1211) {
+            project.logger.warn(
+                "Prism: version '$mcVersion' uses lexForge { } (FG7) but $mcVersion < 1.21.1. " +
+                "Use forge { } for Forge versions below 1.21.1."
+            )
+        }
+    }
+
+    private fun compareMcVersion(a: String, b: String): Int {
+        val aParts = a.split(".").mapNotNull { it.toIntOrNull() }
+        val bParts = b.split(".").mapNotNull { it.toIntOrNull() }
+        val len = maxOf(aParts.size, bParts.size)
+        for (i in 0 until len) {
+            val av = aParts.getOrElse(i) { 0 }
+            val bv = bParts.getOrElse(i) { 0 }
+            if (av != bv) return av.compareTo(bv)
+        }
+        return 0
     }
 
     private fun warnOnEmptyExplicitMixins(project: Project, loaderConfig: LoaderConfiguration, mixins: MixinOptions?) {

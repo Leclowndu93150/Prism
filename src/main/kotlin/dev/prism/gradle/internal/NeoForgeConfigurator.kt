@@ -59,11 +59,11 @@ object NeoForgeConfigurator {
             val loaderAt = loaderProject.file("src/main/resources/META-INF/accesstransformer.cfg")
             var hasExplicitAt = false
 
-            if (commonAt.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(commonAt)) {
                 neoForge.accessTransformers.from(commonAt.absolutePath)
                 hasExplicitAt = true
             }
-            if (loaderAt.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(loaderAt)) {
                 neoForge.accessTransformers.from(loaderAt.absolutePath)
                 hasExplicitAt = true
             }
@@ -193,7 +193,7 @@ object NeoForgeConfigurator {
             }
 
             val at = project.file("src/main/resources/META-INF/accesstransformer.cfg")
-            if (at.exists()) {
+            if (AccessWidenerSupport.hasAccessTransformerEntries(at)) {
                 neoForge.accessTransformers.from(at.absolutePath)
             } else {
                 val awFile = AccessWidenerSupport.resolveAccessWidener(

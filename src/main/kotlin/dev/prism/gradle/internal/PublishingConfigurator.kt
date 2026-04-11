@@ -2,6 +2,8 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
+import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.NeoForgeConfiguration
@@ -13,18 +15,40 @@ import dev.prism.gradle.dsl.ReleaseType
 import dev.prism.gradle.dsl.VersionConfiguration
 import me.modmuss50.mpp.ModPublishExtension
 import org.gradle.api.Project
+import org.gradle.api.Task
 import java.io.File
 
 object PublishingConfigurator {
-    internal fun selectPublishTask(project: Project, publishingConfig: PublishingConfiguration? = null) =
-        publishingConfig?.artifactTaskName?.let(project.tasks::findByName)
-            ?: project.tasks.findByName("reobfJar")
-            ?: project.tasks.findByName("remapJar")
-            ?: project.tasks.findByName("jar")
+    private val PLATFORM_TASKS = listOf("publishCurseforge", "publishModrinth", "publishMods")
 
-    internal fun resolvePublishFile(project: Project, publishingConfig: PublishingConfiguration): File? {
+    internal fun defaultPublishTaskName(loaderConfig: LoaderConfiguration): String = when (loaderConfig) {
+        is FabricConfiguration -> "remapJar"
+        is LegacyForgeConfiguration -> "reobfJar"
+        is ForgeConfiguration -> "jar"
+        is LexForgeConfiguration -> "jar"
+        is NeoForgeConfiguration -> "jar"
+        else -> "jar"
+    }
+
+    internal fun selectPublishTask(
+        project: Project,
+        loaderConfig: LoaderConfiguration,
+        publishingConfig: PublishingConfiguration? = null,
+    ): Task? {
+        publishingConfig?.artifactTaskName?.let {
+            return project.tasks.findByName(it)
+        }
+        return project.tasks.findByName(defaultPublishTaskName(loaderConfig))
+            ?: project.tasks.findByName("jar")
+    }
+
+    internal fun resolvePublishFile(
+        project: Project,
+        loaderConfig: LoaderConfiguration,
+        publishingConfig: PublishingConfiguration,
+    ): File? {
         publishingConfig.artifactPath?.let { return project.rootProject.file(it) }
-        return selectPublishTask(project, publishingConfig)?.outputs?.files?.singleFile
+        return selectPublishTask(project, loaderConfig, publishingConfig)?.outputs?.files?.singleFile
     }
 
     fun configure(
@@ -41,6 +65,7 @@ object PublishingConfigurator {
         val loaderPubDeps = when (loaderConfig) {
             is FabricConfiguration -> loaderConfig.pubDeps.deps
             is ForgeConfiguration -> loaderConfig.pubDeps.deps
+            is LexForgeConfiguration -> loaderConfig.pubDeps.deps
             is NeoForgeConfiguration -> loaderConfig.pubDeps.deps
             else -> emptyList()
         }
@@ -49,8 +74,9 @@ object PublishingConfigurator {
 
         loaderProject.afterEvaluate { proj ->
             val publishMods = proj.extensions.getByType(ModPublishExtension::class.java)
+            wirePublishTaskDependencies(proj, loaderConfig, publishingConfig)
 
-            val jarFile = resolvePublishFile(proj, publishingConfig)
+            val jarFile = resolvePublishFile(proj, loaderConfig, publishingConfig)
             if (jarFile != null) {
                 publishMods.file.set(jarFile)
 
@@ -76,7 +102,7 @@ object PublishingConfigurator {
                 }
             )
 
-            publishMods.modLoaders.add(loaderConfig.loaderName)
+            publishMods.modLoaders.add(loaderConfig.publishLoaderSlug)
 
             val mcVersions = versionConfig.minecraftVersionRange ?: listOf(versionConfig.minecraftVersion)
 
@@ -116,6 +142,28 @@ object PublishingConfigurator {
         }
     }
 
+    private fun wirePublishTaskDependencies(
+        project: Project,
+        loaderConfig: LoaderConfiguration,
+        publishingConfig: PublishingConfiguration,
+    ) {
+        val cleanTask = project.tasks.findByName("clean")
+        val publishArtifactTask = selectPublishTask(project, loaderConfig, publishingConfig)
+
+        if (cleanTask != null && publishArtifactTask != null) {
+            publishArtifactTask.mustRunAfter(cleanTask)
+        }
+
+        project.tasks.matching { it.name in PLATFORM_TASKS }.configureEach { publishTask ->
+            if (cleanTask != null) {
+                publishTask.dependsOn(cleanTask)
+            }
+            if (publishArtifactTask != null) {
+                publishTask.dependsOn(publishArtifactTask)
+            }
+        }
+    }
+
     private fun applyDepToCurseforge(curseforge: Any, dep: PublishingDep) {
         val methodName = when (dep.type) {
             PublishingDepType.REQUIRED -> "requires"
@@ -147,8 +195,6 @@ object PublishingConfigurator {
         } catch (_: Exception) {
         }
     }
-
-    private val PLATFORM_TASKS = listOf("publishCurseforge", "publishModrinth", "publishMods")
 
     fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
         if (project.tasks.findByName("publishAllMods") != null) return
