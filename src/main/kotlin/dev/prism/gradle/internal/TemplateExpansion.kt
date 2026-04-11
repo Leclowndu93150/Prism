@@ -38,6 +38,13 @@ object TemplateExpansion {
                     put("forge_version", forge.loaderVersion)
                     forge.loaderVersionRange?.let { put("forge_loader_version_range", it) }
                 }
+
+                versionConfig.lexForgeConfig?.let { lexForge ->
+                    put("lexforge_version", lexForge.loaderVersion)
+                    lexForge.loaderVersionRange?.let { put("lexforge_loader_version_range", it) }
+                    put("forge_version", lexForge.loaderVersion)
+                    lexForge.loaderVersionRange?.let { put("forge_loader_version_range", it) }
+                }
             }
 
             val jsonExpandProps = expandProps.mapValues { (_, value) ->
