@@ -76,9 +76,12 @@ object CommonConfigurator {
         }
 
         val group = metadata.group.ifEmpty { commonProject.rootProject.group.toString() }
+        val resolvedVersion = metadata.version.ifEmpty { commonProject.rootProject.version.toString() }
+        val commonArtifactId = "${metadata.modId}-${versionConfig.minecraftVersion}-common"
         listOf("apiElements", "runtimeElements", "sourcesElements", "javadocElements").forEach { variant ->
             commonProject.configurations.findByName(variant)?.outgoing { outgoing ->
-                outgoing.capability("$group:${metadata.modId}:${commonProject.version}")
+                outgoing.capability("$group:$commonArtifactId:$resolvedVersion")
+                outgoing.capability("$group:${metadata.modId}:$resolvedVersion")
             }
         }
 
