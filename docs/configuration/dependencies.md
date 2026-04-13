@@ -135,11 +135,16 @@ prism {
 }
 ```
 
-For Forge and NeoForge loaders, `implementation` and `runtimeOnly` dependencies from shared common are automatically added to `jarJar` as well. This bundles them inside the output JAR, avoiding crashes with Forge's module system when third-party JARs contain `module-info.class`.
+For Forge and NeoForge loaders, shared common `implementation`, `api`, and `runtimeOnly` dependencies are automatically:
+
+- Added to `jarJar` for bundling inside the output JAR
+- Added to `additionalRuntimeClasspath` so they are visible during dev runs (`runClient`/`runServer`)
+
+This avoids two common Forge issues: module system crashes from third-party JARs with `module-info.class`, and `ClassNotFoundException` during dev runtime when JARs aren't on Forge's legacy classpath.
 
 On Fabric, shared common dependencies are added normally (Fabric's classloading handles them without issues).
 
-This means you can safely declare regular Java library dependencies in `sharedCommon` without worrying about loader-specific packaging — Prism handles it automatically.
+This means you can safely declare regular Java library dependencies in `sharedCommon` without worrying about loader-specific packaging or dev runtime visibility — Prism handles it automatically.
 
 ## Jar-in-Jar
 
