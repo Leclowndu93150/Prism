@@ -7,14 +7,18 @@ object DependencyConfigurator {
     private fun String.capitalized(): String =
         replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 
-    fun apply(project: Project, deps: DependencyBlock, isFabric: Boolean = false) {
+    fun apply(project: Project, deps: DependencyBlock, isFabric: Boolean = false, isSharedCommonDownstream: Boolean = false) {
         val hasModConfigs = project.configurations.findByName("modImplementation") != null
+        val hasJarJar = project.configurations.findByName("jarJar") != null
+        val shouldJarJar = isSharedCommonDownstream && !isFabric && hasJarJar
 
         for (dep in deps.apis) {
             project.dependencies.add("api", dep)
+            if (shouldJarJar) project.dependencies.add("jarJar", dep)
         }
         for (dep in deps.implementations) {
             project.dependencies.add("implementation", dep)
+            if (shouldJarJar) project.dependencies.add("jarJar", dep)
         }
         for (dep in deps.compileOnlyApis) {
             project.dependencies.add("compileOnlyApi", dep)
@@ -24,6 +28,7 @@ object DependencyConfigurator {
         }
         for (dep in deps.runtimeOnlys) {
             project.dependencies.add("runtimeOnly", dep)
+            if (shouldJarJar) project.dependencies.add("jarJar", dep)
         }
 
         val modApi = if (project.configurations.findByName("modApi") != null) "modApi" else "api"
