@@ -1,5 +1,6 @@
 package dev.prism.gradle.internal
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.jvm.tasks.Jar
@@ -16,44 +17,33 @@ object ShadowConfigurator {
                 cfg.isTransitive = true
             }
 
-        project.tasks.named("shadowJar") { task ->
-            val shadowJar = task as AbstractArchiveTask
-            shadowJar.archiveClassifier.set("")
+        project.afterEvaluate {
+            val reobfJarTask = project.tasks.findByName("reobfJar") as? AbstractArchiveTask
 
-            try {
-                val sjClass = Class.forName("com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar")
-                val configurationsMethod = sjClass.getMethod("getConfigurations")
-                @Suppress("UNCHECKED_CAST")
-                val configurations = configurationsMethod.invoke(task) as MutableList<Any>
-                configurations.clear()
-                configurations.add(shadowConfig)
+            project.tasks.named("shadowJar", ShadowJar::class.java).configure { shadowJar ->
+                shadowJar.configurations.set(listOf(shadowConfig))
+                shadowJar.mergeServiceFiles()
+                shadowJar.exclude("META-INF/INDEX.LIST", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "module-info.class")
 
-                val mergeServiceFilesMethod = sjClass.getMethod("mergeServiceFiles")
-                mergeServiceFilesMethod.invoke(task)
-            } catch (e: Exception) {
-                project.logger.warn("Prism: Could not configure shadowJar task: ${e.message}")
-            }
-        }
+                if (reobfJarTask != null) {
+                    shadowJar.dependsOn(reobfJarTask)
+                    shadowJar.from(project.zipTree(reobfJarTask.archiveFile))
+                    shadowJar.archiveClassifier.set("")
+                    shadowJar.destinationDirectory.set(project.layout.buildDirectory.dir("libs"))
 
-        project.tasks.named("jar", Jar::class.java) { jar ->
-            jar.archiveClassifier.set("slim")
-        }
-
-        val reobfTask = project.tasks.findByName("reobfJar")
-        if (reobfTask != null) {
-            project.tasks.named("shadowJar") { task ->
-                task.mustRunAfter(reobfTask)
-            }
-            project.afterEvaluate {
-                try {
-                    val reobfClass = reobfTask.javaClass
-                    val inputMethod = reobfClass.methods.find { it.name == "getInput" }
-                    if (inputMethod != null) {
-                        val shadowJarTask = project.tasks.named("shadowJar").get()
-                        val outputsFile = shadowJarTask.outputs.files.singleFile
-                        inputMethod.invoke(reobfTask)
+                    project.tasks.named("jar", Jar::class.java).configure { jar ->
+                        jar.archiveClassifier.set("dev")
                     }
-                } catch (_: Exception) {}
+                } else {
+                    shadowJar.archiveClassifier.set("")
+                    project.tasks.named("jar", Jar::class.java).configure { jar ->
+                        jar.archiveClassifier.set("slim")
+                    }
+                }
+            }
+
+            project.tasks.named("assemble").configure { assemble ->
+                assemble.dependsOn("shadowJar")
             }
         }
     }
