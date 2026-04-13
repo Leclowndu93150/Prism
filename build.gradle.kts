@@ -52,6 +52,7 @@ dependencies {
     implementation("me.modmuss50:mod-publish-plugin:1.1.0")
     implementation("com.gtnewhorizons:retrofuturagradle:2.0.2")
     implementation("net.minecraftforge:forgegradle:7.0.20")
+    implementation("com.gradleup.shadow:shadow-gradle-plugin:9.0.0-beta12")
 
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")

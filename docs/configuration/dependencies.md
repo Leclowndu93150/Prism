@@ -87,6 +87,7 @@ neoforge {
 | `runtimeOnly(dep)` | Runtime only (no remapping) |
 | `modRuntimeOnly(dep)` | Mod runtime only, remapped to dev mappings |
 | `jarJar(dep)` | Embed dependency in output JAR |
+| `shadow(dep)` | Shade dependency into output JAR (merges classes, avoids split packages) |
 | `localJar(path)` | Local JAR file (defaults to compileOnly) |
 | `localJar(path, config)` | Local JAR file with custom configuration |
 | `configuration(name, dep)` | Add a dependency to a custom Gradle configuration |
@@ -137,14 +138,42 @@ prism {
 
 For Forge and NeoForge loaders, shared common `implementation`, `api`, and `runtimeOnly` dependencies are automatically:
 
-- Added to `jarJar` for bundling inside the output JAR
+- Added as `compileOnly` so they don't end up on Forge's module path (avoids `SecureJarHandler` crashes)
 - Added to `additionalRuntimeClasspath` so they are visible during dev runs (`runClient`/`runServer`)
-
-This avoids two common Forge issues: module system crashes from third-party JARs with `module-info.class`, and `ClassNotFoundException` during dev runtime when JARs aren't on Forge's legacy classpath.
 
 On Fabric, shared common dependencies are added normally (Fabric's classloading handles them without issues).
 
-This means you can safely declare regular Java library dependencies in `sharedCommon` without worrying about loader-specific packaging or dev runtime visibility — Prism handles it automatically.
+### Shading with Shadow
+
+Use `shadow(dep)` to shade a dependency into the output JAR. This merges the dependency's classes directly into your mod JAR, avoiding split-package errors that `jarJar()` can cause when multiple JARs share the same Java package.
+
+```kotlin
+prism {
+    sharedCommon {
+        dependencies {
+            shadow("com.example:my-library:1.0")       // shaded into output JAR
+            shadow("com.example:my-other-lib:2.0")      // also shaded
+            implementation("com.google.code.gson:gson:2.10.1")  // NOT shaded, just a normal dep
+        }
+    }
+}
+
+// Also works in per-loader dependency blocks:
+forge {
+    dependencies {
+        shadow("some:library:1.0")
+    }
+}
+```
+
+On Forge/NeoForge, `shadow(dep)` dependencies are:
+- Added to `compileOnly` (available at compile time)
+- Added to `additionalRuntimeClasspath` (available during dev runs)
+- Added to the `shadow` configuration (merged into the output JAR by the `shadowJar` task)
+
+On Fabric, `shadow(dep)` maps to `implementation` + `include` (Loom's Jar-in-Jar).
+
+Prism automatically applies the [Shadow Gradle plugin](https://github.com/GradleUp/shadow) when any `shadow()` dependency is declared. Use `shadow()` instead of `jarJar()` when your dependencies share Java packages across multiple JARs.
 
 ## Jar-in-Jar
 

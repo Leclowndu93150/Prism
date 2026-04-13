@@ -17,6 +17,7 @@ import dev.prism.gradle.internal.PublishingConfigurator
 import dev.prism.gradle.internal.PrismDoctor
 import dev.prism.gradle.internal.PrismWarnings
 import dev.prism.gradle.internal.RepositorySetup
+import dev.prism.gradle.internal.ShadowConfigurator
 import dev.prism.gradle.internal.SharedCommonConfigurator
 import dev.prism.gradle.internal.Validation
 import org.gradle.api.Plugin
@@ -150,6 +151,14 @@ class PrismProjectPlugin : Plugin<Project> {
             is LegacyForgeConfiguration -> loaderConfig.deps
             else -> null
         }
+        val needsShadow = !isFabric && (
+            (deps?.shadowDeps?.isNotEmpty() == true) ||
+            (hasSharedCommon && extension.sharedCommonConfig.deps.shadowDeps.isNotEmpty())
+        )
+        if (needsShadow) {
+            ShadowConfigurator.configure(loaderProject)
+        }
+
         if (deps != null) {
             DependencyConfigurator.apply(loaderProject, deps, isFabric)
         }
@@ -246,6 +255,14 @@ class PrismProjectPlugin : Plugin<Project> {
                 is NeoForgeConfiguration -> loaderConfig.deps
                 else -> null
             }
+            val needsShadow2 = !isFabric && (
+                (deps?.shadowDeps?.isNotEmpty() == true) ||
+                (hasSharedCommon && extension.sharedCommonConfig.deps.shadowDeps.isNotEmpty())
+            )
+            if (needsShadow2) {
+                ShadowConfigurator.configure(loaderProject)
+            }
+
             if (deps != null) {
                 DependencyConfigurator.apply(loaderProject, deps, isFabric)
             }
