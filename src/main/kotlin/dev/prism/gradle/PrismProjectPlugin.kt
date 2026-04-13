@@ -156,7 +156,7 @@ class PrismProjectPlugin : Plugin<Project> {
 
         if (hasSharedCommon) {
             SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
-            DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric)
+            DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric, isSharedCommonDownstream = true)
             SharedCommonConfigurator.wireInto(loaderProject, sharedProject!!)
         }
 
@@ -252,7 +252,7 @@ class PrismProjectPlugin : Plugin<Project> {
 
             if (hasSharedCommon) {
                 SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
-                DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric)
+                DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric, isSharedCommonDownstream = true)
             }
 
             PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, extension.publishingConfig)

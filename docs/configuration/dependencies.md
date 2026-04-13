@@ -121,6 +121,26 @@ Notes:
 - `remapConfiguration("name")` is currently Forge-only and creates both `name` and `mod{Name}` through MDG Legacy.
 - `modConfiguration(name, dep)` falls back to the plain configuration with a warning if `mod{Name}` does not exist.
 
+## Shared common dependencies
+
+Dependencies in the `sharedCommon` block are propagated to all loader subprojects:
+
+```kotlin
+prism {
+    sharedCommon {
+        dependencies {
+            implementation("com.example:my-library:1.0")
+        }
+    }
+}
+```
+
+For Forge and NeoForge loaders, `implementation` and `runtimeOnly` dependencies from shared common are automatically added to `jarJar` as well. This bundles them inside the output JAR, avoiding crashes with Forge's module system when third-party JARs contain `module-info.class`.
+
+On Fabric, shared common dependencies are added normally (Fabric's classloading handles them without issues).
+
+This means you can safely declare regular Java library dependencies in `sharedCommon` without worrying about loader-specific packaging — Prism handles it automatically.
+
 ## Jar-in-Jar
 
 The `jarJar()` method embeds a dependency inside your output JAR:
