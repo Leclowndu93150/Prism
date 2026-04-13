@@ -9,20 +9,27 @@ object DependencyConfigurator {
 
     fun apply(project: Project, deps: DependencyBlock, isFabric: Boolean = false, isSharedCommonDownstream: Boolean = false) {
         val hasModConfigs = project.configurations.findByName("modImplementation") != null
-        val hasJarJar = project.configurations.findByName("jarJar") != null
         val hasAdditionalRuntimeCp = project.configurations.findByName("additionalRuntimeClasspath") != null
-        val shouldJarJar = isSharedCommonDownstream && !isFabric && hasJarJar
-        val shouldAddToLegacyCp = isSharedCommonDownstream && !isFabric && hasAdditionalRuntimeCp
+        val forgeRuntime = isSharedCommonDownstream && !isFabric && hasAdditionalRuntimeCp
+        val hasShadow = project.configurations.findByName("shadow") != null
 
         for (dep in deps.apis) {
-            project.dependencies.add("api", dep)
-            if (shouldJarJar) project.dependencies.add("jarJar", dep)
-            if (shouldAddToLegacyCp) project.dependencies.add("additionalRuntimeClasspath", dep)
+            if (forgeRuntime) {
+                project.dependencies.add("compileOnlyApi", dep)
+                project.dependencies.add("additionalRuntimeClasspath", dep)
+                if (hasShadow) project.dependencies.add("shadow", dep)
+            } else {
+                project.dependencies.add("api", dep)
+            }
         }
         for (dep in deps.implementations) {
-            project.dependencies.add("implementation", dep)
-            if (shouldJarJar) project.dependencies.add("jarJar", dep)
-            if (shouldAddToLegacyCp) project.dependencies.add("additionalRuntimeClasspath", dep)
+            if (forgeRuntime) {
+                project.dependencies.add("compileOnly", dep)
+                project.dependencies.add("additionalRuntimeClasspath", dep)
+                if (hasShadow) project.dependencies.add("shadow", dep)
+            } else {
+                project.dependencies.add("implementation", dep)
+            }
         }
         for (dep in deps.compileOnlyApis) {
             project.dependencies.add("compileOnlyApi", dep)
@@ -31,9 +38,12 @@ object DependencyConfigurator {
             project.dependencies.add("compileOnly", dep)
         }
         for (dep in deps.runtimeOnlys) {
-            project.dependencies.add("runtimeOnly", dep)
-            if (shouldJarJar) project.dependencies.add("jarJar", dep)
-            if (shouldAddToLegacyCp) project.dependencies.add("additionalRuntimeClasspath", dep)
+            if (forgeRuntime) {
+                project.dependencies.add("additionalRuntimeClasspath", dep)
+                if (hasShadow) project.dependencies.add("shadow", dep)
+            } else {
+                project.dependencies.add("runtimeOnly", dep)
+            }
         }
 
         val modApi = if (project.configurations.findByName("modApi") != null) "modApi" else "api"
@@ -93,6 +103,29 @@ object DependencyConfigurator {
                     if (project.configurations.findByName("jarJar") != null) {
                         project.dependencies.add("jarJar", dep)
                     }
+                    project.dependencies.add("implementation", dep)
+                }
+            }
+        }
+
+        if (deps.shadowDeps.isNotEmpty()) {
+            val includeConfig = project.configurations.findByName("include")
+            val shadowConfig = project.configurations.findByName("shadow")
+            val hasLegacyCp = project.configurations.findByName("additionalRuntimeClasspath") != null
+
+            for (dep in deps.shadowDeps) {
+                if (isFabric) {
+                    project.dependencies.add("implementation", dep)
+                    if (includeConfig != null) {
+                        project.dependencies.add("include", dep)
+                    }
+                } else if (shadowConfig != null) {
+                    project.dependencies.add("compileOnly", dep)
+                    project.dependencies.add("shadow", dep)
+                    if (hasLegacyCp) {
+                        project.dependencies.add("additionalRuntimeClasspath", dep)
+                    }
+                } else {
                     project.dependencies.add("implementation", dep)
                 }
             }
