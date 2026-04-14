@@ -12,7 +12,7 @@ import org.gradle.jvm.tasks.Jar
 object ShadowConfigurator {
     private const val SHADOW_MARKER = "dev.prism.shadowConfigured"
 
-    fun configure(project: Project, relocation: DependencyBlock.ShadowRelocation) {
+    internal fun configure(project: Project, relocation: DependencyBlock.ShadowRelocation) {
         val extras = project.extensions.extraProperties
         if (extras.has(SHADOW_MARKER)) return
         extras.set(SHADOW_MARKER, true)
@@ -33,13 +33,14 @@ object ShadowConfigurator {
             task.configurations.set(listOf(shadowConfig))
             task.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             task.exclude("META-INF/LICENSE*", "META-INF/NOTICE*", "LICENSE*", "NOTICE*")
-            task.enableAutoRelocation.set(relocation.enabled)
+            task.enableRelocation.set(relocation.enabled)
             relocation.prefix?.let(task.relocationPrefix::set)
-            task.addMultiReleaseAttribute.set(false)
             task.mergeServiceFiles()
             task.doFirst {
-                // Shaded mod jars should not advertise external Class-Path entries.
+                // Shaded mod jars should not advertise external Class-Path entries or claim
+                // multi-release structure when the merged output no longer contains META-INF/versions.
                 task.manifest.attributes.remove("Class-Path")
+                task.manifest.attributes.remove("Multi-Release")
             }
         }
 
