@@ -147,9 +147,9 @@ class PrismProjectPlugin : Plugin<Project> {
         val deps = loaderDeps(loaderConfig)
         if (!isFabric) {
             val sharedShadowDeps = extension.sharedCommonConfig.deps.takeIf { hasSharedCommon && it.shadowDeps.isNotEmpty() }
-            val shadowRelocation = shadowRelocation(extension.metadata, deps, sharedShadowDeps)
-            if (shadowRelocation != null) {
-                ShadowConfigurator.configure(loaderProject, shadowRelocation)
+            val shadowSettings = shadowSettings(extension.metadata, deps, sharedShadowDeps)
+            if (shadowSettings != null) {
+                ShadowConfigurator.configure(loaderProject, shadowSettings)
             }
         }
 
@@ -243,9 +243,9 @@ class PrismProjectPlugin : Plugin<Project> {
             val deps = loaderDeps(loaderConfig)
             if (!isFabric) {
                 val sharedShadowDeps = extension.sharedCommonConfig.deps.takeIf { hasSharedCommon && it.shadowDeps.isNotEmpty() }
-                val shadowRelocation = shadowRelocation(extension.metadata, deps, sharedShadowDeps)
-                if (shadowRelocation != null) {
-                    ShadowConfigurator.configure(loaderProject, shadowRelocation)
+                val shadowSettings = shadowSettings(extension.metadata, deps, sharedShadowDeps)
+                if (shadowSettings != null) {
+                    ShadowConfigurator.configure(loaderProject, shadowSettings)
                 }
             }
 
@@ -357,9 +357,9 @@ class PrismProjectPlugin : Plugin<Project> {
         val isFabric = loaderConfig is FabricConfiguration
         val deps = loaderDeps(loaderConfig)
         if (!isFabric) {
-            val shadowRelocation = shadowRelocation(moduleConfig.metadata, deps)
-            if (shadowRelocation != null) {
-                ShadowConfigurator.configure(loaderProject, shadowRelocation)
+            val shadowSettings = shadowSettings(moduleConfig.metadata, deps)
+            if (shadowSettings != null) {
+                ShadowConfigurator.configure(loaderProject, shadowSettings)
             }
         }
         DependencyConfigurator.apply(loaderProject, deps, isFabric)
@@ -424,9 +424,9 @@ class PrismProjectPlugin : Plugin<Project> {
             CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
             val deps = loaderDeps(loaderConfig)
             if (!isFabric) {
-                val shadowRelocation = shadowRelocation(moduleConfig.metadata, deps)
-                if (shadowRelocation != null) {
-                    ShadowConfigurator.configure(loaderProject, shadowRelocation)
+                val shadowSettings = shadowSettings(moduleConfig.metadata, deps)
+                if (shadowSettings != null) {
+                    ShadowConfigurator.configure(loaderProject, shadowSettings)
                 }
             }
             DependencyConfigurator.apply(loaderProject, deps, isFabric)
@@ -458,25 +458,33 @@ class PrismProjectPlugin : Plugin<Project> {
         else -> throw IllegalStateException("Unsupported loader configuration type: ${loaderConfig::class.qualifiedName}")
     }
 
-    private fun shadowRelocation(
+    private fun shadowSettings(
         metadata: dev.prism.gradle.dsl.MetadataExtension,
         primary: dev.prism.gradle.dsl.DependencyBlock,
         secondary: dev.prism.gradle.dsl.DependencyBlock? = null,
-    ): dev.prism.gradle.dsl.DependencyBlock.ShadowRelocation? {
+    ): dev.prism.gradle.dsl.DependencyBlock.ShadowSettings? {
         val blocks = listOfNotNull(primary, secondary)
             .filter { it.shadowDeps.isNotEmpty() }
         if (blocks.isEmpty()) return null
 
-        val prefixes = blocks.mapNotNull { it.shadowRelocationPrefix }.distinct()
+        val prefixes = blocks.mapNotNull { it.shadowConfig.defaultRelocationPrefix }.distinct()
         require(prefixes.size <= 1) {
             "Prism: Conflicting shadow relocation prefixes declared for ${metadata.modId}: $prefixes"
         }
 
         val group = metadata.group.ifEmpty { "shadowed" }
         val defaultPrefix = "$group.${metadata.modId}.shadow"
-        return dev.prism.gradle.dsl.DependencyBlock.ShadowRelocation(
-            enabled = blocks.all { it.shadowRelocationEnabled },
+        return dev.prism.gradle.dsl.DependencyBlock.ShadowSettings(
+            enabled = blocks.all { it.shadowConfig.defaultRelocationEnabled },
             prefix = prefixes.singleOrNull() ?: defaultPrefix,
+            includes = blocks.flatMap { it.shadowConfig.defaultRelocationIncludes }.distinct(),
+            excludes = blocks.flatMap { it.shadowConfig.defaultRelocationExcludes }.distinct(),
+            relocations = blocks.flatMap { it.shadowConfig.relocations },
+            taskExcludes = blocks.flatMap { it.shadowConfig.taskExcludes }.distinct(),
+            stripPatterns = blocks.flatMap { it.shadowConfig.stripPatterns }.distinct(),
+            manifestAttributesToRemove = blocks.flatMap { it.shadowConfig.manifestAttributesToRemove }.distinct(),
+            mergeServiceFileRoots = blocks.flatMap { it.shadowConfig.mergeServiceFileRoots },
+            rawActions = blocks.flatMap { it.shadowConfig.rawActions },
         )
     }
 }
