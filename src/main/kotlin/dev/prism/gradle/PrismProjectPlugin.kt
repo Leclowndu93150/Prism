@@ -4,6 +4,7 @@ import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
+import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.ModuleConfiguration
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PrismExtension
@@ -143,25 +144,12 @@ class PrismProjectPlugin : Plugin<Project> {
         CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
 
         val isFabric = loaderConfig is FabricConfiguration
-        val deps = when (loaderConfig) {
-            is FabricConfiguration -> loaderConfig.deps
-            is ForgeConfiguration -> loaderConfig.deps
-            is LexForgeConfiguration -> loaderConfig.deps
-            is NeoForgeConfiguration -> loaderConfig.deps
-            is LegacyForgeConfiguration -> loaderConfig.deps
-            else -> null
-        }
-        val needsShadow = !isFabric && (
-            (deps?.shadowDeps?.isNotEmpty() == true) ||
-            (hasSharedCommon && extension.sharedCommonConfig.deps.shadowDeps.isNotEmpty())
-        )
-        if (needsShadow) {
+        val deps = loaderDeps(loaderConfig)
+        if (needsShadow(loaderConfig, hasSharedCommon && extension.sharedCommonConfig.deps.shadowDeps.isNotEmpty())) {
             ShadowConfigurator.configure(loaderProject)
         }
 
-        if (deps != null) {
-            DependencyConfigurator.apply(loaderProject, deps, isFabric)
-        }
+        DependencyConfigurator.apply(loaderProject, deps, isFabric)
 
         if (hasSharedCommon) {
             SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
@@ -248,24 +236,12 @@ class PrismProjectPlugin : Plugin<Project> {
             DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps, isFabric)
             CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
 
-            val deps = when (loaderConfig) {
-                is FabricConfiguration -> loaderConfig.deps
-                is ForgeConfiguration -> loaderConfig.deps
-                is LexForgeConfiguration -> loaderConfig.deps
-                is NeoForgeConfiguration -> loaderConfig.deps
-                else -> null
-            }
-            val needsShadow2 = !isFabric && (
-                (deps?.shadowDeps?.isNotEmpty() == true) ||
-                (hasSharedCommon && extension.sharedCommonConfig.deps.shadowDeps.isNotEmpty())
-            )
-            if (needsShadow2) {
+            val deps = loaderDeps(loaderConfig)
+            if (needsShadow(loaderConfig, hasSharedCommon && extension.sharedCommonConfig.deps.shadowDeps.isNotEmpty())) {
                 ShadowConfigurator.configure(loaderProject)
             }
 
-            if (deps != null) {
-                DependencyConfigurator.apply(loaderProject, deps, isFabric)
-            }
+            DependencyConfigurator.apply(loaderProject, deps, isFabric)
 
             if (hasSharedCommon) {
                 SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
@@ -371,17 +347,11 @@ class PrismProjectPlugin : Plugin<Project> {
         CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
 
         val isFabric = loaderConfig is FabricConfiguration
-        val deps = when (loaderConfig) {
-            is FabricConfiguration -> loaderConfig.deps
-            is ForgeConfiguration -> loaderConfig.deps
-            is LexForgeConfiguration -> loaderConfig.deps
-            is NeoForgeConfiguration -> loaderConfig.deps
-            is LegacyForgeConfiguration -> loaderConfig.deps
-            else -> null
+        val deps = loaderDeps(loaderConfig)
+        if (needsShadow(loaderConfig)) {
+            ShadowConfigurator.configure(loaderProject)
         }
-        if (deps != null) {
-            DependencyConfigurator.apply(loaderProject, deps, isFabric)
-        }
+        DependencyConfigurator.apply(loaderProject, deps, isFabric)
 
         PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, moduleConfig.publishingConfig)
 
@@ -441,16 +411,11 @@ class PrismProjectPlugin : Plugin<Project> {
             val isFabric = loaderConfig is FabricConfiguration
             DependencyConfigurator.apply(loaderProject, versionConfig.commonDeps, isFabric)
             CommonConfigurator.applyDownstreamSupportDeps(loaderProject, versionConfig)
-            val deps = when (loaderConfig) {
-                is FabricConfiguration -> loaderConfig.deps
-                is ForgeConfiguration -> loaderConfig.deps
-                is LexForgeConfiguration -> loaderConfig.deps
-                is NeoForgeConfiguration -> loaderConfig.deps
-                else -> null
+            val deps = loaderDeps(loaderConfig)
+            if (needsShadow(loaderConfig)) {
+                ShadowConfigurator.configure(loaderProject)
             }
-            if (deps != null) {
-                DependencyConfigurator.apply(loaderProject, deps, isFabric)
-            }
+            DependencyConfigurator.apply(loaderProject, deps, isFabric)
 
             PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, moduleConfig.publishingConfig)
 
@@ -468,5 +433,19 @@ class PrismProjectPlugin : Plugin<Project> {
                 )
             }
         }
+    }
+
+    private fun loaderDeps(loaderConfig: LoaderConfiguration) = when (loaderConfig) {
+        is FabricConfiguration -> loaderConfig.deps
+        is ForgeConfiguration -> loaderConfig.deps
+        is LexForgeConfiguration -> loaderConfig.deps
+        is NeoForgeConfiguration -> loaderConfig.deps
+        is LegacyForgeConfiguration -> loaderConfig.deps
+        else -> throw IllegalStateException("Unsupported loader configuration type: ${loaderConfig::class.qualifiedName}")
+    }
+
+    private fun needsShadow(loaderConfig: LoaderConfiguration, sharedCommonShadowDeps: Boolean = false): Boolean {
+        return loaderConfig !is FabricConfiguration &&
+            (loaderDeps(loaderConfig).shadowDeps.isNotEmpty() || sharedCommonShadowDeps)
     }
 }

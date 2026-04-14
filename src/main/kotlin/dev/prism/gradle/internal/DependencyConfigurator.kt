@@ -11,13 +11,11 @@ object DependencyConfigurator {
         val hasModConfigs = project.configurations.findByName("modImplementation") != null
         val hasAdditionalRuntimeCp = project.configurations.findByName("additionalRuntimeClasspath") != null
         val forgeRuntime = isSharedCommonDownstream && !isFabric && hasAdditionalRuntimeCp
-        val hasShadow = project.configurations.findByName("shadow") != null
 
         for (dep in deps.apis) {
             if (forgeRuntime) {
                 project.dependencies.add("compileOnlyApi", dep)
                 project.dependencies.add("additionalRuntimeClasspath", dep)
-                if (hasShadow) project.dependencies.add("shadow", dep)
             } else {
                 project.dependencies.add("api", dep)
             }
@@ -26,7 +24,6 @@ object DependencyConfigurator {
             if (forgeRuntime) {
                 project.dependencies.add("compileOnly", dep)
                 project.dependencies.add("additionalRuntimeClasspath", dep)
-                if (hasShadow) project.dependencies.add("shadow", dep)
             } else {
                 project.dependencies.add("implementation", dep)
             }
@@ -40,7 +37,6 @@ object DependencyConfigurator {
         for (dep in deps.runtimeOnlys) {
             if (forgeRuntime) {
                 project.dependencies.add("additionalRuntimeClasspath", dep)
-                if (hasShadow) project.dependencies.add("shadow", dep)
             } else {
                 project.dependencies.add("runtimeOnly", dep)
             }
@@ -120,7 +116,6 @@ object DependencyConfigurator {
                         project.dependencies.add("include", dep)
                     }
                 } else if (shadowConfig != null) {
-                    project.dependencies.add("compileOnly", dep)
                     project.dependencies.add("shadow", dep)
                     if (hasLegacyCp) {
                         project.dependencies.add("additionalRuntimeClasspath", dep)
