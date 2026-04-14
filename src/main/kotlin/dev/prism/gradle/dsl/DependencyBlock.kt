@@ -1,6 +1,11 @@
 package dev.prism.gradle.dsl
 
 open class DependencyBlock {
+    internal data class ShadowRelocation(
+        val enabled: Boolean,
+        val prefix: String?,
+    )
+
     internal val apis = mutableListOf<String>()
     internal val modApis = mutableListOf<String>()
     internal val implementations = mutableListOf<String>()
@@ -13,6 +18,8 @@ open class DependencyBlock {
     internal val modRuntimeOnlys = mutableListOf<String>()
     internal val jarJarDeps = mutableListOf<String>()
     internal val shadowDeps = mutableListOf<String>()
+    internal var shadowRelocationEnabled = true
+    internal var shadowRelocationPrefix: String? = null
     internal val annotationProcessors = mutableListOf<String>()
     internal val localJars = mutableListOf<LocalJarDep>()
     internal val customDeps = mutableListOf<NamedDependency>()
@@ -30,6 +37,8 @@ open class DependencyBlock {
     fun modRuntimeOnly(dep: String) { modRuntimeOnlys.add(dep) }
     fun jarJar(dep: String) { jarJarDeps.add(dep) }
     fun shadow(dep: String) { shadowDeps.add(dep) }
+    fun shadowRelocation(enabled: Boolean) { shadowRelocationEnabled = enabled }
+    fun shadowRelocationPrefix(prefix: String) { shadowRelocationPrefix = prefix }
     fun annotationProcessor(dep: String) { annotationProcessors.add(dep) }
     fun configuration(name: String, dep: String) {
         customDeps.add(NamedDependency(name, dep))
