@@ -167,13 +167,16 @@ forge {
 ```
 
 On Forge/NeoForge, `shadow(dep)` dependencies are:
-- Added to `compileOnly` (available at compile time)
-- Added to `additionalRuntimeClasspath` (available during dev runs)
-- Added to the `shadow` configuration (merged into the output JAR by the `shadowJar` task)
+- Added to the `shadow` configuration (merged into the output JAR)
+- Added to `additionalRuntimeClasspath` when that configuration exists (so Forge dev runs can see them without putting them on the module path)
 
 On Fabric, `shadow(dep)` maps to `implementation` + `include` (Loom's Jar-in-Jar).
 
-Prism automatically applies the [Shadow Gradle plugin](https://github.com/GradleUp/shadow) when any `shadow()` dependency is declared. Use `shadow()` instead of `jarJar()` when your dependencies share Java packages across multiple JARs.
+Prism automatically applies the [Shadow Gradle plugin](https://github.com/GradleUp/shadow) when any `shadow()` dependency is declared.
+
+On Legacy Forge/MDG builds, Prism also wires the shaded artifact into `reobfShadowJar`, and publishing prefers `reobfShadowJar` when it exists.
+
+Use `shadow()` instead of `jarJar()` when your dependencies share Java packages across multiple JARs, since Forge's jar-in-jar keeps those JARs separate and can still hit module split-package errors at runtime.
 
 ## Jar-in-Jar
 
@@ -188,6 +191,8 @@ fabric {
 ```
 
 On Fabric, this maps to Loom's `include` configuration. On NeoForge/Forge, this maps to MDG's `jarJar` configuration.
+
+`jarJar()` is best for normal jar-in-jar embedding. If a library is split across multiple JARs that share packages, prefer `shadow()` instead.
 
 ## Local JARs
 

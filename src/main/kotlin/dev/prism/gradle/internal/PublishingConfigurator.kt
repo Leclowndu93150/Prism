@@ -38,6 +38,10 @@ object PublishingConfigurator {
         publishingConfig?.artifactTaskName?.let {
             return project.tasks.findByName(it)
         }
+        if (loaderConfig !is FabricConfiguration) {
+            project.tasks.findByName("reobfShadowJar")?.let { return it }
+            project.tasks.findByName("shadowJar")?.let { return it }
+        }
         return project.tasks.findByName(defaultPublishTaskName(loaderConfig))
             ?: project.tasks.findByName("jar")
     }
