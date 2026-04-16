@@ -476,6 +476,7 @@ class PrismProjectPlugin : Plugin<Project> {
                     if (isSingleLoader) {
                         val loaderProject = rootProject.findProject(":$moduleName:$mcVersion") ?: continue
                         loaderProject.dependencies.add("compileOnly", loaderProject.files(depOutput))
+                        loaderProject.dependencies.add("runtimeOnly", loaderProject.files(depOutput))
                     } else {
                         val commonProject = rootProject.findProject(":$moduleName:$mcVersion:common")
                         if (commonProject != null) {
@@ -485,6 +486,7 @@ class PrismProjectPlugin : Plugin<Project> {
                         for (loaderConfig in versionConfig.loaders) {
                             val loaderProject = rootProject.findProject(":$moduleName:$mcVersion:${loaderConfig.loaderName}") ?: continue
                             loaderProject.dependencies.add("compileOnly", loaderProject.files(depOutput))
+                            loaderProject.dependencies.add("runtimeOnly", loaderProject.files(depOutput))
                         }
                     }
                 }
