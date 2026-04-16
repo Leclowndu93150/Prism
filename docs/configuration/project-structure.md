@@ -133,6 +133,21 @@ Mixin classes and mixin JSON files from shared common are merged into each loade
 
 Each version folder is independent. The only exception is the optional shared `common/` above. Version-specific common code lives in `versions/{mc}/common/` and has access to vanilla Minecraft classes for that version.
 
+## Inter-module dependencies
+
+In a multi-mod workspace, one module can depend on another's common code using `dependsOn()`:
+
+```kotlin
+mod("birds") {
+    dependsOn("boids")
+    // ...
+}
+```
+
+Prism adds the dependency module's compiled common classes to the dependent module's classpath (`compileOnly`) for every matching version and loader. This avoids remapping issues — the compiled output from the common project uses the same mappings that all loaders use at dev time.
+
+At runtime, both mods must be installed (the dependency is not bundled).
+
 ## No subproject build files
 
 The version subfolders do not need `build.gradle.kts` files. Prism configures everything from the root project's build file. If you place a build file in a subfolder, it will be evaluated by Gradle and may conflict with Prism's configuration.

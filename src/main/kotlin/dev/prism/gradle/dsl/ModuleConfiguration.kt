@@ -8,6 +8,7 @@ open class ModuleConfiguration(val moduleName: String, private val project: Proj
     internal val versions = mutableMapOf<String, VersionConfiguration>()
     internal val publishingConfig = PublishingConfiguration()
     internal var kotlinVersion: String? = null
+    internal val moduleDependencies = mutableListOf<String>()
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)
@@ -20,6 +21,10 @@ open class ModuleConfiguration(val moduleName: String, private val project: Proj
     fun version(mcVersion: String, action: Action<VersionConfiguration>) {
         val config = versions.getOrPut(mcVersion) { VersionConfiguration(mcVersion) }
         action.execute(config)
+    }
+
+    fun dependsOn(vararg moduleNames: String) {
+        moduleDependencies.addAll(moduleNames)
     }
 
     fun publishing(action: Action<PublishingConfiguration>) {

@@ -308,6 +308,7 @@ mod("corpse-curios") {
         author("MyName")
     }
 
+    dependsOn("other-module")             // compile-time dep on another module
     kotlin()                               // enable Kotlin for this module
 
     version("1.21.1") {
@@ -324,6 +325,14 @@ mod("corpse-curios") {
     }
 }
 ```
+
+| Method | Description |
+|--------|-------------|
+| `metadata(action)` | Module-specific mod metadata |
+| `dependsOn(vararg moduleNames)` | Adds compile-time dependency on other modules' common code |
+| `kotlin(version)` | Enable Kotlin for this module |
+| `version(mcVersion, action)` | Configure a Minecraft version for this module |
+| `publishing(action)` | Module-specific publishing configuration |
 
 Modules use the directory layout `modules/{moduleName}/versions/{mc}/{loader}/` and create Gradle subprojects like `:corpse-curios:1.21.1:neoforge`. Repositories (`curseMaven()`, `modrinthMaven()`, etc.) are shared from the top-level `prism` block.
 
