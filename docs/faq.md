@@ -316,6 +316,27 @@ Gradle subprojects: `:corpse-curios:1.21.1:neoforge`, `:corpse-cosmetic:1.21.1:n
 
 Modules can coexist with the standard single-mod `version()` blocks if needed.
 
+### Inter-module dependencies
+
+If one module needs compile-time access to another module's code, use `dependsOn()`:
+
+```kotlin
+mod("core-lib") {
+    metadata { modId = "core_lib" }
+    version("1.21.1") { common(); neoforge(); fabric() }
+}
+
+mod("addon") {
+    dependsOn("core-lib")
+    metadata { modId = "addon" }
+    version("1.21.1") { common(); neoforge(); fabric() }
+}
+```
+
+This gives the `addon` module compile-time visibility of `core-lib`'s common code across all matching versions and loaders. At runtime, both mods must be installed. You can pass multiple module names: `dependsOn("core-lib", "other-mod")`.
+
+Prism wires the dependency using compiled class output from the dependency module's common project, so there are no remapping issues across Fabric, Forge, and NeoForge.
+
 ## NeoForm version resolution fails
 
 1. Check your internet connection. Prism fetches from `maven.neoforged.net`.

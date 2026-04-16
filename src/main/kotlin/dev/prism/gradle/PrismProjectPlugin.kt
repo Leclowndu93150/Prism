@@ -111,6 +111,8 @@ class PrismProjectPlugin : Plugin<Project> {
             configureModule(rootProject, moduleName, moduleConfig, extension)
         }
 
+        wireModuleDependencies(rootProject, extension)
+
         PrismDoctor.register(rootProject, extension)
     }
 
@@ -445,6 +447,47 @@ class PrismProjectPlugin : Plugin<Project> {
                     loaderProject, versionConfig, loaderConfig,
                     moduleConfig.metadata, moduleConfig.publishingConfig.mavenRepos
                 )
+            }
+        }
+    }
+
+    private fun wireModuleDependencies(rootProject: Project, extension: PrismExtension) {
+        for ((moduleName, moduleConfig) in extension.modules) {
+            if (moduleConfig.moduleDependencies.isEmpty()) continue
+
+            for (depModuleName in moduleConfig.moduleDependencies) {
+                val depModuleConfig = extension.modules[depModuleName]
+                    ?: throw IllegalStateException(
+                        "Prism: Module '$moduleName' depends on '$depModuleName', but no module '$depModuleName' is configured."
+                    )
+
+                for ((mcVersion, versionConfig) in moduleConfig.versions) {
+                    if (!depModuleConfig.versions.containsKey(mcVersion)) continue
+
+                    val depCommon = rootProject.findProject(":$depModuleName:$mcVersion:common")
+                        ?: rootProject.findProject(":$depModuleName:$mcVersion")
+                        ?: continue
+
+                    val depOutput = depCommon.tasks.named("compileJava").map { it.outputs.files }
+
+                    val isSingleLoader = versionConfig.loaders.size == 1
+                            && rootProject.findProject(":$moduleName:$mcVersion:common") == null
+
+                    if (isSingleLoader) {
+                        val loaderProject = rootProject.findProject(":$moduleName:$mcVersion") ?: continue
+                        loaderProject.dependencies.add("compileOnly", loaderProject.files(depOutput))
+                    } else {
+                        val commonProject = rootProject.findProject(":$moduleName:$mcVersion:common")
+                        if (commonProject != null) {
+                            commonProject.dependencies.add("compileOnly", commonProject.files(depOutput))
+                        }
+
+                        for (loaderConfig in versionConfig.loaders) {
+                            val loaderProject = rootProject.findProject(":$moduleName:$mcVersion:${loaderConfig.loaderName}") ?: continue
+                            loaderProject.dependencies.add("compileOnly", loaderProject.files(depOutput))
+                        }
+                    }
+                }
             }
         }
     }
