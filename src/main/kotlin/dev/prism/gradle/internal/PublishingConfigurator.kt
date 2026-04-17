@@ -2,38 +2,40 @@ package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
-import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
+import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PublishingConfiguration
 import dev.prism.gradle.dsl.PublishingDep
-import dev.prism.gradle.dsl.PublishingDepType
 import dev.prism.gradle.dsl.PublishingPlatform
-import dev.prism.gradle.dsl.ReleaseType
 import dev.prism.gradle.dsl.VersionConfiguration
-import me.modmuss50.mpp.ModPublishExtension
+import dev.prism.gradle.internal.publish.curseforge.PublishCurseforgeTask
+import dev.prism.gradle.internal.publish.discord.AnnounceDiscordTask
+import dev.prism.gradle.internal.publish.gitea.PublishGiteaTask
+import dev.prism.gradle.internal.publish.github.PublishGithubTask
+import dev.prism.gradle.internal.publish.gitlab.PublishGitlabTask
+import dev.prism.gradle.internal.publish.modrinth.PublishModrinthTask
 import org.gradle.api.Project
 import org.gradle.api.Task
 import java.io.File
 
 object PublishingConfigurator {
-    private val LEAF_PLATFORM_TASKS = listOf("publishCurseforge", "publishModrinth", "publishMods")
-    private val PRISM_AGGREGATE_TASKS = listOf("prismPublishCurseforge", "prismPublishModrinth", "prismPublishMods")
-    private const val PRISM_PUBLISH_ALL = "prismPublishAll"
+    private const val TASK_CURSEFORGE = "prismPublishCurseforge"
+    private const val TASK_MODRINTH = "prismPublishModrinth"
+    private const val TASK_GITHUB = "prismPublishGithub"
+    private const val TASK_GITEA = "prismPublishGitea"
+    private const val TASK_GITLAB = "prismPublishGitlab"
+    private const val TASK_DISCORD = "prismAnnounceDiscord"
+    private const val TASK_ALL = "prismPublishAll"
 
-    private fun aggregateNameFor(leafTaskName: String): String = when (leafTaskName) {
-        "publishCurseforge" -> "prismPublishCurseforge"
-        "publishModrinth" -> "prismPublishModrinth"
-        "publishMods" -> "prismPublishMods"
-        else -> "prism${leafTaskName.replaceFirstChar { it.titlecase() }}"
-    }
+    private val PLATFORM_TASKS = listOf(TASK_CURSEFORGE, TASK_MODRINTH, TASK_GITHUB, TASK_GITEA, TASK_GITLAB)
 
     internal fun defaultPublishTaskName(loaderConfig: LoaderConfiguration): String = when (loaderConfig) {
         is FabricConfiguration -> "remapJar"
         is LegacyForgeConfiguration -> "reobfJar"
-        is ForgeConfiguration -> "jar"
+        is ForgeConfiguration -> "reobfJar"
         is LexForgeConfiguration -> "jar"
         is NeoForgeConfiguration -> "jar"
         else -> "jar"
@@ -44,15 +46,26 @@ object PublishingConfigurator {
         loaderConfig: LoaderConfiguration,
         publishingConfig: PublishingConfiguration? = null,
     ): Task? {
-        publishingConfig?.artifactTaskName?.let {
-            return project.tasks.findByName(it)
-        }
+        publishingConfig?.artifactTaskName?.let { return project.tasks.findByName(it) }
         if (loaderConfig !is FabricConfiguration) {
             project.tasks.findByName("reobfShadowJar")?.let { return it }
-            project.tasks.findByName("shadowJar")?.let { return it }
+            if (loaderConfig !is ForgeConfiguration && loaderConfig !is LegacyForgeConfiguration) {
+                project.tasks.findByName("shadowJar")?.let { return it }
+            }
         }
-        return project.tasks.findByName(defaultPublishTaskName(loaderConfig))
-            ?: project.tasks.findByName("jar")
+        val preferred = project.tasks.findByName(defaultPublishTaskName(loaderConfig))
+        if (preferred != null) return preferred
+        val needsRemapped = loaderConfig is FabricConfiguration ||
+            loaderConfig is ForgeConfiguration ||
+            loaderConfig is LegacyForgeConfiguration
+        if (needsRemapped) {
+            project.logger.warn(
+                "Prism: ${loaderConfig.loaderDisplayName} project '${project.path}' has no '${defaultPublishTaskName(loaderConfig)}' task. " +
+                "Falling back to 'jar' will publish the un-remapped dev jar. " +
+                "Declare `artifactTask(\"...\")` in publishing { } if this is intentional."
+            )
+        }
+        return project.tasks.findByName("jar")
     }
 
     internal fun resolvePublishFile(
@@ -73,8 +86,6 @@ object PublishingConfigurator {
     ) {
         if (!publishingConfig.isConfigured) return
 
-        loaderProject.pluginManager.apply("me.modmuss50.mod-publish-plugin")
-
         val loaderPubDeps = when (loaderConfig) {
             is FabricConfiguration -> loaderConfig.pubDeps.deps
             is ForgeConfiguration -> loaderConfig.pubDeps.deps
@@ -83,217 +94,224 @@ object PublishingConfigurator {
             else -> emptyList()
         }
 
-        val allDeps = run {
-            val merged = publishingConfig.pubDeps.deps + versionConfig.pubDeps.deps + loaderPubDeps
-            val perSlug = linkedMapOf<Pair<PublishingPlatform?, String>, PublishingDep>()
-            for (dep in merged) {
-                perSlug[dep.platform to dep.slug] = dep
-            }
-            perSlug.values.toList()
-        }
+        val allDeps = dedupeDeps(publishingConfig.pubDeps.deps + versionConfig.pubDeps.deps + loaderPubDeps)
+        val dryRun = loaderProject.providers.gradleProperty("prism.publishDryRun").map { it.toBoolean() }
 
         loaderProject.afterEvaluate { proj ->
-            val publishMods = proj.extensions.getByType(ModPublishExtension::class.java)
-            wirePublishTaskDependencies(proj, loaderConfig, publishingConfig)
-
-            val jarFile = resolvePublishFile(proj, loaderConfig, publishingConfig)
-            if (jarFile != null) {
-                publishMods.file.set(jarFile)
-
-                val name = publishingConfig.displayName ?: jarFile.name
-                publishMods.displayName.set(name)
-            } else {
+            val artifactFile = resolvePublishFile(proj, loaderConfig, publishingConfig)
+            if (artifactFile == null) {
                 proj.logger.warn("Prism: No publishable artifact found for ${proj.path}")
+                return@afterEvaluate
             }
 
             val changelog = publishingConfig.changelog
                 ?: publishingConfig.changelogFile?.let { proj.rootProject.file(it).readText() }
                 ?: ""
-            publishMods.changelog.set(changelog)
-
             val modVersion = metadata.version.ifEmpty { proj.rootProject.version.toString() }
-            publishMods.version.set(modVersion)
-
-            publishMods.type.set(
-                when (publishingConfig.type) {
-                    ReleaseType.STABLE -> publishMods.STABLE
-                    ReleaseType.BETA -> publishMods.BETA
-                    ReleaseType.ALPHA -> publishMods.ALPHA
-                }
-            )
-
-            publishMods.modLoaders.add(loaderConfig.publishLoaderSlug)
-
+            val displayName = publishingConfig.displayName ?: artifactFile.name
             val mcVersions = versionConfig.minecraftVersionRange ?: listOf(versionConfig.minecraftVersion)
 
-            publishingConfig.curseforgeConfig?.let { cf ->
-                publishMods.curseforge { curseforge ->
-                    curseforge.projectId.set(cf.projectId)
-                    cf.accessToken?.let { token ->
-                        curseforge.accessToken.set(token)
-                    }
-                    for (v in mcVersions) {
-                        curseforge.minecraftVersions.add(v)
-                    }
+            val cleanTask = proj.tasks.findByName("clean")
+            val artifactTask = selectPublishTask(proj, loaderConfig, publishingConfig)
+            if (cleanTask != null && artifactTask != null) {
+                artifactTask.mustRunAfter(cleanTask)
+            }
 
-                    for (dep in allDeps) {
-                        if (dep.platform == PublishingPlatform.MODRINTH) continue
-                        applyDepToCurseforge(curseforge, dep)
-                    }
+            val cfDeps = allDeps.filter { it.platform != PublishingPlatform.MODRINTH }
+            val mrDeps = allDeps.filter { it.platform != PublishingPlatform.CURSEFORGE }
+
+            publishingConfig.curseforgeConfig?.let { cf ->
+                val cfTask = proj.tasks.register(TASK_CURSEFORGE, PublishCurseforgeTask::class.java) { t ->
+                    t.group = "publishing"
+                    cf.accessToken?.let { t.accessToken.set(it) }
+                    t.projectId.set(cf.projectId)
+                    t.minecraftVersions.set(mcVersions + cf.extraGameVersions)
+                    t.loaderSlug.set(loaderConfig.publishLoaderSlug)
+                    t.javaVersion.set(versionConfig.resolvedJavaVersion)
+                    t.displayName.set(displayName)
+                    t.modVersion.set(modVersion)
+                    t.changelog.set(changelog)
+                    t.releaseType.set(publishingConfig.type)
+                    t.deps.set(cfDeps)
+                    t.dryRun.set(dryRun)
+                    t.artifactFile.set(artifactFile)
+                    if (cleanTask != null) t.dependsOn(cleanTask)
+                    if (artifactTask != null) t.dependsOn(artifactTask)
                 }
+                wireIntoAll(proj, cfTask.name)
             }
 
             publishingConfig.modrinthConfig?.let { mr ->
-                publishMods.modrinth { modrinth ->
-                    modrinth.projectId.set(mr.projectId)
-                    mr.accessToken?.let { token ->
-                        modrinth.accessToken.set(token)
-                    }
-                    for (v in mcVersions) {
-                        modrinth.minecraftVersions.add(v)
-                    }
+                val mrTask = proj.tasks.register(TASK_MODRINTH, PublishModrinthTask::class.java) { t ->
+                    t.group = "publishing"
+                    mr.accessToken?.let { t.accessToken.set(it) }
+                    t.projectId.set(mr.projectId)
+                    t.minecraftVersions.set(mcVersions)
+                    t.loaderSlugs.set(listOf(loaderConfig.publishLoaderSlug) + mr.extraLoaders)
+                    t.displayName.set(displayName)
+                    t.modVersion.set(modVersion)
+                    t.changelog.set(changelog)
+                    t.releaseType.set(publishingConfig.type)
+                    t.featured.set(mr.featured)
+                    t.deps.set(mrDeps)
+                    t.dryRun.set(dryRun)
+                    t.artifactFile.set(artifactFile)
+                    if (cleanTask != null) t.dependsOn(cleanTask)
+                    if (artifactTask != null) t.dependsOn(artifactTask)
+                }
+                wireIntoAll(proj, mrTask.name)
+            }
 
-                    for (dep in allDeps) {
-                        if (dep.platform == PublishingPlatform.CURSEFORGE) continue
-                        applyDepToModrinth(modrinth, dep)
-                    }
+            publishingConfig.githubConfig?.let { gh ->
+                val ghTask = proj.tasks.register(TASK_GITHUB, PublishGithubTask::class.java) { t ->
+                    t.group = "publishing"
+                    t.accessToken.set(resolveGithubToken(proj, gh.accessToken))
+                    t.repository.set(gh.repository)
+                    t.tagName.set(gh.tagName ?: modVersion)
+                    t.commitish.set(gh.commitish)
+                    t.displayName.set(displayName)
+                    t.changelog.set(changelog)
+                    t.draft.set(gh.draft)
+                    t.prerelease.set(gh.prerelease)
+                    t.reuseExistingRelease.set(gh.reuseExistingRelease)
+                    t.dryRun.set(dryRun)
+                    t.artifactFile.set(artifactFile)
+                    if (cleanTask != null) t.dependsOn(cleanTask)
+                    if (artifactTask != null) t.dependsOn(artifactTask)
+                }
+                wireIntoAll(proj, ghTask.name)
+            }
+
+            publishingConfig.giteaConfig?.let { gt ->
+                val gtTask = proj.tasks.register(TASK_GITEA, PublishGiteaTask::class.java) { t ->
+                    t.group = "publishing"
+                    gt.accessToken?.let { t.accessToken.set(it) }
+                    t.apiEndpoint.set(gt.apiEndpoint)
+                    t.repository.set(gt.repository)
+                    t.tagName.set(gt.tagName ?: modVersion)
+                    t.commitish.set(gt.commitish)
+                    t.displayName.set(displayName)
+                    t.changelog.set(changelog)
+                    t.draft.set(gt.draft)
+                    t.prerelease.set(gt.prerelease)
+                    t.dryRun.set(dryRun)
+                    t.artifactFile.set(artifactFile)
+                    if (cleanTask != null) t.dependsOn(cleanTask)
+                    if (artifactTask != null) t.dependsOn(artifactTask)
+                }
+                wireIntoAll(proj, gtTask.name)
+            }
+
+            publishingConfig.gitlabConfig?.let { gl ->
+                val glTask = proj.tasks.register(TASK_GITLAB, PublishGitlabTask::class.java) { t ->
+                    t.group = "publishing"
+                    gl.accessToken?.let { t.accessToken.set(it) }
+                    t.apiEndpoint.set(gl.apiEndpoint)
+                    t.projectId.set(gl.projectId)
+                    t.tagName.set(gl.tagName ?: modVersion)
+                    t.commitish.set(gl.commitish)
+                    t.displayName.set(displayName)
+                    t.changelog.set(changelog)
+                    t.dryRun.set(dryRun)
+                    t.artifactFile.set(artifactFile)
+                    if (cleanTask != null) t.dependsOn(cleanTask)
+                    if (artifactTask != null) t.dependsOn(artifactTask)
+                }
+                wireIntoAll(proj, glTask.name)
+            }
+
+            publishingConfig.discordConfig?.let { dc ->
+                val discordTask = proj.tasks.register(TASK_DISCORD, AnnounceDiscordTask::class.java) { t ->
+                    t.group = "publishing"
+                    dc.webhookUrl?.let { t.webhookUrl.set(it) }
+                    t.username.set(dc.username)
+                    t.avatarUrl.set(dc.avatarUrl)
+                    t.content.set(dc.content)
+                    t.embedTitle.set(dc.embedTitle)
+                    t.embedDescription.set(dc.embedDescription)
+                    t.embedColor.set(dc.embedColor)
+                    t.includeProjectLinks.set(dc.includeProjectLinks)
+                    t.dryRun.set(dryRun)
+                }
+                PLATFORM_TASKS.forEach { name ->
+                    proj.tasks.findByName(name)?.finalizedBy(discordTask)
                 }
             }
+
+            ensureAggregateAllTask(proj)
         }
     }
 
-    private fun wirePublishTaskDependencies(
-        project: Project,
-        loaderConfig: LoaderConfiguration,
-        publishingConfig: PublishingConfiguration,
-    ) {
-        val cleanTask = project.tasks.findByName("clean")
-        val publishArtifactTask = selectPublishTask(project, loaderConfig, publishingConfig)
-
-        if (cleanTask != null && publishArtifactTask != null) {
-            publishArtifactTask.mustRunAfter(cleanTask)
-        }
-
-        project.tasks.matching { it.name in LEAF_PLATFORM_TASKS }.configureEach { publishTask ->
-            if (cleanTask != null) {
-                publishTask.dependsOn(cleanTask)
-            }
-            if (publishArtifactTask != null) {
-                publishTask.dependsOn(publishArtifactTask)
-            }
-            publishTask.group = null
-        }
-
-        for (leafTaskName in LEAF_PLATFORM_TASKS) {
-            val aliasName = aggregateNameFor(leafTaskName)
-            if (project.tasks.findByName(aliasName) == null) {
-                project.tasks.register(aliasName) { alias ->
-                    alias.group = "publishing"
-                    alias.description = "Publishes this loader to ${leafTaskName.removePrefix("publish").lowercase()} (Prism alias)"
-                }
-            }
-            project.tasks.matching { it.name == leafTaskName }.configureEach { leafTask ->
-                project.tasks.named(aliasName).configure { it.dependsOn(leafTask) }
-            }
-        }
-        if (project.tasks.findByName(PRISM_PUBLISH_ALL) == null) {
-            project.tasks.register(PRISM_PUBLISH_ALL) { alias ->
-                alias.group = "publishing"
-                alias.description = "Publishes this loader to every configured platform (Prism aggregate)"
-            }
-        }
-        for (aggName in PRISM_AGGREGATE_TASKS) {
-            project.tasks.named(PRISM_PUBLISH_ALL).configure { it.dependsOn(project.tasks.named(aggName)) }
-        }
+    private fun wireIntoAll(project: Project, taskName: String) {
+        ensureAggregateAllTask(project)
+        project.tasks.named(TASK_ALL).configure { it.dependsOn(project.tasks.named(taskName)) }
     }
 
-    private fun applyDepToCurseforge(curseforge: Any, dep: PublishingDep) {
-        invokeDepMethod(curseforge, dep)
-    }
-
-    private fun applyDepToModrinth(modrinth: Any, dep: PublishingDep) {
-        invokeDepMethod(modrinth, dep)
-    }
-
-    private fun invokeDepMethod(target: Any, dep: PublishingDep) {
-        val methodName = when (dep.type) {
-            PublishingDepType.REQUIRED -> "requires"
-            PublishingDepType.OPTIONAL -> "optional"
-            PublishingDepType.INCOMPATIBLE -> "incompatible"
-            PublishingDepType.EMBEDDED -> "embeds"
-        }
-        val method = target.javaClass.methods.firstOrNull {
-            it.name == methodName && it.parameterCount == 1 &&
-                (it.parameterTypes[0] == Array<String>::class.java || it.parameterTypes[0] == String::class.java)
-        } ?: return
-        try {
-            if (method.parameterTypes[0] == Array<String>::class.java) {
-                method.invoke(target, arrayOf(dep.slug))
-            } else {
-                method.invoke(target, dep.slug)
-            }
-        } catch (e: Exception) {
-            (target as? Any)?.let {
-                System.err.println("Prism: failed to apply publishing dep '${dep.slug}' (${dep.type}): ${e.message}")
-            }
-        }
-    }
-
-    fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
-        ensureAggregateTasksRegistered(project)
-
-        project.childProjects.forEach { (name, child) ->
-            if (name !in excludeChildren) {
-                wirePublishTasks(project, child)
+    private fun ensureAggregateAllTask(project: Project) {
+        if (project.tasks.findByName(TASK_ALL) == null) {
+            project.tasks.register(TASK_ALL) { t ->
+                t.group = "publishing"
+                t.description = "Publishes this project to every configured platform (Prism aggregate)"
             }
         }
     }
 
     fun createVersionAggregate(versionProject: Project) {
         ensureAggregateTasksRegistered(versionProject)
-        versionProject.childProjects.values.forEach { child ->
-            wirePublishTasks(versionProject, child)
+        versionProject.childProjects.values.forEach { child -> wireChildIntoAggregates(versionProject, child) }
+    }
+
+    fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
+        ensureAggregateTasksRegistered(project)
+        project.childProjects.forEach { (name, child) ->
+            if (name !in excludeChildren) wireChildIntoAggregates(project, child)
         }
     }
 
     fun linkAggregateToChild(parent: Project, child: Project) {
         ensureAggregateTasksRegistered(parent)
-        for (taskName in LEAF_PLATFORM_TASKS) {
-            val aggregateName = aggregateNameFor(taskName)
-            val childAggregate = child.tasks.findByName(aggregateName) ?: continue
-            parent.tasks.named(aggregateName).configure { it.dependsOn(childAggregate) }
+        for (taskName in PLATFORM_TASKS + TASK_ALL) {
+            val childTask = child.tasks.findByName(taskName) ?: continue
+            parent.tasks.named(taskName).configure { it.dependsOn(childTask) }
         }
-        val childAll = child.tasks.findByName(PRISM_PUBLISH_ALL) ?: return
-        parent.tasks.named(PRISM_PUBLISH_ALL).configure { it.dependsOn(childAll) }
     }
 
     private fun ensureAggregateTasksRegistered(project: Project) {
-        if (project.tasks.findByName(PRISM_PUBLISH_ALL) == null) {
-            project.tasks.register(PRISM_PUBLISH_ALL) { task ->
-                task.group = "publishing"
-                task.description = "Publishes all mod JARs to every configured platform (Prism aggregate)"
+        if (project.tasks.findByName(TASK_ALL) == null) {
+            project.tasks.register(TASK_ALL) { t ->
+                t.group = "publishing"
+                t.description = "Publishes all configured platforms (Prism aggregate)"
             }
         }
-        for (taskName in PRISM_AGGREGATE_TASKS) {
+        for (taskName in PLATFORM_TASKS) {
             if (project.tasks.findByName(taskName) == null) {
-                project.tasks.register(taskName) { task ->
-                    task.group = "publishing"
-                    task.description = "Prism aggregate for ${taskName.removePrefix("prism").replaceFirstChar { it.lowercase() }}"
+                project.tasks.register(taskName) { t ->
+                    t.group = "publishing"
+                    t.description = "Prism aggregate for ${taskName.removePrefix("prismPublish").lowercase()}"
                 }
-                project.tasks.named(PRISM_PUBLISH_ALL).configure { it.dependsOn(project.tasks.named(taskName)) }
+                project.tasks.named(TASK_ALL).configure { it.dependsOn(project.tasks.named(taskName)) }
             }
         }
     }
 
-    private fun wirePublishTasks(aggregateProject: Project, child: Project) {
-        for (leafTaskName in LEAF_PLATFORM_TASKS) {
-            val aggregateName = aggregateNameFor(leafTaskName)
-            child.tasks.matching { it.name == leafTaskName }.configureEach { leafTask ->
-                aggregateProject.tasks.named(aggregateName).configure { it.dependsOn(leafTask) }
+    private fun wireChildIntoAggregates(parent: Project, child: Project) {
+        for (taskName in PLATFORM_TASKS + TASK_ALL) {
+            child.tasks.matching { it.name == taskName }.configureEach { childTask ->
+                parent.tasks.named(taskName).configure { it.dependsOn(childTask) }
             }
         }
-        child.childProjects.values.forEach { grandchild ->
-            wirePublishTasks(aggregateProject, grandchild)
-        }
+        child.childProjects.values.forEach { grandchild -> wireChildIntoAggregates(parent, grandchild) }
+    }
+
+    private fun dedupeDeps(deps: List<PublishingDep>): List<PublishingDep> {
+        val perSlug = linkedMapOf<Pair<PublishingPlatform?, String>, PublishingDep>()
+        for (dep in deps) perSlug[dep.platform to dep.slug] = dep
+        return perSlug.values.toList()
+    }
+
+    private fun resolveGithubToken(project: Project, provided: org.gradle.api.provider.Provider<String>?): org.gradle.api.provider.Provider<String> {
+        if (provided != null) return provided
+        return project.providers.environmentVariable("GITHUB_TOKEN")
+            .orElse(project.providers.environmentVariable("GH_TOKEN"))
     }
 }

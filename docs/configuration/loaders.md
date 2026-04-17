@@ -270,7 +270,14 @@ version("1.12.2") {
         username = "Developer"       // default
 
         accessTransformer("src/main/resources/META-INF/mymod_at.cfg")
-        mixin()  // adds MixinTweaker
+
+        // Mixins: if any *.mixins.json lives in src/main/resources and you have
+        // @Mixin-annotated classes, Prism auto-wires MixinBooter + manifest attrs.
+        // No extra configuration needed. Optional overrides:
+        //   mixinBooter = false                // disable MixinBooter entirely
+        //   mixinBooterVersion = "10.7"        // pin a different version
+        //   coreMod("com.example.MyFMLPlugin") // skip auto-detect of IFMLLoadingPlugin
+        //   mixins { config("extra.mixins.json"); refmap("mymod.refmap.json") }
 
         dependencies {
             implementation("some:library:1.0")
@@ -279,13 +286,15 @@ version("1.12.2") {
 }
 ```
 
-| Property          | Required | Default      | Description                         |
-|-------------------|----------|--------------|-------------------------------------|
-| `mcVersion`       | Yes      | `1.12.2`     | Minecraft version                   |
-| `forgeVersion`    | Yes      | -            | Forge version                       |
-| `mappingChannel`  | No       | `stable`     | MCP mapping channel                 |
-| `mappingVersion`  | No       | `39`         | MCP mapping version                 |
-| `username`        | No       | `Developer`  | Dev username for run configs        |
+| Property             | Required | Default      | Description                         |
+|----------------------|----------|--------------|-------------------------------------|
+| `mcVersion`          | Yes      | `1.12.2`     | Minecraft version                   |
+| `forgeVersion`       | Yes      | -            | Forge version                       |
+| `mappingChannel`     | No       | `stable`     | MCP mapping channel                 |
+| `mappingVersion`     | No       | `39`         | MCP mapping version                 |
+| `username`           | No       | `Developer`  | Dev username for run configs        |
+| `mixinBooter`        | No       | `true`       | Auto-add MixinBooter + CleanroomMC maven + AP |
+| `mixinBooterVersion` | No       | `10.7`       | MixinBooter version to pin          |
 
 Requires the GTNH maven in `pluginManagement`:
 ```kotlin
@@ -293,6 +302,20 @@ maven { url = uri("https://nexus.gtnewhorizons.com/repository/public/") }
 ```
 
 Java 8 toolchain with Azul JDK. Run configurations: `runClient`, `runServer`.
+
+### Mixins on 1.12.2
+
+On 1.12.2 Sponge Mixin is loaded via a coremod. Prism automates the entire chain when it sees mixin sources in the project:
+
+1. Adds the CleanroomMC maven (`https://repo.cleanroommc.com/releases`).
+2. Adds `zone.rong:mixinbooter:<version>` as both `implementation` and `annotationProcessor` (non-transitive).
+3. Auto-registers every `*.mixins.json` under `src/main/resources/` via the jar's `MixinConfigs` manifest attribute.
+4. Writes these manifest attributes on the jar task:
+   - `FMLCorePlugin = <FQN>` — auto-detected from any class with `@IFMLLoadingPlugin.Name` or `implements IFMLLoadingPlugin` in `src/main/{java,kotlin}`. Override with `coreMod("com.example.MyPlugin")`. If no class is found, this attribute is omitted (late-mixin mods don't need it).
+   - `FMLCorePluginContainsFMLMod = "true"`
+   - `ForceLoadAsMod = "true"`
+
+"Has mixin sources" means at least one `@Mixin(` annotation is present, or the `mixins { }` block declares explicit configs. If neither applies, Prism does nothing (non-mixin mods stay untouched).
 
 Use `rawProject {}` when you need plain RetroFuturaGradle customization that Prism does not model directly.
 

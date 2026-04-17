@@ -12,6 +12,8 @@ open class LegacyForgeConfiguration : LoaderConfiguration {
     var mappingVersion: String = "39"
     var username: String = "Developer"
     var useModernJavaSyntax: Boolean = false
+    var mixinBooter: Boolean = true
+    var mixinBooterVersion: String = "10.7"
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
     internal val pubDeps = PublishingDepsBlock()
@@ -19,9 +21,19 @@ open class LegacyForgeConfiguration : LoaderConfiguration {
     internal val accessTransformers = mutableListOf<String>()
     internal val rawProjectActions = mutableListOf<Action<Project>>()
     internal val extraConfigurations = mutableSetOf<String>()
+    internal val mixinOptions = MixinOptions()
+    internal var coreModClass: String? = null
 
     fun mixin(refmap: String = "") {
         mixinTweakers.add("org.spongepowered.asm.launch.MixinTweaker")
+    }
+
+    fun mixins(action: Action<MixinOptions>) {
+        action.execute(mixinOptions)
+    }
+
+    fun coreMod(fqn: String) {
+        coreModClass = fqn
     }
 
     fun accessTransformer(path: String) {

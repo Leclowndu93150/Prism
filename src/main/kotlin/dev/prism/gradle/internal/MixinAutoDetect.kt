@@ -91,6 +91,48 @@ object MixinAutoDetect {
         }
     }
 
+    fun findCorePluginClass(project: Project, commonProject: Project? = null): String? {
+        val roots = mutableListOf<File>()
+        for (lang in listOf("java", "kotlin")) {
+            roots.add(project.file("src/main/$lang"))
+            if (commonProject != null) roots.add(commonProject.file("src/main/$lang"))
+        }
+        val candidates = mutableListOf<String>()
+        for (root in roots) {
+            if (!root.exists()) continue
+            root.walkTopDown()
+                .filter { it.isFile && it.extension in setOf("java", "kt") }
+                .forEach { file ->
+                    val text = runCatching { file.readText() }.getOrDefault("")
+                    if (!hasLoadingPluginMarker(text)) return@forEach
+                    val fqn = extractFqn(file, text) ?: return@forEach
+                    candidates.add(fqn)
+                }
+        }
+        val first = candidates.firstOrNull()
+        if (first != null && candidates.size > 1) {
+            project.logger.warn(
+                "Prism: Found multiple IFMLLoadingPlugin classes ($candidates); picking '$first'. " +
+                "Override with legacyForge { coreMod(\"...\") }."
+            )
+        }
+        return first
+    }
+
+    private fun hasLoadingPluginMarker(text: String): Boolean {
+        return "@IFMLLoadingPlugin.Name(" in text ||
+            "IFMLLoadingPlugin.Name(" in text ||
+            "implements IFMLLoadingPlugin" in text ||
+            ": IFMLLoadingPlugin" in text ||
+            "net.minecraftforge.fml.relauncher.IFMLLoadingPlugin" in text
+    }
+
+    private fun extractFqn(file: File, text: String): String? {
+        val pkg = Regex("""package\s+([\w.]+)""").find(text)?.groupValues?.get(1) ?: return null
+        val simpleName = file.nameWithoutExtension
+        return "$pkg.$simpleName"
+    }
+
     fun injectFabricMixins(project: Project, mixinConfigs: List<String>) {
         if (mixinConfigs.isEmpty()) return
 

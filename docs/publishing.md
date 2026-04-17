@@ -4,9 +4,9 @@ sidebar_position: 4
 
 # Publishing
 
-Prism wraps [mod-publish-plugin](https://github.com/modmuss50/mod-publish-plugin) to publish your mod JARs to CurseForge and Modrinth.
+Prism publishes your mod JARs directly to CurseForge, Modrinth, GitHub Releases, Gitea, and GitLab, then optionally posts an announcement to Discord. The upload code is a vendored port of [mod-publish-plugin](https://github.com/modmuss50/mod-publish-plugin) (MIT) — Prism owns the task graph end-to-end, with no external publish plugin applied.
 
-Publishing is optional. If you do not configure the `publishing` block, the mod-publish-plugin is never applied.
+Publishing is optional. If you do not configure any `curseforge { }`, `modrinth { }`, `github { }`, `gitea { }`, or `gitlab { }` block inside `publishing { }`, no publish tasks are registered.
 
 ## Configuration
 
@@ -35,6 +35,34 @@ prism {
         modrinth {
             accessToken = providers.environmentVariable("MODRINTH_TOKEN")
             projectId = "abcdef12"
+        }
+
+        github {
+            // accessToken = providers.environmentVariable("GITHUB_TOKEN")  // default: GITHUB_TOKEN then GH_TOKEN
+            repository = "MyName/my-mod"
+            // tagName = "v1.0.0"        // default: modVersion
+            // commitish = "main"
+            // prerelease = false
+            // reuseExistingRelease = true
+        }
+
+        gitea {
+            accessToken = providers.environmentVariable("GITEA_TOKEN")
+            apiEndpoint = "https://gitea.example.com/api/v1"
+            repository = "MyName/my-mod"
+        }
+
+        gitlab {
+            accessToken = providers.environmentVariable("GITLAB_TOKEN")
+            projectId = 12345L
+            // apiEndpoint = "https://gitlab.com/api/v4"  // default
+        }
+
+        discord {
+            webhookUrl = providers.environmentVariable("DISCORD_WEBHOOK_URL")
+            username = "Prism"
+            embedTitle = "New release"
+            embedColor = 0x5865F2
         }
 
         // Global publishing dependencies (apply to ALL versions and loaders)
@@ -126,14 +154,15 @@ publishingDependencies {
 
 ## What Prism configures
 
-For each loader subproject, Prism applies mod-publish-plugin and sets:
+For each loader subproject, Prism registers its own upload tasks and sets:
 
-- `file` to the output JAR of that subproject
-- `modLoaders` to the loader slug expected by CurseForge/Modrinth (`fabric`, `neoforge`, or `forge` — both MDG-Legacy `forge { }` and LexForge `lexForge { }` publish as `forge`)
-- `minecraftVersions` to the Minecraft version of that subproject
+- `file` to the output JAR of that subproject (selected per loader — see below)
+- `loader` to the slug expected by CurseForge/Modrinth (`fabric`, `neoforge`, or `forge` — both MDG-Legacy `forge { }` and LexForge `lexForge { }` publish as `forge`)
+- `minecraftVersions` to the Minecraft version of that subproject (plus any `gameVersion("...")` extras declared in `curseforge { }`)
+- For CurseForge: auto-populates Java version + `Client` + `Server` gameVersion IDs from the loader's resolved Java toolchain
 - `changelog`, `version`, and `type` from the root configuration
-- CurseForge and Modrinth credentials from the root configuration
-- Publishing dependencies from global + version + loader levels (stacked)
+- Platform credentials from the root configuration or environment variables
+- Publishing dependencies from global + version + loader levels (deduped, most-specific wins)
 
 ### Artifact selection
 
@@ -143,17 +172,18 @@ Prism picks the publishable artifact task per loader:
 |--------|------|
 | Fabric (Loom) | `remapJar` |
 | NeoForge (ModDevGradle) | `jar` |
-| Forge 1.17–1.20.1 (MDG Legacy) | `jar` |
+| Forge 1.17–1.20.1 (MDG Legacy) | `reobfJar` |
 | LexForge 1.21.1+ (ForgeGradle 7) | `jar` |
 | Legacy Forge 1.7.10–1.12.2 (RFG) | `reobfJar` |
 
 Override with `artifactTask("myTask")` or `artifactFile("build/libs/custom.jar")` under `publishing { }`. This only affects platform publishing; Maven publishing still uses the Gradle Java component unless you override it through raw Gradle hooks.
 
-Platform publish tasks also build the selected artifact before upload. By default Prism wires each leaf loader's `publishMods`, `publishCurseforge`, and `publishModrinth` to:
+Platform publish tasks build the selected artifact before upload. Each leaf loader's `prismPublish<Platform>` task:
 
-- run `clean`
-- run the selected artifact task (or your `artifactTask(...)` override)
-- upload the freshly built file
+- depends on `clean`
+- depends on the selected artifact task (or your `artifactTask(...)` override)
+- uploads the freshly built file
+- (optional) triggers `prismAnnounceDiscord` as a finalizer once the upload succeeds
 
 ### Duplicate dependency handling
 
@@ -169,6 +199,79 @@ fabric {
 ```
 
 The final CurseForge/Modrinth upload for the fabric loader sends `modmenu` as `OPTIONAL` exactly once.
+
+## Git platforms (GitHub / Gitea / GitLab)
+
+These platforms publish the jar as an asset on a named release. Prism creates the release if it doesn't exist, uploads the artifact, and prints the release URL.
+
+### GitHub Releases
+
+```kotlin
+publishing {
+    github {
+        // Token: auto-picks GITHUB_TOKEN (Actions), falls back to GH_TOKEN,
+        // or override explicitly:
+        // accessToken = providers.environmentVariable("MY_GH_PAT")
+
+        repository = "MyName/my-mod"        // required
+        tagName = "v1.0.0"                  // default: mod version
+        commitish = "main"                  // default: main
+        draft = false
+        prerelease = false
+        reuseExistingRelease = true         // if a release for this tag exists, upload there
+    }
+}
+```
+
+### Gitea
+
+```kotlin
+publishing {
+    gitea {
+        accessToken = providers.environmentVariable("GITEA_TOKEN")
+        apiEndpoint = "https://gitea.example.com/api/v1"   // your instance
+        repository = "MyName/my-mod"
+        tagName = "v1.0.0"
+        draft = false
+        prerelease = false
+    }
+}
+```
+
+### GitLab
+
+```kotlin
+publishing {
+    gitlab {
+        accessToken = providers.environmentVariable("GITLAB_TOKEN")
+        apiEndpoint = "https://gitlab.com/api/v4"   // default; override for self-hosted
+        projectId = 12345L                          // numeric project ID
+        tagName = "v1.0.0"
+        commitish = "main"
+    }
+}
+```
+
+## Discord announcements
+
+Post a webhook message to Discord after the CF/Modrinth/GitHub/Gitea/GitLab uploads succeed. The announcement runs as a finalizer on the platform tasks and includes a link to each published artifact.
+
+```kotlin
+publishing {
+    discord {
+        webhookUrl = providers.environmentVariable("DISCORD_WEBHOOK_URL")
+        username = "Prism"                          // optional
+        avatarUrl = "https://example.com/avatar.png"  // optional
+        content = "New release of My Mod"            // optional plain content
+        embedTitle = "My Mod 1.0.0 released"
+        embedDescription = "Highlights: …"
+        embedColor = 0x5865F2
+        includeProjectLinks = true                   // default: true; adds an embed field per platform
+    }
+}
+```
+
+Each platform upload task calls `finalizedBy(prismAnnounceDiscord)`. A single Discord message is posted after the finalized upload(s) finish — not one per platform.
 
 ## Maven publishing
 
@@ -255,45 +358,59 @@ With `publishCommonJar = true`, common subprojects also publish as `{modId}-{mcV
 
 ## Running
 
-Prism registers a set of `prism*` aggregate tasks so you can publish at any level of the project tree. The aggregates are named with a `prism` prefix to avoid colliding with mod-publish-plugin's own per-loader `publishCurseforge`/`publishModrinth`/`publishMods` tasks (which are hidden from the task list but still accessible by absolute path).
+Prism registers `prism*` tasks at every level of the project tree. All tasks are owned by Prism — there is no longer any collision with a third-party publish plugin.
 
 ### Task hierarchy
 
-| Level          | Task path                                       | Scope                                          |
-|----------------|-------------------------------------------------|------------------------------------------------|
-| Root           | `prismPublishCurseforge`                        | Every mod × version × loader in the build      |
-| Module         | `:<mod>:prismPublishCurseforge`                 | One mod, every version/loader                  |
-| Version        | `:<mod>:<mc>:prismPublishCurseforge`            | One version of one mod, every loader           |
-| Leaf (loader)  | `:<mod>:<mc>:<loader>:publishCurseforge`        | Just that one loader (native mod-publish task) |
+| Level          | Task path                                          | Scope                                   |
+|----------------|----------------------------------------------------|-----------------------------------------|
+| Root           | `prismPublishCurseforge`                           | Every mod × version × loader            |
+| Module         | `:<mod>:prismPublishCurseforge`                    | One mod, every version × loader         |
+| Version        | `:<mod>:<mc>:prismPublishCurseforge`               | One version of one mod, every loader    |
+| Leaf (loader)  | `:<mod>:<mc>:<loader>:prismPublishCurseforge`      | Just that one loader                    |
 
-Same pattern for `prismPublishModrinth`, `prismPublishMods`, `prismPublishAll` (the last depends on all three platforms).
+Same pattern for:
 
-For Maven publishing use `prismPublishMaven` at any level; the leaf is `:<path>:publish`.
+| Task                        | Platform            |
+|-----------------------------|---------------------|
+| `prismPublishCurseforge`    | CurseForge          |
+| `prismPublishModrinth`      | Modrinth            |
+| `prismPublishGithub`        | GitHub Releases     |
+| `prismPublishGitea`         | Gitea Releases      |
+| `prismPublishGitlab`        | GitLab Releases     |
+| `prismPublishAll`           | All of the above    |
+| `prismPublishMaven`         | Configured Maven repos (separate aggregate) |
+
+Discord announcements run as a **finalizer** (`prismAnnounceDiscord`) attached to the per-loader platform tasks. After the uploads succeed, Prism posts a single message to the configured webhook with links to each uploaded artifact.
 
 ### Examples
 
 ```bash
-# Publish everything in the build to CurseForge + Modrinth
+# Everything, everywhere
 ./gradlew prismPublishAll
 
-# Publish only the "boids" mod to CurseForge, every version and loader
-./gradlew :boids:prismPublishCurseforge
+# Just the "boids" mod, all versions, all configured platforms
+./gradlew :boids:prismPublishAll
 
-# Publish only the 1.21.1 version of "boids" to Modrinth
-./gradlew :boids:1.21.1:prismPublishModrinth
+# Boids 1.21.1 to CurseForge only
+./gradlew :boids:1.21.1:prismPublishCurseforge
 
-# Publish only the fabric jar of boids 1.20.1 to CurseForge (leaf task)
-./gradlew :boids:1.20.1:fabric:publishCurseforge
+# One loader jar to Modrinth
+./gradlew :boids:1.20.1:fabric:prismPublishModrinth
 
-# Maven
-./gradlew prismPublishMaven
-./gradlew :boids:1.21.1:prismPublishMaven
-./gradlew :boids:1.21.1:fabric:publish
+# Maven to your own repo
+./gradlew :boids:prismPublishMaven
 ```
 
-:::tip Prefer `prism*` aggregates
-Running `./gradlew publishCurseforge` without a project path will make Gradle execute every leaf task with that name — across every mod and version in the build, just like `./gradlew build`. Use the `prism*` aggregates with an explicit project path to scope to a single mod or version.
-:::
+### Dry run
+
+Every upload task supports a dry-run mode that logs the outgoing payload without making a network call. Useful for validating CI configs and secrets plumbing before shipping anything real.
+
+```bash
+./gradlew :boids:1.20.1:fabric:prismPublishCurseforge -Pprism.publishDryRun=true
+```
+
+The task logs the projectId, Minecraft versions, loader, declared deps, and file path that *would* be uploaded. Same flag works for Modrinth, GitHub, Gitea, GitLab, and Discord.
 
 ## Access tokens
 
