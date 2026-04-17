@@ -9,6 +9,7 @@ import dev.prism.gradle.dsl.ModuleConfiguration
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.PrismExtension
 import dev.prism.gradle.dsl.VersionConfiguration
+import dev.prism.gradle.internal.BuildPreconditions
 import dev.prism.gradle.internal.CommonConfigurator
 import dev.prism.gradle.internal.DependencyConfigurator
 import dev.prism.gradle.internal.KotlinConfigurator
@@ -83,6 +84,8 @@ class PrismProjectPlugin : Plugin<Project> {
             }
 
             PrismWarnings.reportVersionLoaderMismatches(rootProject, mcVersion, versionConfig)
+
+            BuildPreconditions.check(rootProject, mcVersion, versionConfig, "")
 
             val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$mcVersion:common") == null
 
@@ -307,6 +310,8 @@ class PrismProjectPlugin : Plugin<Project> {
                 rootProject.logger.warn("Prism: module '$moduleName' version '$mcVersion' has no loaders configured, skipping.")
                 continue
             }
+
+            BuildPreconditions.check(rootProject, mcVersion, versionConfig, ":$moduleName")
 
             val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$moduleName:$mcVersion:common") == null
 

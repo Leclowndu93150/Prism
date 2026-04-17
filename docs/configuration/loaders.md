@@ -237,6 +237,25 @@ forge {
 }
 ```
 
+:::warning Refmap required in JSON
+Every `*.mixins.json` in the `common` or `forge` subproject that declares non-empty `mixins`/`client`/`server` arrays MUST include a top-level `"refmap": "<modid>.refmap.json"` field. Prism fails the build at configuration time if it's missing — without a refmap, MDG Legacy cannot remap the mixin targets and the mod will crash in production. Fabric is exempt (Loom writes the refmap automatically).
+:::
+
+### Forge mod dependencies must use `mod*`
+
+On MDG Legacy, any dependency whose jar contains `META-INF/mods.toml` is a Forge mod and must be remapped. Declare it via the `mod*` variants:
+
+```kotlin
+forge {
+    dependencies {
+        modImplementation("curse.maven:jei-238222:4712866")   // correct
+        // implementation("curse.maven:jei-238222:4712866")    // Prism rejects this
+    }
+}
+```
+
+The same rule applies to `common { }` on MDG Legacy versions, since the common project pulls the Forge jar through NeoForm. Prism resolves each dep, inspects the jar, and fails the build if a Forge mod is declared on a non-`mod` configuration.
+
 ## Legacy Forge (1.7.10 - 1.12.2)
 
 Uses [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle) for old Forge versions.

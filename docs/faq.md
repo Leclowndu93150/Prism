@@ -200,6 +200,18 @@ See [Publishing](publishing.md). Key points:
 - Publishing dependencies (requires, optional, incompatible) can be set globally, per version, or per loader
 - All three levels stack
 
+## What build preconditions does Prism enforce?
+
+Prism fails the build at configuration time when any of the following are detected:
+
+1. **Mixin without refmap (MDG Legacy only).** Any `*.mixins.json` under `versions/{mc}/common/src/main/resources/` or `versions/{mc}/forge/src/main/resources/` that declares non-empty `mixins`/`client`/`server` arrays must include a top-level `"refmap": "<modid>.refmap.json"` field. This applies to versions using `forge { }` (Forge < 1.21.1). Fabric does not need this because Loom writes the refmap itself.
+
+2. **Missing `pack.mcmeta`.** For every version, each per-version subproject (`common`, `fabric`, `forge`, `lexforge`, `neoforge`, `legacyforge`, or the single-loader root) whose `src/main/resources/assets/` or `src/main/resources/data/` contains any file must also have a `src/main/resources/pack.mcmeta`. Empty or missing `assets`/`data` folders are fine. Only the per-version projects are checked — the cross-version `sharedCommon` root `:common` is not.
+
+3. **Forge mods on non-`mod` configurations (MDG Legacy only).** On versions using `forge { }`, any dependency declared on `implementation`/`api`/`compileOnly(Api)`/`runtimeOnly`/custom configurations whose jar contains `META-INF/mods.toml` is rejected. Use `modImplementation`/`modApi`/`modCompileOnly`/`modRuntimeOnly` instead so MDG Legacy remaps the mod jar. The common project is also checked, because NeoForm-remapped common still pulls Forge mod jars through the loader.
+
+All three errors print the offending file or dependency and the fix. Resolution happens through Gradle's normal artifact cache — the first build downloads the jar that would have been downloaded anyway; subsequent checks are free.
+
 ## Is there a diagnostic task?
 
 Yes:
