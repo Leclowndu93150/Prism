@@ -106,18 +106,31 @@ object BuildPreconditions {
         commonProject: Project?,
         loaderProjects: Map<LoaderConfiguration, Project>,
     ) {
-        val targets = mutableListOf<Project>()
-        if (commonProject != null) targets.add(commonProject)
-        targets.addAll(loaderProjects.values)
+        val commonResourcesDir = commonProject?.file("src/main/resources")
 
-        for (project in targets) {
-            val resourcesDir = project.file("src/main/resources")
-            if (!resourcesDir.exists()) continue
-            if (!hasAssetsOrDataContent(resourcesDir)) continue
-            val packMcmeta = File(resourcesDir, "pack.mcmeta")
-            if (!packMcmeta.exists()) {
+        if (loaderProjects.isEmpty()) {
+            validatePackMcmetaForProject(mcVersion, commonProject ?: return)
+            return
+        }
+
+        for (project in loaderProjects.values) {
+            val loaderResourcesDir = project.file("src/main/resources")
+            val mergedHasAssetsOrData = hasAssetsOrDataContent(loaderResourcesDir) ||
+                (commonResourcesDir != null && hasAssetsOrDataContent(commonResourcesDir))
+            if (!mergedHasAssetsOrData) continue
+
+            val hasPackMcmeta = hasPackMcmeta(loaderResourcesDir) ||
+                (commonResourcesDir != null && hasPackMcmeta(commonResourcesDir))
+
+            if (!hasPackMcmeta) {
+                val commonHint = if (commonProject != null) {
+                    "  Prism merges resources from '${commonProject.path}' into '${project.path}', so pack.mcmeta may live in either project.\n"
+                } else {
+                    ""
+                }
                 throw IllegalStateException(
-                    "Prism: version '$mcVersion' project '${project.path}' has assets/ or data/ resources but is missing 'src/main/resources/pack.mcmeta'.\n" +
+                    "Prism: version '$mcVersion' project '${project.path}' has assets/ or data/ resources but neither it nor its merged common resources provide 'src/main/resources/pack.mcmeta'.\n" +
+                    commonHint +
                     "  Minecraft requires pack.mcmeta when resource packs or data packs are present.\n" +
                     "  Create src/main/resources/pack.mcmeta with:\n" +
                     "    { \"pack\": { \"pack_format\": <N>, \"description\": \"<modid> resources\" } }"
@@ -125,6 +138,22 @@ object BuildPreconditions {
             }
         }
     }
+
+    private fun validatePackMcmetaForProject(mcVersion: String, project: Project) {
+        val resourcesDir = project.file("src/main/resources")
+        if (!resourcesDir.exists()) return
+        if (!hasAssetsOrDataContent(resourcesDir)) return
+        if (hasPackMcmeta(resourcesDir)) return
+
+        throw IllegalStateException(
+            "Prism: version '$mcVersion' project '${project.path}' has assets/ or data/ resources but is missing 'src/main/resources/pack.mcmeta'.\n" +
+            "  Minecraft requires pack.mcmeta when resource packs or data packs are present.\n" +
+            "  Create src/main/resources/pack.mcmeta with:\n" +
+            "    { \"pack\": { \"pack_format\": <N>, \"description\": \"<modid> resources\" } }"
+        )
+    }
+
+    private fun hasPackMcmeta(resourcesDir: File): Boolean = File(resourcesDir, "pack.mcmeta").exists()
 
     private fun hasAssetsOrDataContent(resourcesDir: File): Boolean {
         for (name in listOf("assets", "data")) {
