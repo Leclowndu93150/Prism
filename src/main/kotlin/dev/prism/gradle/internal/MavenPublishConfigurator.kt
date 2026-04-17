@@ -20,6 +20,7 @@ object MavenPublishConfigurator {
         if (mavenRepos.isEmpty()) return
 
         project.pluginManager.apply("maven-publish")
+        hideMavenPublishLeafTasks(project)
 
         project.afterEvaluate { proj ->
             proj.extensions.configure(PublishingExtension::class.java) { publishing ->
@@ -38,6 +39,11 @@ object MavenPublishConfigurator {
         }
     }
 
+    private fun hideMavenPublishLeafTasks(project: Project) {
+        project.tasks.matching { it.name == "publish" || it.name.startsWith("publishPrism") || it.name.startsWith("publishAllPublications") }
+            .configureEach { it.group = null }
+    }
+
     fun configureCommon(
         commonProject: Project,
         versionConfig: VersionConfiguration,
@@ -47,6 +53,7 @@ object MavenPublishConfigurator {
         if (mavenRepos.isEmpty()) return
 
         commonProject.pluginManager.apply("maven-publish")
+        hideMavenPublishLeafTasks(commonProject)
 
         commonProject.afterEvaluate { proj ->
             proj.extensions.configure(PublishingExtension::class.java) { publishing ->
@@ -96,13 +103,7 @@ object MavenPublishConfigurator {
     }
 
     fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
-        if (project.tasks.findByName("publishAllMaven") != null) return
-
-        project.tasks.register("publishAllMaven") { task ->
-            task.group = "publishing"
-            task.description = "Publishes all mod JARs to configured Maven repositories"
-        }
-
+        ensureAggregateTaskRegistered(project)
         project.childProjects.forEach { (name, child) ->
             if (name !in excludeChildren) {
                 wireMavenTasks(project, child)
@@ -110,12 +111,35 @@ object MavenPublishConfigurator {
         }
     }
 
+    fun createVersionAggregate(versionProject: Project) {
+        ensureAggregateTaskRegistered(versionProject)
+        versionProject.childProjects.values.forEach { child ->
+            wireMavenTasks(versionProject, child)
+        }
+    }
+
+    fun linkAggregateToChild(parent: Project, child: Project) {
+        ensureAggregateTaskRegistered(parent)
+        val childAggregate = child.tasks.findByName(AGGREGATE_NAME) ?: return
+        parent.tasks.named(AGGREGATE_NAME).configure { it.dependsOn(childAggregate) }
+    }
+
+    private fun ensureAggregateTaskRegistered(project: Project) {
+        if (project.tasks.findByName(AGGREGATE_NAME) != null) return
+        project.tasks.register(AGGREGATE_NAME) { task ->
+            task.group = "publishing"
+            task.description = "Publishes all mod JARs to configured Maven repositories (Prism aggregate)"
+        }
+    }
+
     private fun wireMavenTasks(aggregateProject: Project, child: Project) {
         child.tasks.matching { it.name == "publish" }.configureEach { publishTask ->
-            aggregateProject.tasks.named("publishAllMaven").configure { it.dependsOn(publishTask) }
+            aggregateProject.tasks.named(AGGREGATE_NAME).configure { it.dependsOn(publishTask) }
         }
         child.childProjects.values.forEach { grandchild ->
             wireMavenTasks(aggregateProject, grandchild)
         }
     }
+
+    private const val AGGREGATE_NAME = "prismPublishMaven"
 }

@@ -19,7 +19,16 @@ import org.gradle.api.Task
 import java.io.File
 
 object PublishingConfigurator {
-    private val PLATFORM_TASKS = listOf("publishCurseforge", "publishModrinth", "publishMods")
+    private val LEAF_PLATFORM_TASKS = listOf("publishCurseforge", "publishModrinth", "publishMods")
+    private val PRISM_AGGREGATE_TASKS = listOf("prismPublishCurseforge", "prismPublishModrinth", "prismPublishMods")
+    private const val PRISM_PUBLISH_ALL = "prismPublishAll"
+
+    private fun aggregateNameFor(leafTaskName: String): String = when (leafTaskName) {
+        "publishCurseforge" -> "prismPublishCurseforge"
+        "publishModrinth" -> "prismPublishModrinth"
+        "publishMods" -> "prismPublishMods"
+        else -> "prism${leafTaskName.replaceFirstChar { it.titlecase() }}"
+    }
 
     internal fun defaultPublishTaskName(loaderConfig: LoaderConfiguration): String = when (loaderConfig) {
         is FabricConfiguration -> "remapJar"
@@ -74,7 +83,14 @@ object PublishingConfigurator {
             else -> emptyList()
         }
 
-        val allDeps = publishingConfig.pubDeps.deps + versionConfig.pubDeps.deps + loaderPubDeps
+        val allDeps = run {
+            val merged = publishingConfig.pubDeps.deps + versionConfig.pubDeps.deps + loaderPubDeps
+            val perSlug = linkedMapOf<Pair<PublishingPlatform?, String>, PublishingDep>()
+            for (dep in merged) {
+                perSlug[dep.platform to dep.slug] = dep
+            }
+            perSlug.values.toList()
+        }
 
         loaderProject.afterEvaluate { proj ->
             val publishMods = proj.extensions.getByType(ModPublishExtension::class.java)
@@ -158,13 +174,14 @@ object PublishingConfigurator {
             publishArtifactTask.mustRunAfter(cleanTask)
         }
 
-        project.tasks.matching { it.name in PLATFORM_TASKS }.configureEach { publishTask ->
+        project.tasks.matching { it.name in LEAF_PLATFORM_TASKS }.configureEach { publishTask ->
             if (cleanTask != null) {
                 publishTask.dependsOn(cleanTask)
             }
             if (publishArtifactTask != null) {
                 publishTask.dependsOn(publishArtifactTask)
             }
+            publishTask.group = null
         }
     }
 
@@ -201,20 +218,7 @@ object PublishingConfigurator {
     }
 
     fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
-        if (project.tasks.findByName("publishAllMods") != null) return
-
-        project.tasks.register("publishAllMods") { task ->
-            task.group = "publishing"
-            task.description = "Publishes all mod loader JARs to configured platforms"
-        }
-
-        for (taskName in PLATFORM_TASKS) {
-            if (project.tasks.findByName(taskName) == null) {
-                project.tasks.register(taskName) { task ->
-                    task.group = "publishing"
-                }
-            }
-        }
+        ensureAggregateTasksRegistered(project)
 
         project.childProjects.forEach { (name, child) ->
             if (name !in excludeChildren) {
@@ -223,13 +227,47 @@ object PublishingConfigurator {
         }
     }
 
-    private fun wirePublishTasks(aggregateProject: Project, child: Project) {
-        child.tasks.matching { it.name == "publishMods" }.configureEach { publishTask ->
-            aggregateProject.tasks.named("publishAllMods").configure { it.dependsOn(publishTask) }
+    fun createVersionAggregate(versionProject: Project) {
+        ensureAggregateTasksRegistered(versionProject)
+        versionProject.childProjects.values.forEach { child ->
+            wirePublishTasks(versionProject, child)
         }
-        for (taskName in PLATFORM_TASKS) {
-            child.tasks.matching { it.name == taskName }.configureEach { platformTask ->
-                aggregateProject.tasks.named(taskName).configure { it.dependsOn(platformTask) }
+    }
+
+    fun linkAggregateToChild(parent: Project, child: Project) {
+        ensureAggregateTasksRegistered(parent)
+        for (taskName in LEAF_PLATFORM_TASKS) {
+            val aggregateName = aggregateNameFor(taskName)
+            val childAggregate = child.tasks.findByName(aggregateName) ?: continue
+            parent.tasks.named(aggregateName).configure { it.dependsOn(childAggregate) }
+        }
+        val childAll = child.tasks.findByName(PRISM_PUBLISH_ALL) ?: return
+        parent.tasks.named(PRISM_PUBLISH_ALL).configure { it.dependsOn(childAll) }
+    }
+
+    private fun ensureAggregateTasksRegistered(project: Project) {
+        if (project.tasks.findByName(PRISM_PUBLISH_ALL) == null) {
+            project.tasks.register(PRISM_PUBLISH_ALL) { task ->
+                task.group = "publishing"
+                task.description = "Publishes all mod JARs to every configured platform (Prism aggregate)"
+            }
+        }
+        for (taskName in PRISM_AGGREGATE_TASKS) {
+            if (project.tasks.findByName(taskName) == null) {
+                project.tasks.register(taskName) { task ->
+                    task.group = "publishing"
+                    task.description = "Prism aggregate for ${taskName.removePrefix("prism").replaceFirstChar { it.lowercase() }}"
+                }
+                project.tasks.named(PRISM_PUBLISH_ALL).configure { it.dependsOn(project.tasks.named(taskName)) }
+            }
+        }
+    }
+
+    private fun wirePublishTasks(aggregateProject: Project, child: Project) {
+        for (leafTaskName in LEAF_PLATFORM_TASKS) {
+            val aggregateName = aggregateNameFor(leafTaskName)
+            child.tasks.matching { it.name == leafTaskName }.configureEach { leafTask ->
+                aggregateProject.tasks.named(aggregateName).configure { it.dependsOn(leafTask) }
             }
         }
         child.childProjects.values.forEach { grandchild ->

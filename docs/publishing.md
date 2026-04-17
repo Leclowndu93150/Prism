@@ -149,11 +149,26 @@ Prism picks the publishable artifact task per loader:
 
 Override with `artifactTask("myTask")` or `artifactFile("build/libs/custom.jar")` under `publishing { }`. This only affects platform publishing; Maven publishing still uses the Gradle Java component unless you override it through raw Gradle hooks.
 
-Platform publish tasks also build the selected artifact before upload. By default Prism wires `publishMods`, `publishCurseforge`, and `publishModrinth` to:
+Platform publish tasks also build the selected artifact before upload. By default Prism wires each leaf loader's `publishMods`, `publishCurseforge`, and `publishModrinth` to:
 
 - run `clean`
 - run the selected artifact task (or your `artifactTask(...)` override)
 - upload the freshly built file
+
+### Duplicate dependency handling
+
+Dependencies declared at multiple tiers (global + version + loader) are merged with the **most-specific tier winning** per `(platform, slug)` pair. Declaring the same slug at two tiers is safe — Prism dedupes silently — but the per-loader entry overrides the global one if the type differs. For example:
+
+```kotlin
+publishing {
+    dependencies { requires("modmenu") }       // global: REQUIRED
+}
+fabric {
+    publishingDependencies { optional("modmenu") }   // fabric: OPTIONAL → wins
+}
+```
+
+The final CurseForge/Modrinth upload for the fabric loader sends `modmenu` as `OPTIONAL` exactly once.
 
 ## Maven publishing
 
@@ -240,15 +255,45 @@ With `publishCommonJar = true`, common subprojects also publish as `{modId}-{mcV
 
 ## Running
 
+Prism registers a set of `prism*` aggregate tasks so you can publish at any level of the project tree. The aggregates are named with a `prism` prefix to avoid colliding with mod-publish-plugin's own per-loader `publishCurseforge`/`publishModrinth`/`publishMods` tasks (which are hidden from the task list but still accessible by absolute path).
+
+### Task hierarchy
+
+| Level          | Task path                                       | Scope                                          |
+|----------------|-------------------------------------------------|------------------------------------------------|
+| Root           | `prismPublishCurseforge`                        | Every mod × version × loader in the build      |
+| Module         | `:<mod>:prismPublishCurseforge`                 | One mod, every version/loader                  |
+| Version        | `:<mod>:<mc>:prismPublishCurseforge`            | One version of one mod, every loader           |
+| Leaf (loader)  | `:<mod>:<mc>:<loader>:publishCurseforge`        | Just that one loader (native mod-publish task) |
+
+Same pattern for `prismPublishModrinth`, `prismPublishMods`, `prismPublishAll` (the last depends on all three platforms).
+
+For Maven publishing use `prismPublishMaven` at any level; the leaf is `:<path>:publish`.
+
+### Examples
+
 ```bash
-# CurseForge + Modrinth
-./gradlew publishAllMods
-./gradlew :1.21.1:fabric:publishMods     # specific target
+# Publish everything in the build to CurseForge + Modrinth
+./gradlew prismPublishAll
+
+# Publish only the "boids" mod to CurseForge, every version and loader
+./gradlew :boids:prismPublishCurseforge
+
+# Publish only the 1.21.1 version of "boids" to Modrinth
+./gradlew :boids:1.21.1:prismPublishModrinth
+
+# Publish only the fabric jar of boids 1.20.1 to CurseForge (leaf task)
+./gradlew :boids:1.20.1:fabric:publishCurseforge
 
 # Maven
-./gradlew publishAllMaven
-./gradlew :1.21.1:publish                # specific target
+./gradlew prismPublishMaven
+./gradlew :boids:1.21.1:prismPublishMaven
+./gradlew :boids:1.21.1:fabric:publish
 ```
+
+:::tip Prefer `prism*` aggregates
+Running `./gradlew publishCurseforge` without a project path will make Gradle execute every leaf task with that name — across every mod and version in the build, just like `./gradlew build`. Use the `prism*` aggregates with an explicit project path to scope to a single mod or version.
+:::
 
 ## Access tokens
 

@@ -98,12 +98,14 @@ class PrismProjectPlugin : Plugin<Project> {
 
         val moduleNames = extension.modules.keys.toSet()
 
-        if (extension.publishingConfig.isConfigured) {
-            PublishingConfigurator.createAggregateTask(rootProject, moduleNames)
-        }
-
-        if (extension.publishingConfig.hasMaven) {
-            MavenPublishConfigurator.createAggregateTask(rootProject, moduleNames)
+        for ((mcVersion, _) in extension.versions) {
+            val versionProject = rootProject.findProject(":$mcVersion")
+            if (versionProject != null) {
+                PublishingConfigurator.createVersionAggregate(versionProject)
+                MavenPublishConfigurator.createVersionAggregate(versionProject)
+                PublishingConfigurator.linkAggregateToChild(rootProject, versionProject)
+                MavenPublishConfigurator.linkAggregateToChild(rootProject, versionProject)
+            }
         }
 
         if (extension.modules.isNotEmpty()) {
@@ -322,18 +324,18 @@ class PrismProjectPlugin : Plugin<Project> {
             }
         }
 
-        if (moduleConfig.publishingConfig.isConfigured) {
-            val moduleProject = rootProject.findProject(":$moduleName")
-            if (moduleProject != null) {
-                PublishingConfigurator.createAggregateTask(moduleProject)
+        if (moduleProject != null) {
+            for ((mcVersion, _) in moduleConfig.versions) {
+                val versionProject = rootProject.findProject(":$moduleName:$mcVersion")
+                if (versionProject != null) {
+                    PublishingConfigurator.createVersionAggregate(versionProject)
+                    MavenPublishConfigurator.createVersionAggregate(versionProject)
+                    PublishingConfigurator.linkAggregateToChild(moduleProject, versionProject)
+                    MavenPublishConfigurator.linkAggregateToChild(moduleProject, versionProject)
+                }
             }
-        }
-
-        if (moduleConfig.publishingConfig.hasMaven) {
-            val moduleProject = rootProject.findProject(":$moduleName")
-            if (moduleProject != null) {
-                MavenPublishConfigurator.createAggregateTask(moduleProject)
-            }
+            PublishingConfigurator.linkAggregateToChild(rootProject, moduleProject)
+            MavenPublishConfigurator.linkAggregateToChild(rootProject, moduleProject)
         }
     }
 
