@@ -114,16 +114,13 @@ object PublishingConfigurator {
         val cfDeps = allDeps.filter { it.platform != PublishingPlatform.MODRINTH }
         val mrDeps = allDeps.filter { it.platform != PublishingPlatform.CURSEFORGE }
 
-        fun wireArtifactDeps(t: org.gradle.api.Task) {
-            proj.tasks.matching { it.name == "clean" }.configureEach { cleanTask ->
-                t.dependsOn(cleanTask)
-            }
-            proj.afterEvaluate { p ->
-                val artifactTask = selectPublishTask(p, loaderConfig, publishingConfig) ?: return@afterEvaluate
-                val cleanTask = p.tasks.findByName("clean")
-                if (cleanTask != null) artifactTask.mustRunAfter(cleanTask)
-                t.dependsOn(artifactTask)
-            }
+        val cleanDep: Any = proj.provider { proj.tasks.findByName("clean") }.orElse(proj.provider { null })
+        val artifactDep: Any = proj.provider { selectPublishTask(proj, loaderConfig, publishingConfig) }
+            .orElse(proj.provider { null })
+        proj.afterEvaluate { p ->
+            val artifactTask = selectPublishTask(p, loaderConfig, publishingConfig) ?: return@afterEvaluate
+            val cleanTask = p.tasks.findByName("clean") ?: return@afterEvaluate
+            artifactTask.mustRunAfter(cleanTask)
         }
 
         publishingConfig.curseforgeConfig?.let { cf ->
@@ -141,8 +138,9 @@ object PublishingConfigurator {
                 t.deps.set(cfDeps)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
+                t.dependsOn(cleanDep)
+                t.dependsOn(artifactDep)
             }
-            cfTaskProvider.configure { wireArtifactDeps(it) }
             wireIntoAll(proj, TASK_CURSEFORGE)
         }
 
@@ -161,8 +159,9 @@ object PublishingConfigurator {
                 t.deps.set(mrDeps)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
+                t.dependsOn(cleanDep)
+                t.dependsOn(artifactDep)
             }
-            mrTaskProvider.configure { wireArtifactDeps(it) }
             wireIntoAll(proj, TASK_MODRINTH)
         }
 
@@ -180,8 +179,9 @@ object PublishingConfigurator {
                 t.reuseExistingRelease.set(gh.reuseExistingRelease)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
+                t.dependsOn(cleanDep)
+                t.dependsOn(artifactDep)
             }
-            ghTaskProvider.configure { wireArtifactDeps(it) }
             wireIntoAll(proj, TASK_GITHUB)
         }
 
@@ -199,8 +199,9 @@ object PublishingConfigurator {
                 t.prerelease.set(gt.prerelease)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
+                t.dependsOn(cleanDep)
+                t.dependsOn(artifactDep)
             }
-            gtTaskProvider.configure { wireArtifactDeps(it) }
             wireIntoAll(proj, TASK_GITEA)
         }
 
@@ -216,8 +217,9 @@ object PublishingConfigurator {
                 t.changelog.set(changelog)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
+                t.dependsOn(cleanDep)
+                t.dependsOn(artifactDep)
             }
-            glTaskProvider.configure { wireArtifactDeps(it) }
             wireIntoAll(proj, TASK_GITLAB)
         }
 
