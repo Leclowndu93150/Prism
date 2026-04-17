@@ -169,34 +169,34 @@ object PublishingConfigurator {
     }
 
     private fun applyDepToCurseforge(curseforge: Any, dep: PublishingDep) {
-        val methodName = when (dep.type) {
-            PublishingDepType.REQUIRED -> "requires"
-            PublishingDepType.OPTIONAL -> "optional"
-            PublishingDepType.INCOMPATIBLE -> "incompatible"
-            PublishingDepType.EMBEDDED -> "embeds"
-        }
-        try {
-            val method = curseforge.javaClass.methods.first {
-                it.name == methodName && it.parameterCount == 1 && it.parameterTypes[0] == String::class.java
-            }
-            method.invoke(curseforge, dep.slug)
-        } catch (_: Exception) {
-        }
+        invokeDepMethod(curseforge, dep)
     }
 
     private fun applyDepToModrinth(modrinth: Any, dep: PublishingDep) {
+        invokeDepMethod(modrinth, dep)
+    }
+
+    private fun invokeDepMethod(target: Any, dep: PublishingDep) {
         val methodName = when (dep.type) {
             PublishingDepType.REQUIRED -> "requires"
             PublishingDepType.OPTIONAL -> "optional"
             PublishingDepType.INCOMPATIBLE -> "incompatible"
             PublishingDepType.EMBEDDED -> "embeds"
         }
+        val method = target.javaClass.methods.firstOrNull {
+            it.name == methodName && it.parameterCount == 1 &&
+                (it.parameterTypes[0] == Array<String>::class.java || it.parameterTypes[0] == String::class.java)
+        } ?: return
         try {
-            val method = modrinth.javaClass.methods.first {
-                it.name == methodName && it.parameterCount == 1 && it.parameterTypes[0] == String::class.java
+            if (method.parameterTypes[0] == Array<String>::class.java) {
+                method.invoke(target, arrayOf(dep.slug))
+            } else {
+                method.invoke(target, dep.slug)
             }
-            method.invoke(modrinth, dep.slug)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            (target as? Any)?.let {
+                System.err.println("Prism: failed to apply publishing dep '${dep.slug}' (${dep.type}): ${e.message}")
+            }
         }
     }
 
