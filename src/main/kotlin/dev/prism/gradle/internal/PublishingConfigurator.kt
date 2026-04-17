@@ -271,8 +271,9 @@ object PublishingConfigurator {
     fun linkAggregateToChild(parent: Project, child: Project) {
         ensureAggregateTasksRegistered(parent)
         for (taskName in PLATFORM_TASKS + TASK_ALL) {
-            val childTask = child.tasks.findByName(taskName) ?: continue
-            parent.tasks.named(taskName).configure { it.dependsOn(childTask) }
+            child.tasks.matching { it.name == taskName }.configureEach { childTask ->
+                parent.tasks.named(taskName).configure { it.dependsOn(childTask) }
+            }
         }
     }
 
