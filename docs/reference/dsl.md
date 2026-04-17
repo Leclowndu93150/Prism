@@ -349,6 +349,10 @@ publishing {
 
     curseforge { ... }
     modrinth { ... }
+    github { ... }
+    gitea { ... }
+    gitlab { ... }
+    discord { ... }
     dependencies { ... }
 
     mavenLocal()
@@ -380,6 +384,47 @@ publishing {
     modrinth {
         accessToken: Provider<String>
         projectId: String
+        featured: Boolean             // default true
+        loader(name: String)           // add extra Modrinth loader slug
+    }
+
+    github {
+        accessToken: Provider<String>  // default: GITHUB_TOKEN, then GH_TOKEN
+        repository: String             // "owner/repo"
+        tagName: String?               // default: mod version
+        commitish: String              // default: "main"
+        draft: Boolean
+        prerelease: Boolean
+        reuseExistingRelease: Boolean  // default true
+    }
+
+    gitea {
+        accessToken: Provider<String>
+        apiEndpoint: String            // e.g. "https://gitea.example.com/api/v1"
+        repository: String
+        tagName: String?
+        commitish: String              // default: "main"
+        draft: Boolean
+        prerelease: Boolean
+    }
+
+    gitlab {
+        accessToken: Provider<String>
+        apiEndpoint: String            // default: "https://gitlab.com/api/v4"
+        projectId: Long
+        tagName: String?
+        commitish: String              // default: "main"
+    }
+
+    discord {
+        webhookUrl: Provider<String>
+        username: String?
+        avatarUrl: String?
+        content: String?
+        embedTitle: String?
+        embedDescription: String?
+        embedColor: Int?               // 0xRRGGBB
+        includeProjectLinks: Boolean   // default true
     }
 
     dependencies {                 // publishing deps (global level)

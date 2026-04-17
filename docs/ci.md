@@ -75,13 +75,22 @@ jobs:
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          # GITHUB_TOKEN is injected by Actions; Prism picks it up automatically.
+          # Only set these if the corresponding `publishing { … }` block is configured:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 ```
 
 ### Required secrets
 
-Add these to your repository settings (Settings > Secrets and variables > Actions):
+Add these to your repository settings (Settings > Secrets and variables > Actions). Only the ones matching platforms you actually publish to are needed.
 
 | Secret | Source |
 |--------|--------|
 | `CURSEFORGE_TOKEN` | [CurseForge API tokens](https://www.curseforge.com/account/api-tokens) |
-| `MODRINTH_TOKEN` | [Modrinth PAT settings](https://modrinth.com/settings/pats) |
+| `MODRINTH_TOKEN`   | [Modrinth PAT settings](https://modrinth.com/settings/pats) |
+| `GITHUB_TOKEN`     | Auto-injected by GitHub Actions. Outside Actions, set `GH_TOKEN` to a personal access token instead. |
+| `GITEA_TOKEN`      | Your Gitea user settings → Applications → Generate New Token |
+| `GITLAB_TOKEN`     | GitLab → User Settings → Access Tokens (scope: `api`) |
+| `DISCORD_WEBHOOK_URL` | Your Discord server → Channel settings → Integrations → Webhooks |

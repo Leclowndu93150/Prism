@@ -174,6 +174,26 @@ sharedCommon {
 
 The underlying-plugin hooks run after Prism's own configuration, so they are suitable for overrides.
 
+## How do mixins work on 1.12.2?
+
+On 1.12.2 Sponge Mixin is loaded via a coremod, and [MixinBooter](https://github.com/CleanroomMC/MixinBooter) is the de-facto provider. Prism auto-wires everything when it detects mixin sources in a `legacyForge { }` project:
+
+- **MixinBooter** is added by default (pinned to `10.7`) as both `implementation` and `annotationProcessor`, non-transitive. The CleanroomMC maven is registered automatically. Disable with `legacyForge { mixinBooter = false }` or pin a different version with `mixinBooterVersion = "..."`.
+- **Mixin JSONs** under `src/main/resources/*.mixins.json` are registered via the `MixinConfigs` jar manifest attribute.
+- **FML manifest attributes** (`FMLCorePlugin`, `FMLCorePluginContainsFMLMod`, `ForceLoadAsMod`) are written to the jar so Forge actually loads your coremod.
+
+`FMLCorePlugin` is auto-detected by scanning `src/main/{java,kotlin}` for a class with `@IFMLLoadingPlugin.Name` or `implements IFMLLoadingPlugin`. The detection is a text-based scan — if your loading plugin is nested, generated, or otherwise hard to match, set it explicitly:
+
+```kotlin
+legacyForge {
+    coreMod("com.example.mymod.MyLoadingPlugin")
+}
+```
+
+If you have no `IFMLLoadingPlugin` at all (late-mixin mods via `ILateMixinLoader`), Prism still writes the other two manifest flags but skips `FMLCorePlugin`. No extra configuration is needed.
+
+Non-mixin 1.12.2 mods (no `@Mixin` annotations anywhere) get nothing added — the auto-wire is gated on actually having mixins.
+
 ## How do I control mixin auto-detection?
 
 Use the `mixins` block on Fabric, Forge, or NeoForge:
