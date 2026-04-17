@@ -19,6 +19,7 @@ import dev.prism.gradle.internal.publish.gitlab.PublishGitlabTask
 import dev.prism.gradle.internal.publish.modrinth.PublishModrinthTask
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.tasks.TaskProvider
 import java.io.File
 
 object PublishingConfigurator {
@@ -41,32 +42,49 @@ object PublishingConfigurator {
         else -> "jar"
     }
 
-    internal fun selectPublishTask(
+    internal fun selectPublishTaskName(
         project: Project,
         loaderConfig: LoaderConfiguration,
         publishingConfig: PublishingConfiguration? = null,
-    ): Task? {
-        publishingConfig?.artifactTaskName?.let { return project.tasks.findByName(it) }
-        if (loaderConfig !is FabricConfiguration) {
-            project.tasks.findByName("reobfShadowJar")?.let { return it }
-            if (loaderConfig !is ForgeConfiguration && loaderConfig !is LegacyForgeConfiguration) {
-                project.tasks.findByName("shadowJar")?.let { return it }
+    ): String? {
+        publishingConfig?.artifactTaskName?.let { taskName ->
+            return taskName.takeIf { hasTask(project, it) }
+        }
+
+        if (loaderConfig !is FabricConfiguration && project.plugins.hasPlugin("com.gradleup.shadow")) {
+            if (hasTask(project, "reobfShadowJar")) {
+                return "reobfShadowJar"
+            }
+            if (loaderConfig !is ForgeConfiguration && loaderConfig !is LegacyForgeConfiguration && hasTask(project, "shadowJar")) {
+                return "shadowJar"
             }
         }
-        val preferred = project.tasks.findByName(defaultPublishTaskName(loaderConfig))
-        if (preferred != null) return preferred
-        // Forge/LegacyForge: falling back to `jar` silently publishes the un-remapped dev jar.
-        // Warn so the user knows. Fabric is exempt: on unobfuscated MC (1.21.11+) there is no
-        // `remapJar` and `jar` IS the production artifact.
+
+        val preferred = defaultPublishTaskName(loaderConfig)
+        if (hasTask(project, preferred)) return preferred
+
+        // Forge/LegacyForge must never fall back to `jar`, because that would silently publish
+        // the un-remapped dev artifact. Fabric is exempt: on unobfuscated MC there is no
+        // `remapJar` and `jar` is the production artifact.
         val needsRemapped = loaderConfig is ForgeConfiguration || loaderConfig is LegacyForgeConfiguration
         if (needsRemapped) {
             project.logger.warn(
                 "Prism: ${loaderConfig.loaderDisplayName} project '${project.path}' has no '${defaultPublishTaskName(loaderConfig)}' task. " +
-                "Falling back to 'jar' will publish the un-remapped dev jar. " +
+                "Prism will not fall back to 'jar' for this loader because that would publish the un-remapped dev jar. " +
                 "Declare `artifactTask(\"...\")` in publishing { } if this is intentional."
             )
+            return null
         }
-        return project.tasks.findByName("jar")
+        return "jar".takeIf { hasTask(project, it) }
+    }
+
+    internal fun selectPublishTaskProvider(
+        project: Project,
+        loaderConfig: LoaderConfiguration,
+        publishingConfig: PublishingConfiguration? = null,
+    ): TaskProvider<out Task>? {
+        val taskName = selectPublishTaskName(project, loaderConfig, publishingConfig) ?: return null
+        return project.tasks.named(taskName)
     }
 
     internal fun resolvePublishFile(
@@ -75,7 +93,7 @@ object PublishingConfigurator {
         publishingConfig: PublishingConfiguration,
     ): File? {
         publishingConfig.artifactPath?.let { return project.rootProject.file(it) }
-        return selectPublishTask(project, loaderConfig, publishingConfig)?.outputs?.files?.singleFile
+        return selectPublishTaskProvider(project, loaderConfig, publishingConfig)?.get()?.outputs?.files?.singleFile
     }
 
     fun configure(
@@ -114,13 +132,13 @@ object PublishingConfigurator {
         val cfDeps = allDeps.filter { it.platform != PublishingPlatform.MODRINTH }
         val mrDeps = allDeps.filter { it.platform != PublishingPlatform.CURSEFORGE }
 
-        val cleanDep: Any = proj.provider { proj.tasks.findByName("clean") }.orElse(proj.provider { null })
-        val artifactDep: Any = proj.provider { selectPublishTask(proj, loaderConfig, publishingConfig) }
-            .orElse(proj.provider { null })
-        proj.afterEvaluate { p ->
-            val artifactTask = selectPublishTask(p, loaderConfig, publishingConfig) ?: return@afterEvaluate
-            val cleanTask = p.tasks.findByName("clean") ?: return@afterEvaluate
-            artifactTask.mustRunAfter(cleanTask)
+        val cleanTaskProvider = taskProviderOrNull(proj, "clean")
+        val artifactTaskProvider = selectPublishTaskProvider(proj, loaderConfig, publishingConfig)
+
+        if (artifactTaskProvider != null && cleanTaskProvider != null) {
+            artifactTaskProvider.configure { artifactTask ->
+                artifactTask.mustRunAfter(cleanTaskProvider)
+            }
         }
 
         publishingConfig.curseforgeConfig?.let { cf ->
@@ -138,10 +156,14 @@ object PublishingConfigurator {
                 t.deps.set(cfDeps)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
-                t.dependsOn(cleanDep)
-                t.dependsOn(artifactDep)
             }
-            wireIntoAll(proj, TASK_CURSEFORGE)
+            if (cleanTaskProvider != null) {
+                cfTaskProvider.configure { it.dependsOn(cleanTaskProvider) }
+            }
+            if (artifactTaskProvider != null) {
+                cfTaskProvider.configure { it.dependsOn(artifactTaskProvider) }
+            }
+            wireIntoAll(proj, cfTaskProvider)
         }
 
         publishingConfig.modrinthConfig?.let { mr ->
@@ -159,10 +181,14 @@ object PublishingConfigurator {
                 t.deps.set(mrDeps)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
-                t.dependsOn(cleanDep)
-                t.dependsOn(artifactDep)
             }
-            wireIntoAll(proj, TASK_MODRINTH)
+            if (cleanTaskProvider != null) {
+                mrTaskProvider.configure { it.dependsOn(cleanTaskProvider) }
+            }
+            if (artifactTaskProvider != null) {
+                mrTaskProvider.configure { it.dependsOn(artifactTaskProvider) }
+            }
+            wireIntoAll(proj, mrTaskProvider)
         }
 
         publishingConfig.githubConfig?.let { gh ->
@@ -179,10 +205,14 @@ object PublishingConfigurator {
                 t.reuseExistingRelease.set(gh.reuseExistingRelease)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
-                t.dependsOn(cleanDep)
-                t.dependsOn(artifactDep)
             }
-            wireIntoAll(proj, TASK_GITHUB)
+            if (cleanTaskProvider != null) {
+                ghTaskProvider.configure { it.dependsOn(cleanTaskProvider) }
+            }
+            if (artifactTaskProvider != null) {
+                ghTaskProvider.configure { it.dependsOn(artifactTaskProvider) }
+            }
+            wireIntoAll(proj, ghTaskProvider)
         }
 
         publishingConfig.giteaConfig?.let { gt ->
@@ -199,10 +229,14 @@ object PublishingConfigurator {
                 t.prerelease.set(gt.prerelease)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
-                t.dependsOn(cleanDep)
-                t.dependsOn(artifactDep)
             }
-            wireIntoAll(proj, TASK_GITEA)
+            if (cleanTaskProvider != null) {
+                gtTaskProvider.configure { it.dependsOn(cleanTaskProvider) }
+            }
+            if (artifactTaskProvider != null) {
+                gtTaskProvider.configure { it.dependsOn(artifactTaskProvider) }
+            }
+            wireIntoAll(proj, gtTaskProvider)
         }
 
         publishingConfig.gitlabConfig?.let { gl ->
@@ -217,10 +251,14 @@ object PublishingConfigurator {
                 t.changelog.set(changelog)
                 t.dryRun.set(dryRun)
                 t.artifactFile.fileProvider(artifactFileProvider)
-                t.dependsOn(cleanDep)
-                t.dependsOn(artifactDep)
             }
-            wireIntoAll(proj, TASK_GITLAB)
+            if (cleanTaskProvider != null) {
+                glTaskProvider.configure { it.dependsOn(cleanTaskProvider) }
+            }
+            if (artifactTaskProvider != null) {
+                glTaskProvider.configure { it.dependsOn(artifactTaskProvider) }
+            }
+            wireIntoAll(proj, glTaskProvider)
         }
 
         publishingConfig.discordConfig?.let { dc ->
@@ -244,9 +282,9 @@ object PublishingConfigurator {
         ensureAggregateAllTask(proj)
     }
 
-    private fun wireIntoAll(project: Project, taskName: String) {
+    private fun wireIntoAll(project: Project, taskProvider: TaskProvider<out Task>) {
         ensureAggregateAllTask(project)
-        project.tasks.named(TASK_ALL).configure { it.dependsOn(project.tasks.named(taskName)) }
+        project.tasks.named(TASK_ALL).configure { it.dependsOn(taskProvider) }
     }
 
     private fun ensureAggregateAllTask(project: Project) {
@@ -260,34 +298,34 @@ object PublishingConfigurator {
 
     fun createVersionAggregate(versionProject: Project) {
         ensureAggregateTasksRegistered(versionProject)
-        versionProject.childProjects.values.forEach { child -> wireChildIntoAggregates(versionProject, child) }
+        versionProject.childProjects.values.forEach { child -> linkAggregateToChild(versionProject, child) }
     }
 
     fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
         ensureAggregateTasksRegistered(project)
         project.childProjects.forEach { (name, child) ->
-            if (name !in excludeChildren) wireChildIntoAggregates(project, child)
+            if (name !in excludeChildren) linkAggregateToChild(project, child)
         }
     }
 
     fun linkAggregateToChild(parent: Project, child: Project) {
         ensureAggregateTasksRegistered(parent)
         for (taskName in PLATFORM_TASKS + TASK_ALL) {
-            child.tasks.matching { it.name == taskName }.configureEach { childTask ->
-                parent.tasks.named(taskName).configure { it.dependsOn(childTask) }
+            if (hasTask(child, taskName)) {
+                parent.tasks.named(taskName).configure { it.dependsOn(child.tasks.named(taskName)) }
             }
         }
     }
 
     private fun ensureAggregateTasksRegistered(project: Project) {
-        if (project.tasks.findByName(TASK_ALL) == null) {
+        if (!hasTask(project, TASK_ALL)) {
             project.tasks.register(TASK_ALL) { t ->
                 t.group = "publishing"
                 t.description = "Publishes all configured platforms (Prism aggregate)"
             }
         }
         for (taskName in PLATFORM_TASKS) {
-            if (project.tasks.findByName(taskName) == null) {
+            if (!hasTask(project, taskName)) {
                 project.tasks.register(taskName) { t ->
                     t.group = "publishing"
                     t.description = "Prism aggregate for ${taskName.removePrefix("prismPublish").lowercase()}"
@@ -297,13 +335,11 @@ object PublishingConfigurator {
         }
     }
 
-    private fun wireChildIntoAggregates(parent: Project, child: Project) {
-        for (taskName in PLATFORM_TASKS + TASK_ALL) {
-            child.tasks.matching { it.name == taskName }.configureEach { childTask ->
-                parent.tasks.named(taskName).configure { it.dependsOn(childTask) }
-            }
-        }
-        child.childProjects.values.forEach { grandchild -> wireChildIntoAggregates(parent, grandchild) }
+    private fun hasTask(project: Project, taskName: String): Boolean = taskName in project.tasks.names
+
+    private fun taskProviderOrNull(project: Project, taskName: String): TaskProvider<out Task>? {
+        if (!hasTask(project, taskName)) return null
+        return project.tasks.named(taskName)
     }
 
     private fun dedupeDeps(deps: List<PublishingDep>): List<PublishingDep> {
