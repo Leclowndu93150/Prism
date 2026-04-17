@@ -42,6 +42,16 @@ object MavenPublishConfigurator {
     private fun hideMavenPublishLeafTasks(project: Project) {
         project.tasks.matching { it.name == "publish" || it.name.startsWith("publishPrism") || it.name.startsWith("publishAllPublications") }
             .configureEach { it.group = null }
+
+        if (project.tasks.findByName(AGGREGATE_NAME) == null) {
+            project.tasks.register(AGGREGATE_NAME) { alias ->
+                alias.group = "publishing"
+                alias.description = "Publishes this project to every configured Maven repository (Prism alias)"
+            }
+        }
+        project.tasks.matching { it.name == "publish" }.configureEach { publishTask ->
+            project.tasks.named(AGGREGATE_NAME).configure { it.dependsOn(publishTask) }
+        }
     }
 
     fun configureCommon(

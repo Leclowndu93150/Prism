@@ -183,6 +183,28 @@ object PublishingConfigurator {
             }
             publishTask.group = null
         }
+
+        for (leafTaskName in LEAF_PLATFORM_TASKS) {
+            val aliasName = aggregateNameFor(leafTaskName)
+            if (project.tasks.findByName(aliasName) == null) {
+                project.tasks.register(aliasName) { alias ->
+                    alias.group = "publishing"
+                    alias.description = "Publishes this loader to ${leafTaskName.removePrefix("publish").lowercase()} (Prism alias)"
+                }
+            }
+            project.tasks.matching { it.name == leafTaskName }.configureEach { leafTask ->
+                project.tasks.named(aliasName).configure { it.dependsOn(leafTask) }
+            }
+        }
+        if (project.tasks.findByName(PRISM_PUBLISH_ALL) == null) {
+            project.tasks.register(PRISM_PUBLISH_ALL) { alias ->
+                alias.group = "publishing"
+                alias.description = "Publishes this loader to every configured platform (Prism aggregate)"
+            }
+        }
+        for (aggName in PRISM_AGGREGATE_TASKS) {
+            project.tasks.named(PRISM_PUBLISH_ALL).configure { it.dependsOn(project.tasks.named(aggName)) }
+        }
     }
 
     private fun applyDepToCurseforge(curseforge: Any, dep: PublishingDep) {
