@@ -98,14 +98,15 @@ class PrismProjectPlugin : Plugin<Project> {
 
         val moduleNames = extension.modules.keys.toSet()
 
-        for ((mcVersion, _) in extension.versions) {
-            val versionProject = rootProject.findProject(":$mcVersion")
-            if (versionProject != null) {
+        for ((mcVersion, versionConfig) in extension.versions) {
+            val versionProject = rootProject.findProject(":$mcVersion") ?: continue
+            val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$mcVersion:common") == null
+            if (!isSingleLoader) {
                 PublishingConfigurator.createVersionAggregate(versionProject)
                 MavenPublishConfigurator.createVersionAggregate(versionProject)
-                PublishingConfigurator.linkAggregateToChild(rootProject, versionProject)
-                MavenPublishConfigurator.linkAggregateToChild(rootProject, versionProject)
             }
+            PublishingConfigurator.linkAggregateToChild(rootProject, versionProject)
+            MavenPublishConfigurator.linkAggregateToChild(rootProject, versionProject)
         }
 
         if (extension.modules.isNotEmpty()) {
@@ -325,14 +326,16 @@ class PrismProjectPlugin : Plugin<Project> {
         }
 
         if (moduleProject != null) {
-            for ((mcVersion, _) in moduleConfig.versions) {
-                val versionProject = rootProject.findProject(":$moduleName:$mcVersion")
-                if (versionProject != null) {
+            for ((mcVersion, versionConfig) in moduleConfig.versions) {
+                val versionProject = rootProject.findProject(":$moduleName:$mcVersion") ?: continue
+                val isSingleLoader = versionConfig.loaders.size == 1 &&
+                    rootProject.findProject(":$moduleName:$mcVersion:common") == null
+                if (!isSingleLoader) {
                     PublishingConfigurator.createVersionAggregate(versionProject)
                     MavenPublishConfigurator.createVersionAggregate(versionProject)
-                    PublishingConfigurator.linkAggregateToChild(moduleProject, versionProject)
-                    MavenPublishConfigurator.linkAggregateToChild(moduleProject, versionProject)
                 }
+                PublishingConfigurator.linkAggregateToChild(moduleProject, versionProject)
+                MavenPublishConfigurator.linkAggregateToChild(moduleProject, versionProject)
             }
             PublishingConfigurator.linkAggregateToChild(rootProject, moduleProject)
             MavenPublishConfigurator.linkAggregateToChild(rootProject, moduleProject)

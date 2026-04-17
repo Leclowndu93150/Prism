@@ -130,8 +130,9 @@ object MavenPublishConfigurator {
 
     fun linkAggregateToChild(parent: Project, child: Project) {
         ensureAggregateTaskRegistered(parent)
-        val childAggregate = child.tasks.findByName(AGGREGATE_NAME) ?: return
-        parent.tasks.named(AGGREGATE_NAME).configure { it.dependsOn(childAggregate) }
+        child.tasks.matching { it.name == AGGREGATE_NAME }.configureEach { childAggregate ->
+            parent.tasks.named(AGGREGATE_NAME).configure { it.dependsOn(childAggregate) }
+        }
     }
 
     private fun ensureAggregateTaskRegistered(project: Project) {
