@@ -64,7 +64,7 @@ object PrismDoctor {
             appendLine("  underlying: ${underlyingPlugin(loaderConfig)}")
             appendLine("  mappings: ${mappingMode(versionConfig, loaderConfig)}")
             appendLine("  mixins: ${describeMixins(loaderConfig)}")
-            appendLine("  publishTask: ${project?.let { PublishingConfigurator.selectPublishTask(it, loaderConfig, publishingConfig)?.name } ?: "n/a"}")
+            appendLine("  publishTask: ${project?.let { PublishingConfigurator.selectPublishTaskName(it, loaderConfig, publishingConfig) } ?: "n/a"}")
             appendLine("  modConfigs: ${project?.configurations?.names?.filter { it.startsWith("mod") }?.sorted()?.joinToString().orEmpty()}")
         }
 

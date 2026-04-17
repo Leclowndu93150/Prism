@@ -24,8 +24,8 @@ object PrismWarnings {
         warnOnEmptyExplicitMixins(project, loaderConfig, mixins)
 
         if (publishingConfig != null && publishingConfig.isConfigured) {
-            val task = PublishingConfigurator.selectPublishTask(project, loaderConfig, publishingConfig)
-            if (task == null) {
+            val taskName = PublishingConfigurator.selectPublishTaskName(project, loaderConfig, publishingConfig)
+            if (taskName == null && publishingConfig.artifactPath == null) {
                 project.logger.warn("Prism: No publish artifact task found for ${project.path}. Configure publishing.artifactTask() or artifactFile() if needed.")
             }
         }
