@@ -1,8 +1,8 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    kotlin("jvm") version "2.1.20"
-    kotlin("plugin.serialization") version "2.1.20"
+    kotlin("jvm") version "2.3.21"
+    kotlin("plugin.serialization") version "2.3.21"
 }
 
 group = "dev.prism"
@@ -50,7 +50,7 @@ dependencies {
     implementation(gradleApi())
     implementation("net.fabricmc:fabric-loom:1.16.1")
     implementation("net.neoforged:moddev-gradle:2.0.141")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("com.gtnewhorizons:retrofuturagradle:2.0.2")
     implementation("net.minecraftforge:forgegradle:7.0.25")
     implementation("com.gradleup.shadow:shadow-gradle-plugin:9.0.0-beta12")
