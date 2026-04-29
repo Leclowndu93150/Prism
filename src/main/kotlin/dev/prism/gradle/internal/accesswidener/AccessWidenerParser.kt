@@ -49,8 +49,8 @@ object AccessWidenerParser {
 
         val header = lines[0]
         val headerParts = header.split("\\s+".toRegex())
-        require(headerParts.size >= 2 && headerParts[0] == "accessWidener") {
-            "Invalid access widener header: $header"
+        require(headerParts.size >= 2 && (headerParts[0] == "accessWidener" || headerParts[0] == "classTweaker")) {
+            "Invalid access widener / class tweaker header: $header"
         }
 
         val namespace = if (headerParts.size >= 3) headerParts[2] else "named"

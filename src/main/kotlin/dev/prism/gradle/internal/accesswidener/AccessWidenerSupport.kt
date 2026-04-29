@@ -44,13 +44,19 @@ object AccessWidenerSupport {
             if (rootFile.exists()) return rootFile
         }
 
+        val extensions = listOf("classtweaker", "accesswidener")
+
         if (commonProject != null) {
-            val commonAw = commonProject.file("src/main/resources/$modId.accesswidener")
-            if (commonAw.exists()) return commonAw
+            for (ext in extensions) {
+                val commonFile = commonProject.file("src/main/resources/$modId.$ext")
+                if (commonFile.exists()) return commonFile
+            }
         }
 
-        val localAw = project.file("src/main/resources/$modId.accesswidener")
-        if (localAw.exists()) return localAw
+        for (ext in extensions) {
+            val localFile = project.file("src/main/resources/$modId.$ext")
+            if (localFile.exists()) return localFile
+        }
 
         return null
     }
