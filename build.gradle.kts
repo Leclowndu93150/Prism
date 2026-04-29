@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "dev.prism"
-version = "0.5.1"
+version = "0.5.3"
 
 repositories {
     mavenCentral()
@@ -48,11 +48,11 @@ kotlin {
 
 dependencies {
     implementation(gradleApi())
-    implementation("net.fabricmc:fabric-loom:1.15.5")
+    implementation("net.fabricmc:fabric-loom:1.16.1")
     implementation("net.neoforged:moddev-gradle:2.0.141")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("com.gtnewhorizons:retrofuturagradle:2.0.2")
-    implementation("net.minecraftforge:forgegradle:7.0.20")
+    implementation("net.minecraftforge:forgegradle:7.0.25")
     implementation("com.gradleup.shadow:shadow-gradle-plugin:9.0.0-beta12")
 
     testImplementation(gradleTestKit())

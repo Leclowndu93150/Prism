@@ -252,6 +252,8 @@ Prism auto-detects these. Just place them in the right location.
 
 Access wideners work on all versions including 26.x. Unobfuscated means names aren't scrambled, not that everything is public.
 
+On Minecraft 26.1+, Fabric renamed the format to "class tweaker": use `{modId}.classtweaker` with header `classTweaker v1 official` instead of `accessWidener v2 official`. The body syntax is unchanged. `fabric.mod.json` still points at it via the `accessWidener` key (kept for back-compat). Loom 1.16+ is required to read the new format — Prism's default pinned Loom is 1.16.1. To override any pinned tooling version (Loom, MDG, ForgeGradle, RFG), see [Overriding pinned tooling](configuration/loaders.md#overriding-pinned-tooling).
+
 **Access transformers** (NeoForge/Forge): Place `accesstransformer.cfg` in `META-INF/` under either:
 - `versions/{mc}/common/src/main/resources/META-INF/`
 - `versions/{mc}/neoforge/src/main/resources/META-INF/` (or `forge/`)

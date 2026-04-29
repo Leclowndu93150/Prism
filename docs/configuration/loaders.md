@@ -4,6 +4,21 @@ sidebar_position: 2
 
 # Loaders
 
+## Pinned tooling versions
+
+Prism bundles every underlying build plugin on its own classpath at fixed versions:
+
+| Tool                                                                          | Used for                          | Pinned version  |
+|-------------------------------------------------------------------------------|-----------------------------------|-----------------|
+| [Fabric Loom](https://github.com/FabricMC/fabric-loom)                        | Fabric (all versions)             | `1.16.1`        |
+| [ModDevGradle](https://github.com/neoforged/ModDevGradle)                     | NeoForge + Forge 1.17–1.20.1      | `2.0.141`       |
+| [ForgeGradle](https://github.com/MinecraftForge/ForgeGradle)                  | LexForge 1.21.1+                  | `7.0.25`        |
+| [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle)       | Legacy Forge 1.7.10–1.12.2        | `2.0.2`         |
+
+NeoForm versions are **not** pinned — Prism resolves the right NeoForm version per Minecraft version at sync time and caches the lookup in `~/.gradle/caches/prism/neoform-versions.txt`.
+
+If you need a different pinned-tool version (e.g. an alpha for a brand-new Minecraft version, or a hotfix), see [Overriding pinned tooling](#overriding-pinned-tooling) below.
+
 ## Fabric
 
 Uses [Fabric Loom](https://github.com/FabricMC/fabric-loom) under the hood.
@@ -42,7 +57,7 @@ fabric {
 
 Yarn mappings are only available for obfuscated versions (pre-26.x). On 26.x, Minecraft is unobfuscated and no mappings are needed.
 
-Access wideners are picked up from `common/src/main/resources/{modId}.accesswidener` or from the path set via `accessWidener()` in the version block.
+Access wideners are picked up from `common/src/main/resources/{modId}.accesswidener` or from the path set via `accessWidener()` in the version block. On Minecraft 26.1+, use the new class-tweaker format: file `{modId}.classtweaker` with header `classTweaker v1 official`. The body syntax (`accessible class/method/field`, `extendable`, `mutable`) is unchanged. The `accessWidener` field in `fabric.mod.json` still points at this file (the JSON key kept its old name for back-compat).
 
 ### Mixins and raw hooks
 
@@ -383,3 +398,52 @@ version("1.21.1") {
 This applies `org.jetbrains.kotlin.jvm` to both the common and all loader subprojects, and configures the JVM target to match the Minecraft version's Java requirement.
 
 The Kotlin plugin must be resolvable from your `pluginManagement` repositories.
+
+## Overriding pinned tooling
+
+The four build plugins listed in [Pinned tooling versions](#pinned-tooling-versions) are loaded as transitive dependencies of the Prism settings plugin. They do **not** pass through the plugin-marker mechanism, so the usual `pluginManagement.resolutionStrategy.eachPlugin` knob is silently ignored for them.
+
+The override happens on the **settings buildscript classpath** instead. Add a `buildscript { configurations.classpath { ... } }` block at the top of `settings.gradle.kts` — **before** the `plugins { }` block — and substitute the version you want:
+
+```kotlin
+// settings.gradle.kts — must be the first block in the file
+buildscript {
+    configurations.classpath {
+        resolutionStrategy.eachDependency {
+            when {
+                requested.group == "net.fabricmc" && requested.name == "fabric-loom" -> {
+                    useVersion("1.17.0-alpha.7")
+                    because("need class-tweaker v2 support for 26.x")
+                }
+                requested.group == "net.neoforged" && requested.name == "moddev-gradle" -> {
+                    useVersion("2.0.150")
+                }
+                requested.group == "net.minecraftforge" && requested.name == "forgegradle" -> {
+                    useVersion("7.1.0")
+                }
+                requested.group == "com.gtnewhorizons" && requested.name == "retrofuturagradle" -> {
+                    useVersion("2.1.0")
+                }
+            }
+        }
+    }
+}
+
+pluginManagement {
+    repositories {
+        maven { url = uri("https://maven.fabricmc.net/") }
+        maven { url = uri("https://maven.neoforged.net/releases") }
+        maven { url = uri("https://maven.minecraftforge.net/") }
+        maven { url = uri("https://nexus.gtnewhorizons.com/repository/public/") }
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id("dev.prism.settings") version "+"
+}
+```
+
+Substitute only the tools you actually need to bump — the `when { }` arms are independent. Order is critical: the `buildscript { }` block must appear **before** `plugins { }`, or the Prism jar (and the bundled tooling) is already on the classpath by the time your substitution runs.
+
+Prism is compiled against each tool's pinned version's API. Bumps within the same minor line (`1.16.x`, `2.0.x`, `7.0.x`, `2.0.x`) generally work; cross-minor or cross-major bumps may compile but break at runtime if the upstream removed or renamed an API symbol Prism touches. Use at your own risk and report breakage so the pin can be raised properly.
