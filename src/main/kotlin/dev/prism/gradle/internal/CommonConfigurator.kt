@@ -14,7 +14,7 @@ object CommonConfigurator {
     fun applyDownstreamSupportDeps(project: Project, versionConfig: VersionConfiguration) {
         project.dependencies.add("compileOnly", "org.spongepowered:mixin:0.8.5")
 
-        val hasForge = versionConfig.forgeConfig != null
+        val hasForge = versionConfig.forgeConfig != null || versionConfig.legacyForgeConfig != null
         if (!hasForge) {
             project.dependencies.add("compileOnly", "io.github.llamalad7:mixinextras-common:0.3.5")
             project.dependencies.add("annotationProcessor", "io.github.llamalad7:mixinextras-common:0.3.5")
