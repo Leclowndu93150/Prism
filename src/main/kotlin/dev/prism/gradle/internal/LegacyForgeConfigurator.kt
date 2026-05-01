@@ -7,6 +7,7 @@ import dev.prism.gradle.dsl.VersionConfiguration
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JvmVendorSpec
@@ -98,6 +99,10 @@ object LegacyForgeConfigurator {
 
         configureMixinBooter(project, legacyConfig)
         configureMixins(project, legacyConfig, commonProject)
+
+        project.tasks.withType(JavaCompile::class.java).configureEach { task ->
+            task.options.compilerArgs.addAll(listOf("-Xdiags:verbose", "-Xlint:-options"))
+        }
 
         JarNaming.configure(project, metadata, versionConfig, legacyConfig)
 

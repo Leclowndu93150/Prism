@@ -17,8 +17,10 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
+@DisableCachingByDefault(because = "Network upload task")
 abstract class PublishCurseforgeTask : DefaultTask() {
     @get:Input abstract val accessToken: Property<String>
     @get:Input abstract val projectId: Property<String>
