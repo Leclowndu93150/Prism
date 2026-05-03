@@ -178,6 +178,58 @@ On Legacy Forge/MDG builds, Prism also wires the shaded artifact into `reobfShad
 
 Use `shadow()` instead of `jarJar()` when your dependencies share Java packages across multiple JARs, since Forge's jar-in-jar keeps those JARs separate and can still hit module split-package errors at runtime.
 
+### Shadow configuration
+
+The `shadow {}` block (or `shadow(dep) { }` overload) exposes full control over the Shadow task:
+
+```kotlin
+dependencies {
+    shadow("com.example:my-library:1.0") {
+        // Auto-relocation: Prism relocates all packages to a default prefix by default.
+        // Disable with:
+        relocation(false)
+        // Or set a custom prefix (default: derived from mod group):
+        relocationPrefix("com.example.mymod.libs")
+        // Restrict which packages are relocated:
+        includeRelocation("com.example.somelibrary")
+        excludeRelocation("com.example.sharedapi")
+
+        // Explicit per-package relocation rules:
+        relocate("org.apache.commons", "com.example.mymod.libs.commons") {
+            include("org.apache.commons.lang3.*")
+            exclude("org.apache.commons.lang3.builder.*")
+            skipStringConstants(true)
+        }
+
+        // Exclude files from the shadow JAR:
+        exclude("META-INF/MANIFEST.MF", "*.SF")
+
+        // Strip file entries matching Ant patterns (removes the entry entirely):
+        strip("META-INF/services/some.ServiceInterface")
+
+        // Remove manifest attributes (Class-Path and Multi-Release are removed by default):
+        removeManifestAttribute("Implementation-Version")
+
+        // Merge service files:
+        mergeServiceFiles()              // merges all META-INF/services/
+        mergeServiceFiles("META-INF/services/some.Service")  // specific file only
+
+        // Direct access to the ShadowJar task for anything not covered above:
+        raw { shadowJar -> }
+    }
+}
+```
+
+Top-level shorthands are also available directly on the `dependencies {}` block for quick overrides:
+
+```kotlin
+dependencies {
+    shadow("com.example:my-library:1.0")
+    shadowRelocation(false)           // disable auto-relocation
+    shadowRelocationPrefix("com.example.mymod.shadow")  // set prefix
+}
+```
+
 ## Jar-in-Jar
 
 The `jarJar()` method embeds a dependency inside your output JAR:

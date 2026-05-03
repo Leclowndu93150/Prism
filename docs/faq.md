@@ -117,31 +117,11 @@ neoforge {
 
 ## How does datagen work?
 
-**Fabric**: Call `datagen()` in your fabric config. Requires Fabric API. Output goes to `src/main/generated`.
-
-**NeoForge**: Prism auto-detects the Minecraft version:
-- 1.21.3 and older: single `data` run
-- 1.21.4 and newer: split `clientData` and `serverData` runs
-
-Output goes to `src/generated/resources`.
-
-**Forge**: Single `data` run. Output goes to `src/generated/resources`.
+Call `datagen()` in your `fabric {}` block (requires Fabric API). NeoForge and Forge datagen runs are registered automatically. On NeoForge 1.21.4+, Prism registers split `clientData` and `serverData` runs instead of a single `data` run. See [Loaders](configuration/loaders.md) for details.
 
 ## How do I add custom run configurations?
 
-Use the `runs` block inside any loader config:
-
-```kotlin
-fabric {
-    loaderVersion = "0.18.6"
-    runs {
-        client("testClient") { username = "Dev" }
-        server("secondServer") { }
-    }
-}
-```
-
-See [Loaders](configuration/loaders.md#custom-run-configurations) for the full run DSL.
+Use the `runs {}` block inside any loader config. See [Loaders — Custom run configurations](configuration/loaders.md#custom-run-configurations) for the full DSL including all run types and properties.
 
 ## How do I escape to raw Gradle or the underlying plugin?
 
@@ -196,19 +176,7 @@ Non-mixin 1.12.2 mods (no `@Mixin` annotations anywhere) get nothing added — t
 
 ## How do I control mixin auto-detection?
 
-Use the `mixins` block on Fabric, Forge, or NeoForge:
-
-```kotlin
-forge {
-    mixins {
-        config("mymod.mixins.json")
-        refmap("mymod.refmap.json")
-        disableAutoDetect()
-    }
-}
-```
-
-By default Prism auto-detects `*.mixins.json` files from `src/main/resources` recursively. Disable auto-detect if you want full manual control.
+Use the `mixins {}` block on any loader. By default Prism auto-detects `*.mixins.json` files from `src/main/resources` recursively. See [Loaders](configuration/loaders.md) for the full `mixins {}` DSL.
 
 ## How does publishing work?
 
@@ -240,44 +208,15 @@ Yes:
 ./gradlew prismDoctor
 ```
 
-It prints the resolved loader projects, underlying plugin, mapping mode, chosen publish task, available remap configurations, and mixin settings.
+It prints a full report per version and loader: the Gradle project path, underlying plugin, mapping mode, chosen publish artifact task, `mod*` configurations, and mixin auto-detect status. See [DSL Reference — Doctor task](reference/dsl.md#doctor-task) for the full output format.
 
 ## How do I add access wideners or access transformers?
 
-Prism auto-detects these. Just place them in the right location.
-
-**Access wideners / class tweakers** (Fabric): Place `{modId}.classtweaker` (preferred on 26.1+) or `{modId}.accesswidener` (older versions) in either:
-- `versions/{mc}/fabric/src/main/resources/` (loader-specific, takes priority)
-- `versions/{mc}/common/src/main/resources/` (shared)
-
-Prism auto-detects both extensions; if both files exist, `.classtweaker` wins. Access wideners work on all versions including 26.x. Unobfuscated means names aren't scrambled, not that everything is public.
-
-On Minecraft 26.1+, Fabric renamed the format to "class tweaker": use `{modId}.classtweaker` with header `classTweaker v1 official` instead of `accessWidener v2 official`. The body syntax is unchanged. `fabric.mod.json` still points at the file via the `accessWidener` key (kept for back-compat). Loom 1.16+ is required to read the new format — Prism's default pinned Loom is 1.16.1. To override any pinned tooling version (Loom, MDG, ForgeGradle, RFG), see [Overriding pinned tooling](configuration/loaders.md#overriding-pinned-tooling).
-
-**Access transformers** (NeoForge/Forge): Place `accesstransformer.cfg` in `META-INF/` under either:
-- `versions/{mc}/common/src/main/resources/META-INF/`
-- `versions/{mc}/neoforge/src/main/resources/META-INF/` (or `forge/`)
-
-Both locations are checked and combined.
+Place the file in the appropriate location — Prism auto-detects it. Use `accessWidener(path)` in the version block for a single unified file shared across all loaders (auto-converted to AT format for Forge/NeoForge). See [Loaders](configuration/loaders.md) for placement details per loader and the class-tweaker format on 26.x+.
 
 ## Can I use a single access widener for all loaders?
 
-Yes. Use `accessWidener()` in your version block to point to a single `.accesswidener` file:
-
-```kotlin
-version("1.21.1") {
-    accessWidener("src/main/resources/mymod.accesswidener")
-
-    fabric { loaderVersion = "0.18.6" }
-    neoforge { loaderVersion = "21.1.26" }
-}
-```
-
-Prism will use the file as-is for Fabric, and automatically convert it to an `accesstransformer.cfg` for NeoForge and Forge. The conversion is a pure format translation (both use Mojang-mapped names at dev time). The generated AT file is placed in `build/generated/prism/at/`.
-
-If a loader subproject already has its own `accesstransformer.cfg`, the conversion is skipped for that loader.
-
-This works for Forge (1.17-1.20.1) and NeoForge (1.20.2+). Legacy Forge (1.7.10-1.12.2) uses MCP mappings and requires manual access transformers via `accessTransformer("path")`.
+Yes, via `accessWidener(path)` in the version block. Prism uses it as-is for Fabric and converts it to `accesstransformer.cfg` for NeoForge and Forge. See [Loaders](configuration/loaders.md) for details.
 
 ## How does the common project compile?
 
@@ -370,6 +309,8 @@ mod("addon") {
 This gives the `addon` module compile-time visibility of `core-lib`'s common code across all matching versions and loaders. At runtime, both mods must be installed. You can pass multiple module names: `dependsOn("core-lib", "other-mod")`.
 
 Prism wires the dependency using compiled class output from the dependency module's common project, so there are no remapping issues across Fabric, Forge, and NeoForge.
+
+See [Project Structure — Multi-mod workspace](configuration/project-structure.md#multi-mod-workspace) for the full directory layout reference and how modules combine with standard `version()` blocks.
 
 ## NeoForm version resolution fails
 

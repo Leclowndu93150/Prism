@@ -31,19 +31,23 @@ prism {
         curseforge {
             accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
             projectId = "123456"
+            // gameVersion("Forge")  // add extra CF game version IDs (Java, Client, Server, etc.)
         }
 
         modrinth {
             accessToken = providers.environmentVariable("MODRINTH_TOKEN")
             projectId = "abcdef12"
+            // featured = true       // default: true; feature the version on Modrinth
+            // loader("quilt")       // add extra Modrinth loader slugs beyond the auto-detected one
         }
 
         github {
             // accessToken = providers.environmentVariable("GITHUB_TOKEN")  // default: GITHUB_TOKEN then GH_TOKEN
             repository = "MyName/my-mod"
-            // tagName = "v1.0.0"        // default: modVersion
+            // tagName = "v1.0.0"             // default: modVersion
             // commitish = "main"
             // prerelease = false
+            // generateReleaseNotes = false   // ask GitHub to auto-generate release notes
             // reuseExistingRelease = true
         }
 
@@ -210,13 +214,15 @@ For each loader subproject, Prism registers its own upload tasks and sets:
 
 Prism picks the publishable artifact task per loader:
 
-| Loader | Task |
-|--------|------|
-| Fabric (Loom) | `remapJar` |
-| NeoForge (ModDevGradle) | `jar` |
-| Forge 1.17–1.20.1 (MDG Legacy) | `reobfJar` |
-| LexForge 1.21.1+ (ForgeGradle 7) | `jar` |
-| Legacy Forge 1.7.10–1.12.2 (RFG) | `reobfJar` |
+| Loader | Task | CF/Modrinth loader slug |
+|--------|------|------------------------|
+| Fabric (Loom) | `remapJar` | `fabric` |
+| NeoForge (ModDevGradle) | `jar` | `neoforge` |
+| Forge 1.17–1.20.1 (MDG Legacy) | `reobfJar` | `forge` |
+| LexForge 1.21.1+ (ForgeGradle 7) | `jar` | `forge` |
+| Legacy Forge 1.7.10–1.12.2 (RFG) | `reobfJar` | `forge` |
+
+LexForge (`lexForge {}`) publishes with loader slug `forge` — the same slug used by Forge (1.17–1.20.1) and Legacy Forge. This matches what CurseForge and Modrinth expect for MinecraftForge projects on 1.21.1+.
 
 Override with `artifactTask("myTask")` or `artifactFile("build/libs/custom.jar")` under `publishing { }`. This only affects platform publishing; Maven publishing still uses the Gradle Java component unless you override it through raw Gradle hooks.
 
@@ -260,6 +266,7 @@ publishing {
         commitish = "main"                  // default: main
         draft = false
         prerelease = false
+        generateReleaseNotes = false        // ask GitHub to auto-generate release notes
         reuseExistingRelease = true         // if a release for this tag exists, upload there
     }
 }

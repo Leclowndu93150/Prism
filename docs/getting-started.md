@@ -54,6 +54,8 @@ prism {
         common()
         fabric()
         neoforge()
+        // lexForge()      // MinecraftForge 1.21.1+ via ForgeGradle 7
+        // legacyForge()   // Forge 1.7.10–1.12.2 via RetroFuturaGradle
     }
 }
 ```
@@ -129,7 +131,9 @@ Run configurations appear in IntelliJ with names like `Fabric Client (1.21.1)` a
 | Shared across loaders for a version | `versions/{mc}/common/` | Yes (vanilla) |
 | Fabric-specific | `versions/{mc}/fabric/` | Yes (with Fabric API) |
 | NeoForge-specific | `versions/{mc}/neoforge/` | Yes (with NeoForge) |
-| Forge-specific | `versions/{mc}/forge/` | Yes (with Forge) |
+| Forge-specific (1.17–1.20.1) | `versions/{mc}/forge/` | Yes (with Forge) |
+| LexForge-specific (1.21.1+) | `versions/{mc}/lexforge/` | Yes (with Forge) |
+| Legacy Forge (1.7.10–1.12.2) | `versions/{mc}/legacyforge/` | Yes (with Forge) |
 
 Common code can't use loader APIs (Fabric API, NeoForge events). Put loader-specific code in the loader folders.
 

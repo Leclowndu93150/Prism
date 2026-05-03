@@ -56,6 +56,10 @@ version("1.21.1") {
 
 Both `parchmentMinecraftVersion` and `parchmentMappingsVersion` must be set. If only one is provided, Parchment is skipped with a warning.
 
+## LexForge mappings
+
+LexForge (ForgeGradle 7, Forge 1.21.1+) supports official Mojang mappings, Parchment, and custom channels. See [Loaders — LexForge mappings](loaders.md#mappings-1) for configuration details. The `prismDoctor` output shows the resolved channel as `fg7 official`, `fg7 parchment`, or `fg7 <channel>`.
+
 ## Common project compilation
 
 The common subproject compiles against vanilla Minecraft. Prism resolves the correct artifact automatically:
@@ -67,9 +71,7 @@ The common subproject compiles against vanilla Minecraft. Prism resolves the cor
 
 For older versions where NeoForm does not exist, Prism falls back to MCP and uses MDG Legacy in vanilla mode.
 
-The resolved version is cached in `~/.gradle/caches/prism/` for 24 hours.
-
-To override:
+The resolved NeoForm version is cached in `~/.gradle/caches/prism/neoform-versions.txt` for 24 hours. Delete this file to force a refresh. If you're offline, set the version manually:
 
 ```kotlin
 version("1.20.1") {
