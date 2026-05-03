@@ -111,6 +111,8 @@ Access transformers are picked up from both `common/src/main/resources/META-INF/
 neoforge {
     mixins {
         config("mymod.mixins.json")
+        refmap("mymod.refmap.json")   // optional: custom refmap filename
+        disableAutoDetect()
     }
 
     rawNeoForge { ext -> }
@@ -192,7 +194,7 @@ FG7 does not ship a mixin Gradle extension. Prism still auto-detects `.mixins.js
 lexForge {
     loaderVersion = "52.0.0"
 
-    rawLexForge { minecraft -> }
+    rawLexForge { minecraft: MinecraftExtensionForProject -> }
     rawProject { project -> }
 }
 ```
@@ -280,19 +282,24 @@ version("1.12.2") {
     legacyForge {
         mcVersion = "1.12.2"
         forgeVersion = "14.23.5.2847"
-        mappingChannel = "stable"    // default
-        mappingVersion = "39"        // default
-        username = "Developer"       // default
+        mappingChannel = "stable"        // default
+        mappingVersion = "39"            // default
+        username = "Developer"           // default
+        useModernJavaSyntax = false      // default; set true for Java 17+ syntax via ECJ
 
         accessTransformer("src/main/resources/META-INF/mymod_at.cfg")
 
         // Mixins: if any *.mixins.json lives in src/main/resources and you have
         // @Mixin-annotated classes, Prism auto-wires MixinBooter + manifest attrs.
         // No extra configuration needed. Optional overrides:
-        //   mixinBooter = false                // disable MixinBooter entirely
-        //   mixinBooterVersion = "10.7"        // pin a different version
-        //   coreMod("com.example.MyFMLPlugin") // skip auto-detect of IFMLLoadingPlugin
-        //   mixins { config("extra.mixins.json"); refmap("mymod.refmap.json") }
+        mixinBooter = true                             // default; set false to disable entirely
+        mixinBooterVersion = "10.7"                    // pin a specific MixinBooter version
+        coreMod("com.example.mymod.MyFMLPlugin")       // skip auto-detect of IFMLLoadingPlugin
+        mixins {
+            config("extra.mixins.json")
+            refmap("mymod.refmap.json")
+        }
+        // mixin() — legacy tweaker-style registration (rarely needed; auto-detect is preferred)
 
         dependencies {
             implementation("some:library:1.0")
@@ -304,12 +311,17 @@ version("1.12.2") {
 | Property             | Required | Default      | Description                         |
 |----------------------|----------|--------------|-------------------------------------|
 | `mcVersion`          | Yes      | `1.12.2`     | Minecraft version                   |
-| `forgeVersion`       | Yes      | -            | Forge version                       |
+| `forgeVersion`       | Yes      | `14.23.5.2847` | Forge version                     |
 | `mappingChannel`     | No       | `stable`     | MCP mapping channel                 |
 | `mappingVersion`     | No       | `39`         | MCP mapping version                 |
 | `username`           | No       | `Developer`  | Dev username for run configs        |
+| `useModernJavaSyntax`| No       | `false`      | Enable Java 17+ syntax via ECJ      |
 | `mixinBooter`        | No       | `true`       | Auto-add MixinBooter + CleanroomMC maven + AP |
 | `mixinBooterVersion` | No       | `10.7`       | MixinBooter version to pin          |
+
+**`mixin()` vs `mixins {}`:** `mixin()` is a legacy method that registers `MixinTweaker` in the jar manifest directly. For most projects, auto-detection via `mixins {}` or the default behavior is sufficient. Use `mixin()` only if you need the MixinTweaker registered even when no `@Mixin` annotations are detected.
+
+**`coreMod(fqn)`** overrides the auto-detected `IFMLLoadingPlugin` class. Prism scans `src/main/{java,kotlin}` for a class annotated with `@IFMLLoadingPlugin.Name` or implementing `IFMLLoadingPlugin`. If the scan produces incorrect results or you use a generated class, set it explicitly here.
 
 Requires the GTNH maven in `pluginManagement`:
 ```kotlin
@@ -369,16 +381,24 @@ Custom runs appear in IntelliJ alongside the defaults. The `username` field is o
 
 ### Run DSL methods
 
-| Method | Description |
-|--------|-------------|
+| Method / Property | Description |
+|-------------------|-------------|
 | `client(name)` | Creates a client run |
 | `server(name)` | Creates a server run |
-| `run(name) { client() }` | Fully custom run, set type inside |
+| `run(name) { … }` | Fully custom run, set type inside |
+| `client()` (inside `run {}`) | Set run type to CLIENT |
+| `server()` (inside `run {}`) | Set run type to SERVER |
+| `data()` (inside `run {}`) | Set run type to DATA |
+| `clientData()` (inside `run {}`) | Set run type to CLIENT_DATA (NeoForge 1.21.4+) |
+| `serverData()` (inside `run {}`) | Set run type to SERVER_DATA (NeoForge 1.21.4+) |
 | `username = "..."` | Set dev player name |
 | `jvmArg(arg)` | Add JVM argument |
 | `programArg(arg)` | Add program argument |
 | `systemProperty(k, v)` | Add system property |
 | `runDir = "..."` | Custom run directory |
+| `ideConfigGenerated = true` | Whether an IDE run config is generated (default: `true`) |
+
+`CLIENT_DATA` and `SERVER_DATA` run types are used by NeoForge's split datagen on 1.21.4+. Prism registers these automatically — the `run {}` type setters are available if you need to create additional datagen runs manually.
 
 ## Kotlin support
 

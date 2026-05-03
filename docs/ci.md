@@ -40,12 +40,23 @@ jobs:
         with:
           name: jars
           path: |
+            versions/*/build/libs/*.jar
             versions/*/fabric/build/libs/*.jar
             versions/*/neoforge/build/libs/*.jar
             versions/*/forge/build/libs/*.jar
+            versions/*/lexforge/build/libs/*.jar
+            versions/*/legacyforge/build/libs/*.jar
+            modules/*/versions/*/build/libs/*.jar
+            modules/*/versions/*/fabric/build/libs/*.jar
+            modules/*/versions/*/neoforge/build/libs/*.jar
+            modules/*/versions/*/forge/build/libs/*.jar
+            modules/*/versions/*/lexforge/build/libs/*.jar
+            modules/*/versions/*/legacyforge/build/libs/*.jar
             !**/*-dev.jar
             !**/*-sources.jar
 ```
+
+The `versions/*/build/libs/` glob covers single-loader versions (where the version folder itself is the project, with no `common`/loader split). The loader-specific globs cover multi-loader versions. Drop any lines that don't match your loader choices.
 
 ### Publish workflow
 

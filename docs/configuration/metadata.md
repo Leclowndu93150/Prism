@@ -30,8 +30,10 @@ prism {
 | `license`     | No       | License identifier (MIT, GPL-3.0, etc.)    |
 | `version`     | No       | Mod version. Defaults to `project.version` |
 | `group`       | No       | Maven group. Defaults to `project.group`   |
+| `authors`     | No       | List of author names (set directly or via `author()`) |
+| `credits`     | No       | List of credit names (set directly or via `credit()`) |
 
-`author()` and `credit()` can be called multiple times.
+`author(name)` and `credit(name)` are the idiomatic builder methods and can be called multiple times. You can also assign the `authors` and `credits` lists directly if you prefer.
 
 ## Writing metadata files
 
@@ -51,5 +53,6 @@ Examples:
 
 ```
 mymod-1.20.1-Fabric-1.0.0.jar
-mymod-1.21.1-Neoforge-1.0.0.jar
+mymod-1.21.1-NeoForge-1.0.0.jar
+mymod-1.21.1-LexForge-1.0.0.jar
 ```

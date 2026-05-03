@@ -19,9 +19,10 @@ prism {
         // Multi-loader: common() + multiple loaders
         common()       // required for multi-loader
         fabric()
-        forge()
-        neoforge()
-        legacyForge()  // 1.7.10-1.12.2 via RetroFuturaGradle
+        forge()        // Forge 1.17–1.20.1 via MDG Legacy
+        neoforge()     // NeoForge 1.20.2+ via ModDevGradle
+        lexForge()     // Forge 1.21.1+ via ForgeGradle 7
+        legacyForge()  // Forge 1.7.10–1.12.2 via RetroFuturaGradle
 
         // Single-loader: just one loader, no common()
         // neoforge()  // single-loader mode, no common/loader split
@@ -95,13 +96,17 @@ version("1.21.1") {
     neoFormVersion: String?                // auto-resolved from Maven
     parchmentMinecraftVersion: String?     // requires parchmentMappingsVersion
     parchmentMappingsVersion: String?
+    minecraftVersionRange: String?         // version range string for template expansion
+
+    changelog: String?                     // per-version changelog (overrides global)
+    changelogFile: String?                 // per-version changelog file path
 
     kotlin()                               // enable Kotlin (default 2.1.20)
     kotlin(version: String)                // enable Kotlin with specific version
 
     accessWidener(path: String)            // unified AW file, auto-converted to AT for Forge/NeoForge
 
-    minecraftVersions("1.21", "1.21.1")    // version range for publishing
+    minecraftVersions("1.21", "1.21.1")    // explicit Minecraft versions for publishing
     rawCommonProject { project -> ... }    // escape hatch for versions/{mc}/common
 
     common {                               // shared dependencies
@@ -115,9 +120,13 @@ version("1.21.1") {
         modConfiguration(name: String, dep: String)
     }
 
+    publishingDependencies { ... }         // per-version publishing dependencies
+
     fabric { ... }
     forge { ... }
     neoforge { ... }
+    lexForge { ... }
+    legacyForge { ... }
 }
 ```
 
@@ -127,6 +136,9 @@ version("1.21.1") {
 fabric {
     loaderVersion: String      // required
     apiVersion: String?        // set via fabricApi()
+
+    changelog: String?         // per-loader changelog (overrides version and global)
+    changelogFile: String?     // per-loader changelog file path
 
     fabricApi(version: String) // shorthand for apiVersion
     yarn(version: String)      // use Yarn mappings instead of Mojang
@@ -168,10 +180,11 @@ fabric {
     runs {
         client("myClient") {            // custom client run
             username = "Dev"             // optional
+            ideConfigGenerated = true    // default: generate IntelliJ run config
         }
         server("myServer") { }          // custom server run
         run("custom") {                 // fully custom run
-            client()                     // or server()
+            client()                     // type: CLIENT, SERVER, DATA, CLIENT_DATA, SERVER_DATA
             username = "TestPlayer"
             jvmArg("-Xmx4G")
             programArg("--demo")
@@ -179,8 +192,43 @@ fabric {
             runDir = "runs/custom"       // optional, auto-generated if not set
         }
     }
+
+    publishingDependencies { ... }
 }
 ```
+
+### shadow block (inside dependencies)
+
+The `shadow(dep) { }` and `shadow { }` overloads accept a configuration block:
+
+```kotlin
+dependencies {
+    shadow("com.example:lib:1.0") {
+        relocation(enabled: Boolean)                    // enable/disable auto-relocation
+        relocationPrefix(prefix: String)                // set relocation destination prefix
+        includeRelocation(pattern: String)              // restrict which packages are relocated
+        excludeRelocation(pattern: String)              // exclude packages from relocation
+        relocate(pattern: String, destination: String)  // explicit relocation rule
+        relocate(pattern, destination) {
+            include(pattern: String)
+            exclude(pattern: String)
+            skipStringConstants(skip: Boolean)
+        }
+        exclude(vararg patterns: String)                // exclude files from the JAR
+        strip(vararg patterns: String)                  // strip file entries by Ant pattern
+        removeManifestAttribute(name: String)           // remove a manifest attribute
+        mergeServiceFiles()                             // merge all META-INF/services/
+        mergeServiceFiles(rootPath: String)             // merge a specific service file
+        raw { shadowJar -> ... }                        // direct ShadowJar task access
+    }
+
+    // Top-level shorthands on the dependencies block:
+    shadowRelocation(enabled: Boolean)
+    shadowRelocationPrefix(prefix: String)
+}
+```
+
+By default, Prism auto-relocates all packages to a prefix derived from the mod group. `Class-Path` and `Multi-Release` manifest attributes are removed automatically.
 
 ### forge
 
@@ -188,6 +236,9 @@ fabric {
 forge {
     loaderVersion: String          // required
     loaderVersionRange: String?    // for template expansion
+
+    changelog: String?             // per-loader changelog (overrides version and global)
+    changelogFile: String?         // per-loader changelog file path
 
     dependencies {
         api(dep: String)
@@ -227,6 +278,8 @@ forge {
         client("second") { username = "Player2" }
         server("testServer") { }
     }
+
+    publishingDependencies { ... }
 }
 ```
 
@@ -236,6 +289,9 @@ forge {
 neoforge {
     loaderVersion: String          // required
     loaderVersionRange: String?    // for template expansion
+
+    changelog: String?             // per-loader changelog (overrides version and global)
+    changelogFile: String?         // per-loader changelog file path
 
     dependencies {
         api(dep: String)
@@ -262,6 +318,7 @@ neoforge {
         disableAutoDetect()
         config(path: String)
         configs(vararg paths: String)
+        refmap(name: String)
     }
 
     rawNeoForge { ext -> ... }
@@ -271,8 +328,62 @@ neoforge {
         client("second") { username = "Player2" }
         server("testServer") { }
     }
+
+    publishingDependencies { ... }
 }
 ```
+
+### lexForge
+
+```kotlin
+lexForge {
+    loaderVersion: String          // required; Forge version (without MC prefix)
+    loaderVersionRange: String?    // version range for template expansion
+    mappingsChannel: String?       // explicit mappings channel (official, parchment, or custom)
+    mappingsVersion: String?       // explicit mappings version
+
+    changelog: String?             // per-loader changelog (overrides version and global)
+    changelogFile: String?         // per-loader changelog file path
+
+    mappings(channel: String, version: String)  // set mappings channel + version together
+
+    dependencies {
+        api(dep: String)
+        implementation(dep: String)
+        modApi(dep: String)
+        modImplementation(dep: String)
+        compileOnlyApi(dep: String)
+        compileOnly(dep: String)
+        modCompileOnlyApi(dep: String)
+        modCompileOnly(dep: String)
+        runtimeOnly(dep: String)
+        modRuntimeOnly(dep: String)
+        jarJar(dep: String)
+        shadow(dep: String)
+        annotationProcessor(dep: String)
+        localJar(path: String)
+        localJar(path: String, configuration: String)
+        configuration(name: String, dep: String)
+        modConfiguration(name: String, dep: String)
+    }
+
+    mixins {
+        autoDetect(enabled: Boolean)
+        disableAutoDetect()
+        config(path: String)
+        configs(vararg paths: String)
+        refmap(name: String)
+    }
+
+    runs { ... }
+    publishingDependencies { ... }
+
+    rawLexForge { minecraft: MinecraftExtensionForProject -> ... }
+    rawProject { project -> ... }
+}
+```
+
+The `publishLoaderSlug` for LexForge is `forge` — it publishes to CurseForge/Modrinth under the `forge` loader slug, same as Forge (1.17–1.20.1).
 
 ### legacyForge
 
@@ -283,10 +394,24 @@ legacyForge {
     mappingChannel: String         // default "stable"
     mappingVersion: String         // default "39"
     username: String               // default "Developer"
-    useModernJavaSyntax: Boolean   // default false (Java 8)
+    useModernJavaSyntax: Boolean   // default false (Java 8); enable Java 17+ syntax via ECJ
+    mixinBooter: Boolean           // default true; adds MixinBooter + CleanroomMC maven
+    mixinBooterVersion: String     // default "10.7"; pin a specific MixinBooter version
+
+    changelog: String?             // per-loader changelog (overrides version and global)
+    changelogFile: String?         // per-loader changelog file path
 
     accessTransformer(path: String)  // add AT file
-    mixin()                          // enable MixinTweaker
+    mixin()                          // legacy: register MixinTweaker in jar manifest
+    coreMod(fqn: String)             // override auto-detected IFMLLoadingPlugin class
+
+    mixins {
+        autoDetect(enabled: Boolean)
+        disableAutoDetect()
+        config(path: String)
+        configs(vararg paths: String)
+        refmap(name: String)
+    }
 
     dependencies { ... }
     runs { ... }
@@ -340,52 +465,27 @@ Modules use the directory layout `modules/{moduleName}/versions/{mc}/{loader}/` 
 
 ```kotlin
 publishing {
-    changelog = "..."
-    changelogFile = "CHANGELOG.md"
-    displayName = "My Mod"
-    artifactTask("reobfJar")           // CurseForge/Modrinth override
-    artifactFile("build/libs/mod.jar") // CurseForge/Modrinth override
-    type = STABLE
-
-    curseforge { ... }
-    modrinth { ... }
-    github { ... }
-    gitea { ... }
-    gitlab { ... }
-    discord { ... }
-    dependencies { ... }
-
-    mavenLocal()
-    maven { ... }
-    githubPackages("owner", "repo")
-}
-```
-
-## Doctor task
-
-```bash
-./gradlew prismDoctor
-```
-
-Prints the resolved loader projects, underlying plugin, mapping mode, chosen publish task, available `mod*` configurations, and mixin settings.
-
-```kotlin
-publishing {
     changelog: String?
     changelogFile: String?         // path relative to root project
-    type: ReleaseType              // STABLE, BETA, ALPHA
+    type: ReleaseType              // STABLE, BETA, ALPHA (constants also available as STABLE, BETA, ALPHA)
     displayName: String?           // defaults to JAR filename
+
+    artifactTask(name: String)     // override artifact task for platform publishing
+    artifactFile(path: String)     // override artifact path for platform publishing
+
+    publishCommonJar: Boolean      // also publish common JARs (for library mods)
 
     curseforge {
         accessToken: Provider<String>
         projectId: String
+        gameVersion(version: String)   // add extra CF game version IDs (Java, Client, Server, etc.)
     }
 
     modrinth {
         accessToken: Provider<String>
         projectId: String
-        featured: Boolean             // default true
-        loader(name: String)           // add extra Modrinth loader slug
+        featured: Boolean             // default true; feature the version on Modrinth
+        loader(name: String)          // add extra Modrinth loader slugs
     }
 
     github {
@@ -395,6 +495,7 @@ publishing {
         commitish: String              // default: "main"
         draft: Boolean
         prerelease: Boolean
+        generateReleaseNotes: Boolean  // ask GitHub to auto-generate release notes
         reuseExistingRelease: Boolean  // default true
     }
 
@@ -427,24 +528,85 @@ publishing {
         includeProjectLinks: Boolean   // default true
     }
 
-    dependencies {                 // publishing deps (global level)
-        requires(slug: String)
-        optional(slug: String)
-        incompatible(slug: String)
-        embeds(slug: String)
+    dependencies {
+        requires(slug: String, platform: PublishingPlatform = BOTH)
+        optional(slug: String, platform: PublishingPlatform = BOTH)
+        incompatible(slug: String, platform: PublishingPlatform = BOTH)
+        embeds(slug: String, platform: PublishingPlatform = BOTH)
+        curseforge {               // CurseForge-only deps
+            requires(slug: String)
+            optional(slug: String)
+            incompatible(slug: String)
+            embeds(slug: String)
+        }
+        modrinth {                 // Modrinth-only deps
+            requires(slug: String)
+            optional(slug: String)
+            incompatible(slug: String)
+            embeds(slug: String)
+        }
     }
+    // PublishingPlatform values: BOTH, CURSEFORGE, MODRINTH
 
-    // Maven publishing
-    publishCommonJar: Boolean              // also publish common JARs (for library mods)
-    mavenLocal()                           // publish to ~/.m2
-    githubPackages(owner, repo)            // GitHub Packages (auto-credentials)
-    maven {                                // custom Maven repo
+    mavenLocal()
+    githubPackages(owner: String, repo: String)   // auto-uses GITHUB_ACTOR + GITHUB_TOKEN
+    maven {
         name: String
         url: String
-        credentials(user, pass)            // inline credentials
-        credentialsFromEnv(userEnv, passEnv) // from environment variables
+        credentials(user: String, pass: String)
+        credentialsFromEnv(userEnv: String, passEnv: String)
     }
 }
 ```
 
-Publishing uses `minecraftVersions()` from the version block if set, otherwise the exact Minecraft version.
+Publishing uses `minecraftVersions()` from the version block if set, otherwise the exact Minecraft version string. See [Publishing](../publishing.md) for a prose guide.
+
+## Doctor task
+
+```bash
+./gradlew prismDoctor
+```
+
+Prints a full configuration and wiring report. Example output:
+
+```
+Prism Doctor
+root: :
+sharedCommon: true
+
+version: 1.21.1
+java: 21
+loaders: neoforge, fabric
+commonRawHooks: 0
+  loader: neoforge
+  project: :1.21.1:neoforge
+  underlying: net.neoforged.moddev
+  mappings: neoform named dev
+  mixins: autoDetect=true, explicit=[], refmap=default
+  publishTask: jar
+  modConfigs: modApi, modCompileOnly, modImplementation, modRuntimeOnly
+  loader: fabric
+  project: :1.21.1:fabric
+  underlying: fabric-loom
+  mappings: named dev / intermediary production
+  mixins: autoDetect=true, explicit=[], refmap=default
+  publishTask: remapJar
+  modConfigs: modApi, modCompileOnly, modImplementation, modRuntimeOnly
+```
+
+Fields:
+
+| Field | Description |
+|-------|-------------|
+| `sharedCommon` | Whether a `:common` shared project exists |
+| `version` | Minecraft version |
+| `java` | Resolved Java toolchain version |
+| `loaders` | Configured loader names |
+| `commonRawHooks` | Number of `rawCommonProject {}` lambdas registered |
+| `loader` | Loader name |
+| `project` | Gradle project path |
+| `underlying` | The Gradle plugin applied to this project |
+| `mappings` | Resolved mapping mode (`neoform named dev`, `named dev / intermediary production`, `fg7 official`, `fg7 parchment`, `mcp`, `unobfuscated`) |
+| `mixins` | Auto-detect status, explicit configs, refmap name |
+| `publishTask` | The Gradle task selected for publishing artifact |
+| `modConfigs` | All `mod*`-prefixed configurations in the project |
