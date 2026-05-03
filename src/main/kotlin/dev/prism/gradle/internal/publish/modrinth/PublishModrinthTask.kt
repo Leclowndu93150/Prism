@@ -46,25 +46,25 @@ abstract class PublishModrinthTask : DefaultTask() {
         val file = artifactFile.get().asFile
         if (!file.exists()) throw IllegalStateException("Prism: artifact file ${file.absolutePath} does not exist")
 
-        val deps = buildDeps(deps.getOrElse(emptyList()))
         val dryRunEnabled = dryRun.getOrElse(false)
         val displayNameVal = displayName.orNull ?: file.nameWithoutExtension
+
+        val api = ModrinthApi(token, "https://api.modrinth.com/v2")
+        val resolvedDeps = buildDeps(deps.getOrElse(emptyList()), api)
 
         if (dryRunEnabled) {
             logger.lifecycle("Prism [dry-run] Modrinth upload")
             logger.lifecycle("  projectId=$pid file=${file.name}")
             logger.lifecycle("  minecraftVersions=${minecraftVersions.get()}")
             logger.lifecycle("  loaders=${loaderSlugs.get()}")
-            logger.lifecycle("  deps=${deps.map { "${it.projectId}:${it.dependencyType}" }}")
+            logger.lifecycle("  deps=${resolvedDeps.map { "${it.projectId}:${it.dependencyType}" }}")
             return
         }
-
-        val api = ModrinthApi(token, "https://api.modrinth.com/v2")
         val meta = ModrinthApi.CreateVersion(
             name = displayNameVal,
             versionNumber = modVersion.get(),
             changelog = changelog.orNull,
-            dependencies = deps,
+            dependencies = resolvedDeps,
             gameVersions = minecraftVersions.get(),
             versionType = ModrinthApi.VersionType.valueOf(releaseType.get()),
             loaders = loaderSlugs.get(),
@@ -82,10 +82,16 @@ abstract class PublishModrinthTask : DefaultTask() {
         PublishResultsHolder.record(project, PublishResult("Modrinth", url))
     }
 
-    private fun buildDeps(deps: List<PublishingDep>): List<ModrinthApi.Dependency> {
+    private fun buildDeps(deps: List<PublishingDep>, api: ModrinthApi): List<ModrinthApi.Dependency> {
         return deps.filter { it.platform != PublishingPlatform.CURSEFORGE }.map { d ->
+            val resolvedId = try {
+                api.checkProject(d.slug).id
+            } catch (e: Exception) {
+                logger.warn("Prism: could not resolve Modrinth project ID for slug '${d.slug}', using slug as-is: ${e.message}")
+                d.slug
+            }
             ModrinthApi.Dependency(
-                projectId = d.slug,
+                projectId = resolvedId,
                 dependencyType = ModrinthApi.DependencyType.valueOf(d.type),
             )
         }
