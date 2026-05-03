@@ -9,6 +9,8 @@ open class NeoForgeConfiguration : LoaderConfiguration {
     override val loaderDisplayName = "NeoForge"
     var loaderVersion: String = ""
     var loaderVersionRange: String? = null
+    override var changelog: String? = null
+    override var changelogFile: String? = null
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
     internal val pubDeps = PublishingDepsBlock()

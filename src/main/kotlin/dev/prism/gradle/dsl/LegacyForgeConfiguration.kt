@@ -6,6 +6,8 @@ import org.gradle.api.Project
 open class LegacyForgeConfiguration : LoaderConfiguration {
     override val loaderName = "legacyforge"
     override val loaderDisplayName = "Forge"
+    override var changelog: String? = null
+    override var changelogFile: String? = null
     var mcVersion: String = "1.12.2"
     var forgeVersion: String = "14.23.5.2847"
     var mappingChannel: String = "stable"

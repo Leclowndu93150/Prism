@@ -12,6 +12,8 @@ open class LexForgeConfiguration : LoaderConfiguration {
     var loaderVersionRange: String? = null
     var mappingsChannel: String? = null
     var mappingsVersion: String? = null
+    override var changelog: String? = null
+    override var changelogFile: String? = null
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
     internal val pubDeps = PublishingDepsBlock()

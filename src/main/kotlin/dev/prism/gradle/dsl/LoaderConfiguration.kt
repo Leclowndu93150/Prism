@@ -5,4 +5,6 @@ interface LoaderConfiguration {
     val loaderDisplayName: String
     val publishLoaderSlug: String
         get() = loaderName
+    var changelog: String?
+    var changelogFile: String?
 }

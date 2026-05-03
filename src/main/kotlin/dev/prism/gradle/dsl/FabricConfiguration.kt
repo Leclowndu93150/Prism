@@ -11,6 +11,8 @@ open class FabricConfiguration : LoaderConfiguration {
     var apiVersion: String? = null
     var yarnVersion: String? = null
     var enableDatagen: Boolean = false
+    override var changelog: String? = null
+    override var changelogFile: String? = null
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
     internal val pubDeps = PublishingDepsBlock()

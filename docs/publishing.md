@@ -16,6 +16,7 @@ prism {
         changelog = "Fixed bugs and added features."
         // Or read from a file:
         // changelogFile = "CHANGELOG.md"
+        // Per-version overrides are also supported (see below)
 
         type = STABLE  // STABLE, BETA, or ALPHA
 
@@ -70,6 +71,47 @@ prism {
             requires("fabric-api")
             optional("jei")
         }
+    }
+}
+```
+
+## Per-version and per-loader changelog
+
+Override the global changelog at the version or loader level. Resolution order is **loader → version → global**; the first non-null value wins. If none is set, an empty string is used.
+
+### Per version
+
+```kotlin
+prism {
+    publishing {
+        changelog = "General changelog for all versions."
+    }
+}
+
+version("1.21.1") {
+    changelog = "1.21.1: Added new features."
+    // Or from a file:
+    // changelogFile = "changelogs/1.21.1.md"
+}
+
+version("1.20.1") {
+    changelog = "1.20.1: Backport fixes."
+}
+```
+
+### Per loader
+
+```kotlin
+version("1.21.1") {
+    changelog = "1.21.1 changelog."
+
+    neoforge {
+        changelog = "1.21.1 NeoForge-specific notes."
+        // changelogFile = "changelogs/1.21.1-neoforge.md"
+    }
+
+    fabric {
+        changelog = "1.21.1 Fabric-specific notes."
     }
 }
 ```
@@ -160,7 +202,7 @@ For each loader subproject, Prism registers its own upload tasks and sets:
 - `loader` to the slug expected by CurseForge/Modrinth (`fabric`, `neoforge`, or `forge` — both MDG-Legacy `forge { }` and LexForge `lexForge { }` publish as `forge`)
 - `minecraftVersions` to the Minecraft version of that subproject (plus any `gameVersion("...")` extras declared in `curseforge { }`)
 - For CurseForge: auto-populates Java version + `Client` + `Server` gameVersion IDs from the loader's resolved Java toolchain
-- `changelog`, `version`, and `type` from the root configuration
+- `changelog`, `version`, and `type` — resolved loader → version → global (first non-null wins)
 - Platform credentials from the root configuration or environment variables
 - Publishing dependencies from global + version + loader levels (deduped, most-specific wins)
 
