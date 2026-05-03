@@ -117,7 +117,11 @@ object PublishingConfigurator {
         val dryRun = loaderProject.providers.gradleProperty("prism.publishDryRun").map { it.toBoolean() }
 
         val proj = loaderProject
-        val changelog = publishingConfig.changelog
+        val changelog = loaderConfig.changelog
+            ?: loaderConfig.changelogFile?.let { proj.rootProject.file(it).readText() }
+            ?: versionConfig.changelog
+            ?: versionConfig.changelogFile?.let { proj.rootProject.file(it).readText() }
+            ?: publishingConfig.changelog
             ?: publishingConfig.changelogFile?.let { proj.rootProject.file(it).readText() }
             ?: ""
         val modVersion = metadata.version.ifEmpty { proj.rootProject.version.toString() }
@@ -297,41 +301,36 @@ object PublishingConfigurator {
     }
 
     fun createVersionAggregate(versionProject: Project) {
-        ensureAggregateTasksRegistered(versionProject)
         versionProject.childProjects.values.forEach { child -> linkAggregateToChild(versionProject, child) }
     }
 
     fun createAggregateTask(project: Project, excludeChildren: Set<String> = emptySet()) {
-        ensureAggregateTasksRegistered(project)
         project.childProjects.forEach { (name, child) ->
             if (name !in excludeChildren) linkAggregateToChild(project, child)
         }
     }
 
     fun linkAggregateToChild(parent: Project, child: Project) {
-        ensureAggregateTasksRegistered(parent)
-        for (taskName in PLATFORM_TASKS + TASK_ALL) {
+        for (taskName in PLATFORM_TASKS) {
             if (hasTask(child, taskName)) {
+                ensureAggregatePlatformTask(parent, taskName)
                 parent.tasks.named(taskName).configure { it.dependsOn(child.tasks.named(taskName)) }
             }
         }
+        if (hasTask(child, TASK_ALL)) {
+            ensureAggregateAllTask(parent)
+            parent.tasks.named(TASK_ALL).configure { it.dependsOn(child.tasks.named(TASK_ALL)) }
+        }
     }
 
-    private fun ensureAggregateTasksRegistered(project: Project) {
-        if (!hasTask(project, TASK_ALL)) {
-            project.tasks.register(TASK_ALL) { t ->
+    private fun ensureAggregatePlatformTask(project: Project, taskName: String) {
+        if (!hasTask(project, taskName)) {
+            project.tasks.register(taskName) { t ->
                 t.group = "publishing"
-                t.description = "Publishes all configured platforms (Prism aggregate)"
+                t.description = "Prism aggregate for ${taskName.removePrefix("prismPublish").lowercase()}"
             }
-        }
-        for (taskName in PLATFORM_TASKS) {
-            if (!hasTask(project, taskName)) {
-                project.tasks.register(taskName) { t ->
-                    t.group = "publishing"
-                    t.description = "Prism aggregate for ${taskName.removePrefix("prismPublish").lowercase()}"
-                }
-                project.tasks.named(TASK_ALL).configure { it.dependsOn(project.tasks.named(taskName)) }
-            }
+            ensureAggregateAllTask(project)
+            project.tasks.named(TASK_ALL).configure { it.dependsOn(project.tasks.named(taskName)) }
         }
     }
 

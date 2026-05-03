@@ -11,6 +11,8 @@ open class VersionConfiguration(val minecraftVersion: String) {
     var kotlinVersion: String? = null
     var minecraftVersionRange: List<String>? = null
     var unifiedAccessWidener: String? = null
+    var changelog: String? = null
+    var changelogFile: String? = null
 
     internal var fabricConfig: FabricConfiguration? = null
     internal var forgeConfig: ForgeConfiguration? = null
