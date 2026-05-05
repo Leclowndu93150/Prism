@@ -15,6 +15,7 @@ import dev.prism.gradle.internal.DependencyConfigurator
 import dev.prism.gradle.internal.KotlinConfigurator
 import dev.prism.gradle.internal.LoaderConfigurator
 import dev.prism.gradle.internal.MavenPublishConfigurator
+import dev.prism.gradle.internal.ObfuscationConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
 import dev.prism.gradle.internal.PrismDoctor
 import dev.prism.gradle.internal.PrismWarnings
@@ -184,6 +185,11 @@ class PrismProjectPlugin : Plugin<Project> {
                 extension.metadata, extension.publishingConfig.mavenRepos
             )
         }
+
+        if (shouldObfuscate(extension, versionConfig, loaderConfig)) {
+            val merged = mergeObfuscationOptions(extension.obfuscateOptions, versionConfig.obfuscateOptions, loaderConfig.obfuscateOptions)
+            ObfuscationConfigurator.configure(loaderProject, loaderConfig, extension.metadata, merged)
+        }
     }
 
     private fun configureMultiLoader(
@@ -278,6 +284,11 @@ class PrismProjectPlugin : Plugin<Project> {
                     loaderProject, versionConfig, loaderConfig,
                     extension.metadata, extension.publishingConfig.mavenRepos
                 )
+            }
+
+            if (shouldObfuscate(extension, versionConfig, loaderConfig)) {
+                val merged = mergeObfuscationOptions(extension.obfuscateOptions, versionConfig.obfuscateOptions, loaderConfig.obfuscateOptions)
+                ObfuscationConfigurator.configure(loaderProject, loaderConfig, extension.metadata, merged)
             }
         }
     }
@@ -391,6 +402,11 @@ class PrismProjectPlugin : Plugin<Project> {
                 moduleConfig.metadata, moduleConfig.publishingConfig.mavenRepos
             )
         }
+
+        if (extension.obfuscateEnabled || shouldObfuscateModule(moduleConfig, versionConfig, loaderConfig)) {
+            val merged = mergeObfuscationOptions(extension.obfuscateOptions, moduleConfig.obfuscateOptions, versionConfig.obfuscateOptions, loaderConfig.obfuscateOptions)
+            ObfuscationConfigurator.configure(loaderProject, loaderConfig, moduleConfig.metadata, merged)
+        }
     }
 
     private fun configureModuleMultiLoader(
@@ -458,6 +474,11 @@ class PrismProjectPlugin : Plugin<Project> {
                     moduleConfig.metadata, moduleConfig.publishingConfig.mavenRepos
                 )
             }
+
+            if (extension.obfuscateEnabled || shouldObfuscateModule(moduleConfig, versionConfig, loaderConfig)) {
+                val merged = mergeObfuscationOptions(extension.obfuscateOptions, moduleConfig.obfuscateOptions, versionConfig.obfuscateOptions, loaderConfig.obfuscateOptions)
+                ObfuscationConfigurator.configure(loaderProject, loaderConfig, moduleConfig.metadata, merged)
+            }
         }
     }
 
@@ -502,6 +523,38 @@ class PrismProjectPlugin : Plugin<Project> {
                 }
             }
         }
+    }
+
+    private fun shouldObfuscate(
+        extension: PrismExtension,
+        versionConfig: VersionConfiguration,
+        loaderConfig: LoaderConfiguration,
+    ): Boolean = extension.obfuscateEnabled || versionConfig.obfuscateEnabled || loaderConfig.obfuscateEnabled
+
+    private fun shouldObfuscateModule(
+        moduleConfig: ModuleConfiguration,
+        versionConfig: VersionConfiguration,
+        loaderConfig: LoaderConfiguration,
+    ): Boolean = moduleConfig.obfuscateEnabled || versionConfig.obfuscateEnabled || loaderConfig.obfuscateEnabled
+
+    private fun mergeObfuscationOptions(
+        vararg sources: dev.prism.gradle.dsl.ObfuscationOptions,
+    ): dev.prism.gradle.dsl.ObfuscationOptions {
+        val merged = dev.prism.gradle.dsl.ObfuscationOptions()
+        for (src in sources) {
+            merged.keepPatterns.addAll(src.keepPatterns)
+            merged.keepClassPatterns.addAll(src.keepClassPatterns)
+            merged.rawRules.addAll(src.rawRules)
+        }
+        val last = sources.lastOrNull()
+        if (last != null) {
+            merged.keepLineNumbers = last.keepLineNumbers
+            merged.keepSourceFile = last.keepSourceFile
+            merged.optimizationPasses = last.optimizationPasses
+            merged.allowAccessModification = last.allowAccessModification
+            merged.repackage = last.repackage
+        }
+        return merged
     }
 
     private fun loaderDeps(loaderConfig: LoaderConfiguration) = when (loaderConfig) {

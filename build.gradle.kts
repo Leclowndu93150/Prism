@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "dev.prism"
-version = "0.5.6"
+version = "0.5.7"
 
 repositories {
     mavenCentral()
@@ -54,6 +54,8 @@ dependencies {
     implementation("com.gtnewhorizons:retrofuturagradle:2.0.2")
     implementation("net.minecraftforge:forgegradle:7.0.25")
     implementation("com.gradleup.shadow:shadow-gradle-plugin:9.0.0-beta12")
+    implementation("org.ow2.asm:asm:9.7.1")
+    implementation("org.ow2.asm:asm-tree:9.7.1")
 
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")

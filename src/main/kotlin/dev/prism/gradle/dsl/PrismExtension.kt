@@ -12,6 +12,17 @@ open class PrismExtension(private val project: Project) {
     internal var globalKotlinVersion: String? = null
     internal val sharedCommonConfig = SharedCommonConfiguration()
     internal val modules = mutableMapOf<String, ModuleConfiguration>()
+    internal var obfuscateEnabled: Boolean = false
+    internal val obfuscateOptions: ObfuscationOptions = ObfuscationOptions()
+
+    fun obfuscate() {
+        obfuscateEnabled = true
+    }
+
+    fun obfuscate(action: Action<ObfuscationOptions>) {
+        obfuscateEnabled = true
+        action.execute(obfuscateOptions)
+    }
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)

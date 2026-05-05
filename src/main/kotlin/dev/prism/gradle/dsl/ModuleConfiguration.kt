@@ -9,6 +9,17 @@ open class ModuleConfiguration(val moduleName: String, private val project: Proj
     internal val publishingConfig = PublishingConfiguration()
     internal var kotlinVersion: String? = null
     internal val moduleDependencies = mutableListOf<String>()
+    internal var obfuscateEnabled: Boolean = false
+    internal val obfuscateOptions: ObfuscationOptions = ObfuscationOptions()
+
+    fun obfuscate() {
+        obfuscateEnabled = true
+    }
+
+    fun obfuscate(action: Action<ObfuscationOptions>) {
+        obfuscateEnabled = true
+        action.execute(obfuscateOptions)
+    }
 
     fun metadata(action: Action<MetadataExtension>) {
         action.execute(metadata)

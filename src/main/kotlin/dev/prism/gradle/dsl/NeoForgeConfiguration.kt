@@ -11,6 +11,8 @@ open class NeoForgeConfiguration : LoaderConfiguration {
     var loaderVersionRange: String? = null
     override var changelog: String? = null
     override var changelogFile: String? = null
+    override var obfuscateEnabled: Boolean = false
+    override val obfuscateOptions: ObfuscationOptions = ObfuscationOptions()
     internal val deps = DependencyBlock()
     internal val extraRuns = RunsBlock()
     internal val pubDeps = PublishingDepsBlock()
