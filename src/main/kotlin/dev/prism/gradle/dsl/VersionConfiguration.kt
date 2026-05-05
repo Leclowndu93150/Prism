@@ -13,6 +13,17 @@ open class VersionConfiguration(val minecraftVersion: String) {
     var unifiedAccessWidener: String? = null
     var changelog: String? = null
     var changelogFile: String? = null
+    var obfuscateEnabled: Boolean = false
+    val obfuscateOptions: ObfuscationOptions = ObfuscationOptions()
+
+    fun obfuscate() {
+        obfuscateEnabled = true
+    }
+
+    fun obfuscate(action: Action<ObfuscationOptions>) {
+        obfuscateEnabled = true
+        action.execute(obfuscateOptions)
+    }
 
     internal var fabricConfig: FabricConfiguration? = null
     internal var forgeConfig: ForgeConfiguration? = null

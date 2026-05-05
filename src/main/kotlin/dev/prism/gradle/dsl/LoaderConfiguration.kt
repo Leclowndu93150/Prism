@@ -7,4 +7,15 @@ interface LoaderConfiguration {
         get() = loaderName
     var changelog: String?
     var changelogFile: String?
+    var obfuscateEnabled: Boolean
+    val obfuscateOptions: ObfuscationOptions
+
+    fun obfuscate() {
+        obfuscateEnabled = true
+    }
+
+    fun obfuscate(action: org.gradle.api.Action<ObfuscationOptions>) {
+        obfuscateEnabled = true
+        action.execute(obfuscateOptions)
+    }
 }
