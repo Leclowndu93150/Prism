@@ -24,7 +24,7 @@ import java.util.jar.JarFile
 
 object ObfuscationConfigurator {
     private const val MARKER = "dev.prism.obfConfigured"
-    private const val PROGUARD_VERSION = "7.5.0"
+    private const val PROGUARD_VERSION = "7.9.1"
 
     fun configure(
         project: Project,
