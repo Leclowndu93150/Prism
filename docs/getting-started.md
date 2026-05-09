@@ -90,7 +90,6 @@ prism {
         }
         neoforge {
             loaderVersion = "21.1.222"
-            loaderVersionRange = "[4,)"
         }
     }
 }

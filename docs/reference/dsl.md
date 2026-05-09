@@ -235,7 +235,6 @@ By default, Prism auto-relocates all packages to a prefix derived from the mod g
 ```kotlin
 forge {
     loaderVersion: String          // required
-    loaderVersionRange: String?    // for template expansion
 
     changelog: String?             // per-loader changelog (overrides version and global)
     changelogFile: String?         // per-loader changelog file path
@@ -288,7 +287,6 @@ forge {
 ```kotlin
 neoforge {
     loaderVersion: String          // required
-    loaderVersionRange: String?    // for template expansion
 
     changelog: String?             // per-loader changelog (overrides version and global)
     changelogFile: String?         // per-loader changelog file path

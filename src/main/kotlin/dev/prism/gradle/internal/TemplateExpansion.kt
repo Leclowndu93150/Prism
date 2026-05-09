@@ -31,12 +31,12 @@ object TemplateExpansion {
 
                 versionConfig.neoForgeConfig?.let { neoforge ->
                     put("neoforge_version", neoforge.loaderVersion)
-                    neoforge.loaderVersionRange?.let { put("neoforge_loader_version_range", it) }
+                    put("neoforge_loader_version_range", "[4,)")
                 }
 
                 versionConfig.forgeConfig?.let { forge ->
                     put("forge_version", forge.loaderVersion)
-                    forge.loaderVersionRange?.let { put("forge_loader_version_range", it) }
+                    put("forge_loader_version_range", "[4,)")
                 }
 
                 versionConfig.lexForgeConfig?.let { lexForge ->
