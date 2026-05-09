@@ -8,6 +8,7 @@ open class ForgeConfiguration : LoaderConfiguration {
     override val loaderName = "forge"
     override val loaderDisplayName = "Forge"
     var loaderVersion: String = ""
+    @Deprecated("loaderVersionRange is ignored; Prism always uses [4,)", level = DeprecationLevel.WARNING)
     var loaderVersionRange: String? = null
     override var changelog: String? = null
     override var changelogFile: String? = null

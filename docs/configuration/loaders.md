@@ -88,7 +88,6 @@ Uses [ModDevGradle](https://github.com/neoforged/ModDevGradle) under the hood.
 version("1.21.1") {
     neoforge {
         loaderVersion = "21.1.26"
-        loaderVersionRange = "[4,)"
 
         dependencies {
             implementation("some:neoforge-mod:1.0")
@@ -101,7 +100,6 @@ version("1.21.1") {
 | Property              | Required | Description                              |
 |-----------------------|----------|------------------------------------------|
 | `loaderVersion`       | Yes      | NeoForge version                         |
-| `loaderVersionRange`  | No       | Version range for template expansion     |
 
 Access transformers are picked up from both `common/src/main/resources/META-INF/accesstransformer.cfg` and the loader's own resources. If no AT file exists but an `.accesswidener` file is found (via `accessWidener()` or auto-detection), Prism automatically converts it to AT format.
 
@@ -209,7 +207,6 @@ Uses [ModDevGradle Legacy](https://github.com/neoforged/ModDevGradle) for Forge 
 version("1.20.1") {
     forge {
         loaderVersion = "47.2.0"
-        loaderVersionRange = "[47,)"
 
         dependencies {
             implementation("some:forge-mod:1.0")
@@ -221,7 +218,6 @@ version("1.20.1") {
 | Property              | Required | Description                              |
 |-----------------------|----------|------------------------------------------|
 | `loaderVersion`       | Yes      | Forge version (without MC prefix)        |
-| `loaderVersionRange`  | No       | Version range for template expansion     |
 
 The version string passed to MDG Legacy is `{mcVersion}-{loaderVersion}`, e.g. `1.20.1-47.2.0`.
 

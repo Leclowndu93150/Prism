@@ -46,14 +46,14 @@ TOML files (`mods.toml`, `neoforge.mods.toml`) are expanded as-is.
 | Variable                           | Source                        | Example   |
 |------------------------------------|-------------------------------|-----------|
 | `neoforge_version`                 | neoforge.loaderVersion        | `21.1.26` |
-| `neoforge_loader_version_range`    | neoforge.loaderVersionRange   | `[4,)`    |
+| `neoforge_loader_version_range`    | always `[4,)`                 | `[4,)`    |
 
 ### Forge subprojects only (MDG Legacy, 1.17–1.20.1)
 
 | Variable                         | Source                    | Example   |
 |----------------------------------|---------------------------|-----------|
 | `forge_version`                  | forge.loaderVersion       | `47.2.0`  |
-| `forge_loader_version_range`     | forge.loaderVersionRange  | `[47,)`   |
+| `forge_loader_version_range`     | always `[4,)`             | `[4,)`    |
 
 ### LexForge subprojects only (ForgeGradle 7, 1.21.1+)
 
