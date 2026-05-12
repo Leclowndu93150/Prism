@@ -9,6 +9,7 @@ open class ObfuscationOptions {
     internal var optimizationPasses: Int = 3
     internal var allowAccessModification: Boolean = true
     internal var repackage: Boolean = true
+    internal var renameMixins: Boolean = true
 
     fun keep(pattern: String) {
         keepPatterns.add(pattern)
@@ -40,5 +41,9 @@ open class ObfuscationOptions {
 
     fun repackage(value: Boolean) {
         repackage = value
+    }
+
+    fun renameMixins(value: Boolean) {
+        renameMixins = value
     }
 }
