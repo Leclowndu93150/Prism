@@ -104,13 +104,33 @@ object ObfuscationConfigurator {
                 val tempOut = tempOutHolder[0] ?: return@doLast
                 val mappingFile = mappingFileHolder[0]
                 if (tempOut.exists()) {
-                    if (renameMixinsHolder[0] && mappingFile != null && mappingFile.exists()) {
+                    if (mappingFile != null && mappingFile.exists()) {
                         MixinJsonRewriter.rewriteInPlace(tempOut, ProguardMapping.parse(mappingFile))
                     }
                     Files.move(tempOut.toPath(), jarFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                 }
             }
         }
+    }
+
+    private fun resolveRepackageTarget(
+        project: Project,
+        metadata: MetadataExtension,
+        options: ObfuscationOptions,
+    ): String {
+        options.repackageTarget?.let { return it }
+        val group = metadata.group.ifBlank { project.group.toString().ifBlank { "" } }
+        val modId = metadata.modId.ifBlank { project.name }
+        val candidate = if (group.isNotBlank() && modId.isNotBlank()) {
+            "$group.$modId.obf"
+        } else if (group.isNotBlank()) {
+            "$group.obf"
+        } else if (modId.isNotBlank()) {
+            "$modId.obf"
+        } else {
+            "prism.obf"
+        }
+        return candidate.replace(Regex("[^A-Za-z0-9_.]"), "_")
     }
 
     private fun primaryJarOutput(task: Task): File? {
@@ -166,7 +186,10 @@ object ObfuscationConfigurator {
         sb.appendLine("-keepattributes ${attrs.joinToString(",")}")
         if (options.allowAccessModification) sb.appendLine("-allowaccessmodification")
         sb.appendLine("-overloadaggressively")
-        if (options.repackage) sb.appendLine("-repackageclasses ''")
+        if (options.repackage) {
+            val target = resolveRepackageTarget(project, metadata, options)
+            sb.appendLine("-repackageclasses '$target'")
+        }
         sb.appendLine("-optimizationpasses ${options.optimizationPasses}")
         sb.appendLine("-keepparameternames")
         sb.appendLine("-adaptresourcefilenames **.properties,**.json,**.xml,**.txt,**.cfg,**.toml")
@@ -219,13 +242,13 @@ object ObfuscationConfigurator {
         rules += "-keepclassmembers class * extends java.lang.Throwable { <init>(...); }"
 
         for (cls in scan.entrypointClasses) {
-            rules += "-keep class ${dotted(cls)} { *; }"
+            rules += "-keep,allowobfuscation class ${dotted(cls)} { *; }"
         }
         for (cls in scan.modClasses) {
-            rules += "-keep class ${dotted(cls)} { *; }"
+            rules += "-keep,allowobfuscation class ${dotted(cls)} { *; }"
         }
         for (cls in scan.eventBusSubscriberClasses) {
-            rules += "-keep class ${dotted(cls)} { *; }"
+            rules += "-keep,allowobfuscation class ${dotted(cls)} { *; }"
         }
         for (cls in scan.mixinClasses) {
             val isInterface = scan.interfaceClasses.contains(cls)
@@ -257,7 +280,7 @@ object ObfuscationConfigurator {
             }
         }
         for (cls in scan.subscribeEventOwners) {
-            rules += "-keep class ${dotted(cls)} { *; }"
+            rules += "-keep,allowobfuscation class ${dotted(cls)} { *; }"
         }
         for (cls in scan.objectHolderOwners) {
             rules += "-keepclassmembers class ${dotted(cls)} { *; }"
@@ -269,7 +292,7 @@ object ObfuscationConfigurator {
             rules += "-keepclassmembers class ${dotted(cls)} { public static *** CODEC; public static *** STREAM_CODEC; public static *** TYPE; public static *** MAP_CODEC; }"
         }
         for (cls in scan.customPayloadOwners) {
-            rules += "-keep class ${dotted(cls)} { *; }"
+            rules += "-keep,allowobfuscation class ${dotted(cls)} { *; }"
         }
 
         rules += "-keepclassmembers class * { @org.spongepowered.asm.mixin.Shadow <fields>; @org.spongepowered.asm.mixin.Shadow <methods>; }"
@@ -283,30 +306,30 @@ object ObfuscationConfigurator {
         } else {
             rules += "-keepclassmembers class * { @org.spongepowered.asm.mixin.gen.Accessor <methods>; @org.spongepowered.asm.mixin.gen.Invoker <methods>; }"
         }
-        rules += "-keep class * implements org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin { *; }"
+        rules += "-keep,allowobfuscation class * implements org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin { *; }"
         if (renameMixins) {
             rules += "-keep,allowobfuscation @org.spongepowered.asm.mixin.Mixin class * { *; }"
         } else {
             rules += "-keep @org.spongepowered.asm.mixin.Mixin class * { *; }"
         }
 
-        rules += "-keep @net.minecraftforge.fml.common.Mod class * { *; }"
-        rules += "-keep @net.neoforged.fml.common.Mod class * { *; }"
-        rules += "-keep @net.minecraftforge.fml.common.Mod\$EventBusSubscriber class * { *; }"
-        rules += "-keep @net.neoforged.fml.common.EventBusSubscriber class * { *; }"
+        rules += "-keep,allowobfuscation @net.minecraftforge.fml.common.Mod class * { *; }"
+        rules += "-keep,allowobfuscation @net.neoforged.fml.common.Mod class * { *; }"
+        rules += "-keep,allowobfuscation @net.minecraftforge.fml.common.Mod\$EventBusSubscriber class * { *; }"
+        rules += "-keep,allowobfuscation @net.neoforged.fml.common.EventBusSubscriber class * { *; }"
         rules += "-keepclassmembers class * { @net.minecraftforge.eventbus.api.SubscribeEvent <methods>; }"
         rules += "-keepclassmembers class * { @net.neoforged.bus.api.SubscribeEvent <methods>; }"
         rules += "-keepclassmembers class * { @net.minecraftforge.registries.ObjectHolder <fields>; }"
         rules += "-keepclassmembers class * { @net.neoforged.neoforge.registries.ObjectHolder <fields>; }"
         rules += "-keepclassmembers class * { @net.minecraftforge.common.capabilities.CapabilityInject <fields>; }"
 
-        rules += "-keep class * implements net.fabricmc.api.ModInitializer { *; }"
-        rules += "-keep class * implements net.fabricmc.api.ClientModInitializer { *; }"
-        rules += "-keep class * implements net.fabricmc.api.DedicatedServerModInitializer { *; }"
-        rules += "-keep class * implements net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint { *; }"
-        rules += "-keep class * implements net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint { *; }"
+        rules += "-keep,allowobfuscation class * implements net.fabricmc.api.ModInitializer { *; }"
+        rules += "-keep,allowobfuscation class * implements net.fabricmc.api.ClientModInitializer { *; }"
+        rules += "-keep,allowobfuscation class * implements net.fabricmc.api.DedicatedServerModInitializer { *; }"
+        rules += "-keep,allowobfuscation class * implements net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint { *; }"
+        rules += "-keep,allowobfuscation class * implements net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint { *; }"
 
-        rules += "-keep class * implements net.minecraft.network.protocol.common.custom.CustomPacketPayload { *; }"
+        rules += "-keep,allowobfuscation class * implements net.minecraft.network.protocol.common.custom.CustomPacketPayload { *; }"
 
         for (pattern in options.keepClassPatterns) {
             rules += "-keep class $pattern"
@@ -487,9 +510,7 @@ internal object MixinJsonRewriter {
                         continue
                     }
                     val data = jf.getInputStream(entry).use { it.readBytes() }
-                    val newData = if (isMixinJsonName(entry.name)) {
-                        rewriteMixinJson(data.toString(Charsets.UTF_8), mapping)?.toByteArray(Charsets.UTF_8) ?: data
-                    } else data
+                    val newData = rewriteEntry(entry.name, data, mapping)
                     val outEntry = JarEntry(entry.name)
                     outEntry.time = entry.time
                     jos.putNextEntry(outEntry)
@@ -501,10 +522,35 @@ internal object MixinJsonRewriter {
         Files.move(tmp.toPath(), jarFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
     }
 
+    private fun rewriteEntry(name: String, data: ByteArray, mapping: ProguardMapping.Mapping): ByteArray {
+        return when {
+            isMixinJsonName(name) -> {
+                val text = data.toString(Charsets.UTF_8)
+                (rewriteMixinJson(text, mapping) ?: text).toByteArray(Charsets.UTF_8)
+            }
+            name == "fabric.mod.json" -> {
+                val text = data.toString(Charsets.UTF_8)
+                rewriteFqnStrings(text, mapping).toByteArray(Charsets.UTF_8)
+            }
+            isRefmapName(name) -> {
+                val text = data.toString(Charsets.UTF_8)
+                rewriteRefmap(text, mapping).toByteArray(Charsets.UTF_8)
+            }
+            else -> data
+        }
+    }
+
     private fun isMixinJsonName(name: String): Boolean {
         if (!name.endsWith(".json")) return false
         if (name.contains('/')) return false
+        if (name == "fabric.mod.json") return false
         return name.endsWith(".mixins.json") || name.contains("mixin", ignoreCase = true)
+    }
+
+    private fun isRefmapName(name: String): Boolean {
+        if (!name.endsWith(".json")) return false
+        if (name.contains('/')) return false
+        return name.contains("refmap", ignoreCase = true)
     }
 
     private fun rewriteMixinJson(text: String, mapping: ProguardMapping.Mapping): String? {
@@ -522,10 +568,12 @@ internal object MixinJsonRewriter {
                 classFqns[rel] = fqn
             }
         }
-        if (classFqns.isEmpty()) return null
+        val pluginFqn = Regex("\"plugin\"\\s*:\\s*\"([^\"]+)\"").find(text)?.groupValues?.get(1)
+
+        if (classFqns.isEmpty() && pluginFqn == null) return null
 
         val renamed = classFqns.mapValues { (_, fqn) -> mapping.classRenames[fqn] ?: fqn }
-        val commonPkg = commonPackagePrefix(renamed.values)
+        val commonPkg = if (renamed.isNotEmpty()) commonPackagePrefix(renamed.values) else originalPkg
         var result = text
         result = result.replaceFirst(
             Regex("\"package\"\\s*:\\s*\"[^\"]+\""),
@@ -544,6 +592,31 @@ internal object MixinJsonRewriter {
                 "\"$newRel\""
             }
             result = result.replaceFirst(arrMatch.value, "\"$arr\": [$newBody]")
+        }
+        if (pluginFqn != null) {
+            val newPlugin = mapping.classRenames[pluginFqn] ?: pluginFqn
+            result = result.replaceFirst(
+                Regex("\"plugin\"\\s*:\\s*\"[^\"]+\""),
+                "\"plugin\": \"$newPlugin\""
+            )
+        }
+        return result
+    }
+
+    private fun rewriteFqnStrings(text: String, mapping: ProguardMapping.Mapping): String {
+        return Regex("\"([A-Za-z_][\\w.\\$]*\\.[A-Za-z_][\\w\\$]*)\"").replace(text) { m ->
+            val fqn = m.groupValues[1]
+            val newFqn = mapping.classRenames[fqn]
+            if (newFqn != null) "\"$newFqn\"" else m.value
+        }
+    }
+
+    private fun rewriteRefmap(text: String, mapping: ProguardMapping.Mapping): String {
+        var result = text
+        result = Regex("\"([A-Za-z_][\\w.\\$]*\\.[A-Za-z_][\\w\\$]*)\"\\s*:").replace(result) { m ->
+            val fqn = m.groupValues[1]
+            val newFqn = mapping.classRenames[fqn] ?: fqn
+            "\"$newFqn\":"
         }
         return result
     }
