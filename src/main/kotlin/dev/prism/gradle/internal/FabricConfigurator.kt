@@ -109,6 +109,7 @@ object FabricConfigurator {
                 run.ideConfigGenerated(true)
                 run.runDir("runs/${versionConfig.minecraftVersion}/fabric/server")
             }
+            EulaAcceptor.accept(loaderProject.file("runs/${versionConfig.minecraftVersion}/fabric/server"))
 
             if (fabricConfig.apiVersion != null && fabricConfig.enableDatagen) {
                 runs.create("datagen") { run ->
@@ -216,6 +217,7 @@ object FabricConfigurator {
                 run.ideConfigGenerated(true)
                 run.runDir("runs/server")
             }
+            EulaAcceptor.accept(project.file("runs/server"))
             if (fabricConfig.apiVersion != null && fabricConfig.enableDatagen) {
                 runs.create("datagen") { run ->
                     run.client()

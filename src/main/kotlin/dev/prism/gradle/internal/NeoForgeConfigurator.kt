@@ -91,6 +91,7 @@ object NeoForgeConfigurator {
                     run.server()
                     run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/neoforge/server"))
                 }
+                EulaAcceptor.accept(loaderProject.file("runs/${versionConfig.minecraftVersion}/neoforge/server"))
 
                 if (hasSplitDataRuns(versionConfig.minecraftVersion)) {
                     runs.create("clientData") { run ->
@@ -218,6 +219,7 @@ object NeoForgeConfigurator {
                     run.server()
                     run.gameDirectory.set(project.file("runs/server"))
                 }
+                EulaAcceptor.accept(project.file("runs/server"))
                 if (hasSplitDataRuns(versionConfig.minecraftVersion)) {
                     runs.create("clientData") { run ->
                         run.clientData()

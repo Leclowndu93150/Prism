@@ -33,6 +33,7 @@ object RunApplicator {
                     val dir = runConfig.runDir
                         ?: "runs/${versionConfig.minecraftVersion}/fabric/${runConfig.name}"
                     invoke(run, "runDir", dir)
+                    if (runConfig.type == RunType.SERVER) EulaAcceptor.accept(project.file(dir))
 
                     runConfig.username?.let {
                         invoke(run, "programArg", "--username=$it")
@@ -78,6 +79,7 @@ object RunApplicator {
                 val gameDir = run.javaClass.getMethod("getGameDirectory").invoke(run)
                 gameDir.javaClass.getMethod("set", Any::class.java)
                     .invoke(gameDir, project.file(dir))
+                if (runConfig.type == RunType.SERVER) EulaAcceptor.accept(project.file(dir))
 
                 runConfig.username?.let { username ->
                     run.javaClass.getMethod("systemProperty", String::class.java, String::class.java)

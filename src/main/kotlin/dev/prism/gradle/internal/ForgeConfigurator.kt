@@ -83,6 +83,7 @@ object ForgeConfigurator {
                     run.server()
                     run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/forge/server"))
                 }
+                EulaAcceptor.accept(loaderProject.file("runs/${versionConfig.minecraftVersion}/forge/server"))
                 runs.create("data") { run ->
                     run.data()
                     run.gameDirectory.set(loaderProject.file("runs/${versionConfig.minecraftVersion}/forge/data"))
@@ -185,6 +186,7 @@ object ForgeConfigurator {
                     run.server()
                     run.gameDirectory.set(project.file("runs/server"))
                 }
+                EulaAcceptor.accept(project.file("runs/server"))
                 runs.create("data") { run ->
                     run.data()
                     run.gameDirectory.set(project.file("runs/data"))
