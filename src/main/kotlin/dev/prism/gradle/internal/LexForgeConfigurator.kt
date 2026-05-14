@@ -199,6 +199,7 @@ object LexForgeConfigurator {
                 applyStandardRunDefaults(run, mainSourceSet)
                 run.workingDir.set(project.file("$runRoot/server"))
             }
+            EulaAcceptor.accept(project.file("$runRoot/server"))
             container.create("data") { run ->
                 applyStandardRunDefaults(run, mainSourceSet)
                 run.workingDir.set(project.file("$runRoot/data"))

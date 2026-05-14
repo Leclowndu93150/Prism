@@ -1,5 +1,7 @@
 package dev.prism.gradle.dsl
 
+import org.gradle.api.Action
+
 interface LoaderConfiguration {
     val loaderName: String
     val loaderDisplayName: String
@@ -14,7 +16,7 @@ interface LoaderConfiguration {
         obfuscateEnabled = true
     }
 
-    fun obfuscate(action: org.gradle.api.Action<ObfuscationOptions>) {
+    fun obfuscate(action: Action<ObfuscationOptions>) {
         obfuscateEnabled = true
         action.execute(obfuscateOptions)
     }
