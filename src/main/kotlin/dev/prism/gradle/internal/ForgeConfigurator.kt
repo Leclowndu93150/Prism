@@ -29,10 +29,11 @@ object ForgeConfigurator {
 
         loaderProject.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.toolchain.languageVersion.set(
-                JavaLanguageVersion.of(versionConfig.resolvedJavaVersion)
+                JavaLanguageVersion.of(versionConfig.resolvedCompileJdk)
             )
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(loaderProject, versionConfig.resolvedJavaVersion)
 
         loaderProject.extensions.configure(LegacyForgeExtension::class.java) { legacyForge ->
             legacyForge.version = "${versionConfig.minecraftVersion}-${forgeConfig.loaderVersion}"
@@ -144,9 +145,10 @@ object ForgeConfigurator {
         RepositorySetup.configure(project, extraRepositories)
 
         project.extensions.configure(JavaPluginExtension::class.java) { java ->
-            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedJavaVersion))
+            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedCompileJdk))
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(project, versionConfig.resolvedJavaVersion)
 
         project.extensions.configure(LegacyForgeExtension::class.java) { legacyForge ->
             legacyForge.version = "${versionConfig.minecraftVersion}-${forgeConfig.loaderVersion}"

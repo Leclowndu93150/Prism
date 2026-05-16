@@ -345,3 +345,16 @@ plugins {
 ```
 
 Override with `javaVersion` in the version block.
+
+If you need to compile against a dependency that uses newer bytecode than your target
+Minecraft version supports, set `compileJdk` higher than `javaVersion`. Prism will use
+the newer JDK to run the compiler but emit class files at `javaVersion`:
+
+```kotlin
+version("1.20.1") {
+    // ship class file 17 for 1.20.1 users on Java 17
+    javaVersion = 17
+    // but compile on JDK 21 so we can read a Java-21 library on the classpath
+    compileJdk = 21
+}
+```

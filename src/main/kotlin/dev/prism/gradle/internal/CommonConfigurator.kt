@@ -45,10 +45,11 @@ object CommonConfigurator {
 
         commonProject.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.toolchain.languageVersion.set(
-                JavaLanguageVersion.of(versionConfig.resolvedJavaVersion)
+                JavaLanguageVersion.of(versionConfig.resolvedCompileJdk)
             )
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(commonProject, versionConfig.resolvedJavaVersion)
 
         if (hasNeoForm(versionConfig.minecraftVersion)) {
             applyWithNeoForm(commonProject, versionConfig, metadata)

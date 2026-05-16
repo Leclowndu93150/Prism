@@ -41,10 +41,11 @@ object FabricConfigurator {
 
         loaderProject.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.toolchain.languageVersion.set(
-                JavaLanguageVersion.of(versionConfig.resolvedJavaVersion)
+                JavaLanguageVersion.of(versionConfig.resolvedCompileJdk)
             )
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(loaderProject, versionConfig.resolvedJavaVersion)
 
         val loom = loaderProject.extensions.getByType(LoomGradleExtensionAPI::class.java)
 
@@ -167,9 +168,10 @@ object FabricConfigurator {
         RepositorySetup.configure(project, extraRepositories)
 
         project.extensions.configure(JavaPluginExtension::class.java) { java ->
-            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedJavaVersion))
+            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedCompileJdk))
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(project, versionConfig.resolvedJavaVersion)
 
         val loom = project.extensions.getByType(LoomGradleExtensionAPI::class.java)
 
