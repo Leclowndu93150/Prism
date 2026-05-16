@@ -92,7 +92,9 @@ metadata {
 
 ```kotlin
 version("1.21.1") {
-    javaVersion: Int?                      // auto-detected from MC version
+    javaVersion: Int?                      // bytecode target (--release); auto-detected from MC version
+    compileJdk: Int?                       // JDK used to compile; defaults to javaVersion. Set higher
+                                           // to read Java 21 deps while shipping older bytecode.
     neoFormVersion: String?                // auto-resolved from Maven
     parchmentMinecraftVersion: String?     // requires parchmentMappingsVersion
     parchmentMappingsVersion: String?

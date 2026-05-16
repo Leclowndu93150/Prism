@@ -4,7 +4,22 @@ import org.gradle.api.Action
 import org.gradle.api.Project
 
 open class VersionConfiguration(val minecraftVersion: String) {
+    /**
+     * Java bytecode target (`javac --release`) for the emitted class files. This is what
+     * end users need to run the mod. If unset, Prism picks a sensible default for the
+     * Minecraft version (17 for 1.18-1.20, 21 for 1.21, 25 for 26+).
+     */
     var javaVersion: Int? = null
+
+    /**
+     * JDK used to *run* the compiler (the toolchain). Defaults to whichever is higher of
+     * [javaVersion] and the auto-detected minimum, so by default compileJdk == javaVersion.
+     *
+     * Set this if you need a newer JDK to read a dependency (e.g. a library compiled with
+     * Java 21) while still emitting older bytecode for backwards compatibility.
+     */
+    var compileJdk: Int? = null
+
     var neoFormVersion: String? = null
     var parchmentMinecraftVersion: String? = null
     var parchmentMappingsVersion: String? = null
@@ -36,6 +51,10 @@ open class VersionConfiguration(val minecraftVersion: String) {
 
     val resolvedJavaVersion: Int
         get() = javaVersion ?: detectJavaVersion(minecraftVersion)
+
+    /** JDK used to compile (toolchain). Always >= [resolvedJavaVersion]. */
+    val resolvedCompileJdk: Int
+        get() = maxOf(compileJdk ?: resolvedJavaVersion, resolvedJavaVersion)
 
     fun kotlin(version: String = "2.1.20") {
         kotlinVersion = version

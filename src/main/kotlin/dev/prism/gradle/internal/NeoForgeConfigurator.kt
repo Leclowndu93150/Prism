@@ -40,10 +40,11 @@ object NeoForgeConfigurator {
 
         loaderProject.extensions.configure(JavaPluginExtension::class.java) { java ->
             java.toolchain.languageVersion.set(
-                JavaLanguageVersion.of(versionConfig.resolvedJavaVersion)
+                JavaLanguageVersion.of(versionConfig.resolvedCompileJdk)
             )
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(loaderProject, versionConfig.resolvedJavaVersion)
 
         loaderProject.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
             neoForge.version = neoForgeConfig.loaderVersion
@@ -179,9 +180,10 @@ object NeoForgeConfigurator {
         RepositorySetup.configure(project, extraRepositories)
 
         project.extensions.configure(JavaPluginExtension::class.java) { java ->
-            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedJavaVersion))
+            java.toolchain.languageVersion.set(JavaLanguageVersion.of(versionConfig.resolvedCompileJdk))
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(project, versionConfig.resolvedJavaVersion)
 
         project.extensions.configure(NeoForgeExtension::class.java) { neoForge ->
             neoForge.version = neoForgeConfig.loaderVersion

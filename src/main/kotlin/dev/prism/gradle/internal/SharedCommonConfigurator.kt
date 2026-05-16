@@ -37,6 +37,7 @@ object SharedCommonConfigurator {
             java.toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
             java.withSourcesJar()
         }
+        JavaReleaseConfigurator.pinRelease(sharedProject, javaVersion)
 
         sharedProject.dependencies.add("compileOnly", "com.google.code.gson:gson:2.11.0")
         sharedProject.dependencies.add("compileOnly", "org.slf4j:slf4j-api:2.0.9")
