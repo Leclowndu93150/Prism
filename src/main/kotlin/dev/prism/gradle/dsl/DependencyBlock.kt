@@ -73,7 +73,17 @@ open class DependencyBlock {
     internal val runtimeOnlys = mutableListOf<String>()
     internal val modCompileOnlys = mutableListOf<String>()
     internal val modRuntimeOnlys = mutableListOf<String>()
-    internal val jarJarDeps = mutableListOf<String>()
+    open class JarJarConfig {
+        internal val excludedNativeTokens = mutableListOf<String>()
+        internal val excludedPaths = mutableListOf<String>()
+
+        fun excludeNatives(vararg tokens: String) { excludedNativeTokens.addAll(tokens) }
+        fun exclude(vararg paths: String) { excludedPaths.addAll(paths) }
+    }
+
+    internal data class JarJarDep(val dependency: String, val config: JarJarConfig?)
+
+    internal val jarJarDeps = mutableListOf<JarJarDep>()
     internal val shadowDeps = mutableListOf<String>()
     internal val shadowConfig = ShadowConfig()
     internal val annotationProcessors = mutableListOf<String>()
@@ -91,7 +101,12 @@ open class DependencyBlock {
     fun runtimeOnly(dep: String) { runtimeOnlys.add(dep) }
     fun modCompileOnly(dep: String) { modCompileOnlys.add(dep) }
     fun modRuntimeOnly(dep: String) { modRuntimeOnlys.add(dep) }
-    fun jarJar(dep: String) { jarJarDeps.add(dep) }
+    fun jarJar(dep: String) { jarJarDeps.add(JarJarDep(dep, null)) }
+    fun jarJar(dep: String, action: Action<JarJarConfig>) {
+        val config = JarJarConfig()
+        action.execute(config)
+        jarJarDeps.add(JarJarDep(dep, config))
+    }
     fun shadow(dep: String) { shadowDeps.add(dep) }
     fun shadow(action: Action<ShadowConfig>) { action.execute(shadowConfig) }
     fun shadow(dep: String, action: Action<ShadowConfig>) {

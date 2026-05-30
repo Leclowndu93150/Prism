@@ -3,9 +3,16 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.VersionConfiguration
 import org.gradle.api.Project
+import org.gradle.api.provider.Provider
 import org.gradle.language.jvm.tasks.ProcessResources
 
 object TemplateExpansion {
+    private fun resolveExpandValue(value: Any): String =
+        when (value) {
+            is Provider<*> -> value.get().toString()
+            else -> value.toString()
+        }
+
     fun configure(
         project: Project,
         versionConfig: VersionConfiguration,
@@ -44,6 +51,10 @@ object TemplateExpansion {
                     lexForge.loaderVersionRange?.let { put("lexforge_loader_version_range", it) }
                     put("forge_version", lexForge.loaderVersion)
                     lexForge.loaderVersionRange?.let { put("forge_loader_version_range", it) }
+                }
+
+                for ((key, value) in metadata.expandProperties) {
+                    put(key, resolveExpandValue(value))
                 }
             }
 

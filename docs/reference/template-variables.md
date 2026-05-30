@@ -64,6 +64,21 @@ TOML files (`mods.toml`, `neoforge.mods.toml`) are expanded as-is.
 
 Loader-specific variables are only available in subprojects for that loader — `fabric_loader_version` is only set in Fabric subprojects, and so on. Using a Fabric variable in a NeoForge TOML file will leave the placeholder unexpanded.
 
+### Custom variables
+
+Add your own variables with `metadata.expand(key, value)`. The value may be a string or a `Provider<String>` (resolved at build time):
+
+```kotlin
+prism {
+    metadata {
+        expand("commit", gitCommit())
+        expand("homepage", "https://example.com")
+    }
+}
+```
+
+These become `${commit}` and `${homepage}` in all supported files.
+
 ## Example
 
 **fabric.mod.json**

@@ -30,9 +30,18 @@ object RepositorySetup {
             }
 
             for (entry in extraRepositories) {
-                maven { repo ->
-                    repo.name = entry.name
-                    repo.setUrl(entry.url)
+                if (entry.artifactPattern != null) {
+                    ivy { repo ->
+                        repo.name = entry.name
+                        repo.setUrl(entry.url)
+                        repo.patternLayout { layout -> layout.artifact(entry.artifactPattern) }
+                        repo.metadataSources { it.artifact() }
+                    }
+                } else {
+                    maven { repo ->
+                        repo.name = entry.name
+                        repo.setUrl(entry.url)
+                    }
                 }
             }
         }

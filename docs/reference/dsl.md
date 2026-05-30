@@ -68,6 +68,9 @@ prism {
     curseMaven()                   // add CurseMaven repository
     modrinthMaven()                // add Modrinth Maven repository
     maven(name: String, url: String)  // add custom Maven repository
+    ivy(name: String, url: String, artifactPattern: String)  // add Ivy/pattern repository
+
+    gitCommit(short: Boolean = true): Provider<String>  // current commit hash
 }
 ```
 
@@ -83,8 +86,11 @@ metadata {
     license: String
     version: String         // defaults to project.version
     group: String           // defaults to project.group
+    archivesName: String    // JAR name template: {modId} {mc} {loader} {version}
     author(name: String)    // repeatable
     credit(name: String)    // repeatable
+    expand(key: String, value: Any)              // custom ${key} template var (String or Provider)
+    includeFile(path: String, rename: String?)   // copy a file into every JAR; rename supports {name} {archivesName}
 }
 ```
 
@@ -158,6 +164,7 @@ fabric {
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)      // remapped by Loom
         jarJar(dep: String)              // maps to Loom include
+        jarJar(dep: String) { excludeNatives(...); exclude(...) }  // repackage before bundling
         shadow(dep: String)              // maps to implementation + include
         annotationProcessor(dep: String)
         localJar(path: String)                         // local JAR, defaults to compileOnly
@@ -253,6 +260,7 @@ forge {
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)      // remapped by MDG Legacy
         jarJar(dep: String)              // maps to MDG Legacy jarJar
+        jarJar(dep: String) { excludeNatives(...); exclude(...) }  // repackage before bundling
         shadow(dep: String)              // maps to Shadow + additionalRuntimeClasspath
         annotationProcessor(dep: String)
         localJar(path: String)                         // local JAR, defaults to compileOnly
@@ -304,6 +312,7 @@ neoforge {
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)
         jarJar(dep: String)              // maps to MDG jarJar
+        jarJar(dep: String) { excludeNatives(...); exclude(...) }  // repackage before bundling
         shadow(dep: String)              // maps to Shadow
         localJar(path: String)                         // local JAR, defaults to compileOnly
         localJar(path: String, configuration: String)  // local JAR with custom configuration
@@ -359,6 +368,7 @@ lexForge {
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)
         jarJar(dep: String)
+        jarJar(dep: String) { excludeNatives(...); exclude(...) }
         shadow(dep: String)
         annotationProcessor(dep: String)
         localJar(path: String)

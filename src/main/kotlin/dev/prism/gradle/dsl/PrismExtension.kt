@@ -2,6 +2,7 @@ package dev.prism.gradle.dsl
 
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.provider.Provider
 
 open class PrismExtension(private val project: Project) {
     val metadata = MetadataExtension()
@@ -62,7 +63,19 @@ open class PrismExtension(private val project: Project) {
         extraRepositories.add(RepositoryEntry(name, url))
     }
 
+    fun ivy(name: String, url: String, artifactPattern: String) {
+        extraRepositories.add(RepositoryEntry(name, url, artifactPattern))
+    }
+
+    fun gitCommit(short: Boolean = true): Provider<String> {
+        val args = if (short) listOf("git", "rev-parse", "--short", "HEAD") else listOf("git", "rev-parse", "HEAD")
+        return project.providers.exec { spec ->
+            spec.commandLine(args)
+            spec.isIgnoreExitValue = true
+        }.standardOutput.asText.map { it.trim().ifEmpty { "unknown" } }
+    }
+
     val providers get() = project.providers
 }
 
-data class RepositoryEntry(val name: String, val url: String)
+data class RepositoryEntry(val name: String, val url: String, val artifactPattern: String? = null)

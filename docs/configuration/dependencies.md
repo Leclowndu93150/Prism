@@ -246,6 +246,21 @@ On Fabric, this maps to Loom's `include` configuration. On NeoForge/Forge, this 
 
 `jarJar()` is best for normal jar-in-jar embedding. If a library is split across multiple JARs that share packages, prefer `shadow()` instead.
 
+### Excluding entries
+
+`jarJar(dep) { }` accepts a block to strip entries from the embedded JAR before it is bundled. This is useful for dropping native libraries for platforms you do not ship:
+
+```kotlin
+dependencies {
+    jarJar("org.rocksdb:rocksdbjni:10.2.1") {
+        excludeNatives("osx", "linux32", "musl", "s390x", "riscv64", "ppc64le", "aarch64")
+        exclude("some/unwanted/file.txt")
+    }
+}
+```
+
+`excludeNatives(tokens...)` removes native library entries (`.so`, `.dll`, `.dylib`, `.jnilib`) whose path contains any of the given tokens. `exclude(paths...)` removes entries by exact path or suffix match. When either is set, Prism resolves the dependency, repackages it without the excluded entries, and embeds the repackaged JAR.
+
 ## Local JARs
 
 Use `localJar()` to depend on a JAR file from disk:
@@ -274,6 +289,16 @@ prism {
     maven("BlameJared", "https://maven.blamejared.com")
 }
 ```
+
+For artifacts hosted outside a Maven layout (such as GitHub release downloads), use `ivy()` with an artifact pattern:
+
+```kotlin
+prism {
+    ivy("github", "https://github.com/", "/[organisation]/[module]/releases/download/[revision]/[module]-[revision]-[classifier].[ext]")
+}
+```
+
+Then depend on it with the matching coordinates, e.g. `compileOnly("owner:repo:1.0:classifier@jar")`.
 
 These repositories are added to all subprojects.
 

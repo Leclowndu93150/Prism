@@ -25,8 +25,9 @@ object MavenPublishConfigurator {
             publishing.publications { publications ->
                 publications.create("prism", MavenPublication::class.java) { pub ->
                     pub.groupId = metadata.group.ifEmpty { project.rootProject.group.toString() }
-                    pub.artifactId = "${metadata.modId}-${versionConfig.minecraftVersion}-${loaderConfig.loaderDisplayName}".lowercase()
-                    pub.version = metadata.version.ifEmpty { project.rootProject.version.toString() }
+                    val modVersion = metadata.version.ifEmpty { project.rootProject.version.toString() }
+                    pub.artifactId = JarNaming.resolve(metadata, versionConfig, loaderConfig, modVersion).lowercase()
+                    pub.version = modVersion
 
                     pub.from(project.components.findByName("java"))
                 }

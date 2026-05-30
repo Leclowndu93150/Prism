@@ -90,16 +90,24 @@ object DependencyConfigurator {
 
         if (deps.jarJarDeps.isNotEmpty()) {
             val includeConfig = project.configurations.findByName("include")
-            if (isFabric && includeConfig != null) {
-                for (dep in deps.jarJarDeps) {
-                    project.dependencies.add("include", dep)
+            for (jarJar in deps.jarJarDeps) {
+                val config = jarJar.config
+                val hasExclusions = config != null &&
+                    (config.excludedNativeTokens.isNotEmpty() || config.excludedPaths.isNotEmpty())
+                val artifact: Any = if (hasExclusions) {
+                    NativeJarRepackager.repackage(project, jarJar.dependency, config!!)
+                        ?.let { project.files(it) } ?: jarJar.dependency
+                } else {
+                    jarJar.dependency
                 }
-            } else {
-                for (dep in deps.jarJarDeps) {
+
+                if (isFabric && includeConfig != null) {
+                    project.dependencies.add("include", artifact)
+                } else {
                     if (project.configurations.findByName("jarJar") != null) {
-                        project.dependencies.add("jarJar", dep)
+                        project.dependencies.add("jarJar", artifact)
                     }
-                    project.dependencies.add("implementation", dep)
+                    project.dependencies.add("implementation", artifact)
                 }
             }
         }
