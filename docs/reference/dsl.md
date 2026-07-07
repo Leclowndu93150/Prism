@@ -22,6 +22,7 @@ prism {
         forge()        // Forge 1.17–1.20.1 via MDG Legacy
         neoforge()     // NeoForge 1.20.2+ via ModDevGradle
         lexForge()     // Forge 1.21.1+ via ForgeGradle 7
+        forge16()      // Forge 1.16.5 via ForgeGradle 6
         legacyForge()  // Forge 1.7.10–1.12.2 via RetroFuturaGradle
 
         // Single-loader: just one loader, no common()
@@ -134,6 +135,7 @@ version("1.21.1") {
     forge { ... }
     neoforge { ... }
     lexForge { ... }
+    forge16 { ... }
     legacyForge { ... }
 }
 ```
@@ -395,6 +397,54 @@ lexForge {
 
 The `publishLoaderSlug` for LexForge is `forge` — it publishes to CurseForge/Modrinth under the `forge` loader slug, same as Forge (1.17–1.20.1).
 
+### forge16
+
+Forge 1.16.5 via ForgeGradle 6 with MCP mappings.
+
+```kotlin
+forge16 {
+    loaderVersion: String          // required; Forge version (without MC prefix)
+    loaderVersionRange: String?    // version range for template expansion
+    mappingsChannel: String        // default "snapshot"
+    mappingsVersion: String        // default "20210309-1.16.5"
+
+    changelog: String?             // per-loader changelog (overrides version and global)
+    changelogFile: String?         // per-loader changelog file path
+
+    mappings(channel: String, version: String)  // set MCP channel + version together
+    accessTransformer(path: String)             // add AT file
+
+    dependencies {
+        api(dep: String)
+        implementation(dep: String)
+        compileOnlyApi(dep: String)
+        compileOnly(dep: String)
+        runtimeOnly(dep: String)
+        annotationProcessor(dep: String)
+        localJar(path: String)
+        localJar(path: String, configuration: String)
+        configuration(name: String, dep: String)
+        modConfiguration(name: String, dep: String)
+    }
+
+    configuration(name: String)
+
+    mixins {
+        autoDetect(enabled: Boolean)
+        disableAutoDetect()
+        config(path: String)
+        configs(vararg paths: String)
+        refmap(name: String)
+    }
+
+    runs { ... }
+    publishingDependencies { ... }
+    rawProject { project -> ... }
+}
+```
+
+The `publishLoaderSlug` for `forge16` is `forge`. FG6 and FG7 share the plugin ID `net.minecraftforge.gradle`; Prism applies each by its implementation class so `forge16` and `lexForge` can coexist. See [Loaders — Forge 1.16.5](../configuration/loaders.md#forge-1165-forge16).
+
 ### legacyForge
 
 ```kotlin
@@ -597,7 +647,7 @@ commonRawHooks: 0
   modConfigs: modApi, modCompileOnly, modImplementation, modRuntimeOnly
   loader: fabric
   project: :1.21.1:fabric
-  underlying: fabric-loom
+  underlying: net.fabricmc.fabric-loom-remap
   mappings: named dev / intermediary production
   mixins: autoDetect=true, explicit=[], refmap=default
   publishTask: remapJar
@@ -616,7 +666,7 @@ Fields:
 | `loader` | Loader name |
 | `project` | Gradle project path |
 | `underlying` | The Gradle plugin applied to this project |
-| `mappings` | Resolved mapping mode (`neoform named dev`, `named dev / intermediary production`, `fg7 official`, `fg7 parchment`, `mcp`, `unobfuscated`) |
+| `mappings` | Resolved mapping mode (`neoform named dev`, `named dev / intermediary production`, `fg7 official`, `fg7 parchment`, `fg6 snapshot`, `mcp`, `unobfuscated`) |
 | `mixins` | Auto-detect status, explicit configs, refmap name |
 | `publishTask` | The Gradle task selected for publishing artifact |
 | `modConfigs` | All `mod*`-prefixed configurations in the project |

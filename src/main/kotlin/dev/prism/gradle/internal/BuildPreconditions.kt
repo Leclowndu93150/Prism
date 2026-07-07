@@ -5,6 +5,7 @@ import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.NeoForgeConfiguration
 import dev.prism.gradle.dsl.VersionConfiguration
@@ -189,6 +190,7 @@ object BuildPreconditions {
         is FabricConfiguration -> deps
         is ForgeConfiguration -> deps
         is LexForgeConfiguration -> deps
+        is Forge16Configuration -> deps
         is NeoForgeConfiguration -> deps
         is LegacyForgeConfiguration -> deps
         else -> DependencyBlock()

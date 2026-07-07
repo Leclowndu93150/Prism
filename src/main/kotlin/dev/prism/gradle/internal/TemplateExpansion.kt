@@ -53,6 +53,13 @@ object TemplateExpansion {
                     lexForge.loaderVersionRange?.let { put("forge_loader_version_range", it) }
                 }
 
+                versionConfig.forge16Config?.let { forge16 ->
+                    put("forge16_version", forge16.loaderVersion)
+                    forge16.loaderVersionRange?.let { put("forge16_loader_version_range", it) }
+                    put("forge_version", forge16.loaderVersion)
+                    forge16.loaderVersionRange?.let { put("forge_loader_version_range", it) }
+                }
+
                 for ((key, value) in metadata.expandProperties) {
                     put(key, resolveExpandValue(value))
                 }

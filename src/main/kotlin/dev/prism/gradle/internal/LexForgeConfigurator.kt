@@ -9,6 +9,7 @@ import net.minecraftforge.gradle.ForgeGradleExtension
 import net.minecraftforge.gradle.MinecraftExtensionForProject
 import net.minecraftforge.gradle.SlimeLauncherOptions
 import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
@@ -76,7 +77,11 @@ object LexForgeConfigurator {
         extraRepositories: List<RepositoryEntry>,
     ) {
         project.pluginManager.apply("java-library")
-        project.pluginManager.apply("net.minecraftforge.gradle")
+
+        @Suppress("UNCHECKED_CAST")
+        val fg7Plugin = Class.forName("net.minecraftforge.gradle.internal.ForgeGradlePluginEntry")
+            as Class<out Plugin<Project>>
+        project.pluginManager.apply(fg7Plugin)
 
         RepositorySetup.configure(project, extraRepositories)
 

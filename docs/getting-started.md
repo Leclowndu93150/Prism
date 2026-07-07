@@ -22,7 +22,7 @@ Install the [Prism Project Generator](https://github.com/Leclowndu93150/Prism-Ge
 
 Use the [Prism Mod Template](https://github.com/Leclowndu93150/prism-mod-template). Click **Use this template** on GitHub, clone your new repo, and open it in IntelliJ.
 
-The template comes with 1.20.1 (Fabric + Forge), 1.21.1 (NeoForge), 26.1 (Fabric), and 1.12.2 (Legacy Forge) pre-configured.
+The template comes with 1.12.2 (Legacy Forge), 1.16.5 (Forge via FG6), 1.20.1 (Fabric + Forge), 1.21.1 (NeoForge + LexForge), and 26.1 (Fabric) pre-configured.
 
 ## Manual setup
 
@@ -55,6 +55,7 @@ prism {
         fabric()
         neoforge()
         // lexForge()      // MinecraftForge 1.21.1+ via ForgeGradle 7
+        // forge16()       // Forge 1.16.5 via ForgeGradle 6
         // legacyForge()   // Forge 1.7.10–1.12.2 via RetroFuturaGradle
     }
 }
@@ -132,6 +133,7 @@ Run configurations appear in IntelliJ with names like `Fabric Client (1.21.1)` a
 | NeoForge-specific | `versions/{mc}/neoforge/` | Yes (with NeoForge) |
 | Forge-specific (1.17–1.20.1) | `versions/{mc}/forge/` | Yes (with Forge) |
 | LexForge-specific (1.21.1+) | `versions/{mc}/lexforge/` | Yes (with Forge) |
+| Forge 1.16.5 | `versions/{mc}/forge16/` | Yes (with Forge) |
 | Legacy Forge (1.7.10–1.12.2) | `versions/{mc}/legacyforge/` | Yes (with Forge) |
 
 Common code can't use loader APIs (Fabric API, NeoForge events). Put loader-specific code in the loader folders.

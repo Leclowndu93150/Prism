@@ -33,6 +33,7 @@ class PrismSettingsExtension(private val settings: Settings) {
             if (config.hasFabric) registerSubproject(mcVersion, "fabric")
             if (config.hasForge) registerSubproject(mcVersion, "forge")
             if (config.hasLexForge) registerSubproject(mcVersion, "lexforge")
+            if (config.hasForge16) registerSubproject(mcVersion, "forge16")
             if (config.hasNeoForge) registerSubproject(mcVersion, "neoforge")
             if (config.hasLegacyForge) registerSubproject(mcVersion, "legacyforge")
         }
@@ -50,6 +51,7 @@ class PrismSettingsExtension(private val settings: Settings) {
                 if (versionConfig.hasFabric) registerModuleSubproject(moduleName, mcVersion, "fabric")
                 if (versionConfig.hasForge) registerModuleSubproject(moduleName, mcVersion, "forge")
                 if (versionConfig.hasLexForge) registerModuleSubproject(moduleName, mcVersion, "lexforge")
+                if (versionConfig.hasForge16) registerModuleSubproject(moduleName, mcVersion, "forge16")
                 if (versionConfig.hasNeoForge) registerModuleSubproject(moduleName, mcVersion, "neoforge")
                 if (versionConfig.hasLegacyForge) registerModuleSubproject(moduleName, mcVersion, "legacyforge")
             }
@@ -111,6 +113,7 @@ class SettingsVersionConfig(val minecraftVersion: String) {
     var hasFabric = false; private set
     var hasForge = false; private set
     var hasLexForge = false; private set
+    var hasForge16 = false; private set
     var hasNeoForge = false; private set
     var hasLegacyForge = false; private set
     var hasCommon = false; private set
@@ -119,11 +122,12 @@ class SettingsVersionConfig(val minecraftVersion: String) {
     fun fabric() { hasFabric = true }
     fun forge() { hasForge = true }
     fun lexForge() { hasLexForge = true }
+    fun forge16() { hasForge16 = true }
     fun neoforge() { hasNeoForge = true }
     fun legacyForge() { hasLegacyForge = true }
 
     val loaderCount: Int
-        get() = listOf(hasFabric, hasForge, hasLexForge, hasNeoForge, hasLegacyForge).count { it }
+        get() = listOf(hasFabric, hasForge, hasLexForge, hasForge16, hasNeoForge, hasLegacyForge).count { it }
 
     val isSingleLoader: Boolean
         get() = loaderCount == 1 && !hasCommon
@@ -134,6 +138,7 @@ class SettingsVersionConfig(val minecraftVersion: String) {
             hasFabric -> "fabric"
             hasForge -> "forge"
             hasLexForge -> "lexforge"
+            hasForge16 -> "forge16"
             hasNeoForge -> "neoforge"
             hasLegacyForge -> "legacyforge"
             else -> null

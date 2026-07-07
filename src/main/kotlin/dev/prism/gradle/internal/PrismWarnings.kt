@@ -3,6 +3,7 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MixinOptions
@@ -17,6 +18,7 @@ object PrismWarnings {
             is FabricConfiguration -> loaderConfig.mixinOptions
             is ForgeConfiguration -> loaderConfig.mixinOptions
             is LexForgeConfiguration -> loaderConfig.mixinOptions
+            is Forge16Configuration -> loaderConfig.mixinOptions
             is NeoForgeConfiguration -> loaderConfig.mixinOptions
             else -> null
         }

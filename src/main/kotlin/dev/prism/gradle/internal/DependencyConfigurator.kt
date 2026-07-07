@@ -95,8 +95,10 @@ object DependencyConfigurator {
                 val hasExclusions = config != null &&
                     (config.excludedNativeTokens.isNotEmpty() || config.excludedPaths.isNotEmpty())
                 val artifact: Any = if (hasExclusions) {
-                    NativeJarRepackager.repackage(project, jarJar.dependency, config!!)
-                        ?.let { project.files(it) } ?: jarJar.dependency
+                    project.files(project.provider {
+                        NativeJarRepackager.repackage(project, jarJar.dependency, config!!)
+                            ?: error("Prism: could not resolve ${jarJar.dependency} for native exclusion")
+                    })
                 } else {
                     jarJar.dependency
                 }

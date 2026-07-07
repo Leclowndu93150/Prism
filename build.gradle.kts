@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "dev.prism"
-version = "0.5.13"
+version = "0.5.16"
 
 repositories {
     mavenCentral()
@@ -53,6 +53,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("com.gtnewhorizons:retrofuturagradle:2.0.2")
     implementation("net.minecraftforge:forgegradle:7.0.25")
+    implementation("net.minecraftforge.gradle:ForgeGradle:6.0.54")
     implementation("com.gradleup.shadow:shadow-gradle-plugin:9.0.0-beta12")
     implementation("org.ow2.asm:asm:9.7.1")
     implementation("org.ow2.asm:asm-tree:9.7.1")

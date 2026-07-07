@@ -8,7 +8,9 @@ sidebar_position: 4
 
 - **Fabric (pre-26.x)**: Official Mojang mappings via Loom's `officialMojangMappings()`
 - **Fabric (26.x+)**: No mappings needed. Minecraft is unobfuscated. Prism sets `fabric.loom.disableObfuscation=true` automatically.
-- **NeoForge / Forge**: Official mappings via ModDevGradle
+- **NeoForge / Forge (1.17+)**: Official mappings via ModDevGradle / ForgeGradle 7
+- **Forge 1.16.5 (`forge16`)**: MCP mappings via ForgeGradle 6 (`snapshot` / `20210309-1.16.5` by default)
+- **Legacy Forge (1.7.10–1.12.2)**: MCP mappings via RetroFuturaGradle (`stable` / `39` by default)
 
 ## Yarn mappings
 
@@ -59,6 +61,21 @@ Both `parchmentMinecraftVersion` and `parchmentMappingsVersion` must be set. If 
 ## LexForge mappings
 
 LexForge (ForgeGradle 7, Forge 1.21.1+) supports official Mojang mappings, Parchment, and custom channels. See [Loaders — LexForge mappings](loaders.md#mappings-1) for configuration details. The `prismDoctor` output shows the resolved channel as `fg7 official`, `fg7 parchment`, or `fg7 <channel>`.
+
+## Forge 1.16.5 mappings (`forge16`)
+
+`forge16` (ForgeGradle 6) uses MCP mappings. 1.16.5 has no `stable` channel, so the default is `snapshot` / `20210309-1.16.5`. Override with an explicit channel/version:
+
+```kotlin
+version("1.16.5") {
+    forge16 {
+        loaderVersion = "36.2.42"
+        mappings("snapshot", "20210309-1.16.5")
+    }
+}
+```
+
+Parchment is not wired for `forge16`. The `prismDoctor` output shows the resolved channel as `fg6 <channel>`.
 
 ## Common project compilation
 

@@ -3,6 +3,7 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.ModuleConfiguration
@@ -96,6 +97,7 @@ object Validation {
             is FabricConfiguration -> loader.loaderVersion
             is ForgeConfiguration -> loader.loaderVersion
             is LexForgeConfiguration -> loader.loaderVersion
+            is Forge16Configuration -> loader.loaderVersion
             is NeoForgeConfiguration -> loader.loaderVersion
             else -> return
         }

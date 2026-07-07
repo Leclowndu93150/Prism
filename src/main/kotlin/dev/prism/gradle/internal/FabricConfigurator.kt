@@ -17,6 +17,9 @@ object FabricConfigurator {
         return major >= 2
     }
 
+    private fun loomPluginId(unobfuscated: Boolean): String =
+        if (unobfuscated) "net.fabricmc.fabric-loom" else "net.fabricmc.fabric-loom-remap"
+
     fun configure(
         loaderProject: Project,
         commonProject: Project,
@@ -34,7 +37,7 @@ object FabricConfigurator {
             loaderProject.extensions.extraProperties.set("fabric.loom.disableObfuscation", "true")
         }
 
-        loaderProject.pluginManager.apply("fabric-loom")
+        loaderProject.pluginManager.apply(loomPluginId(unobfuscated))
         fabricConfig.extraConfigurations.forEach { loaderProject.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(loaderProject, extraRepositories)
@@ -162,7 +165,7 @@ object FabricConfigurator {
             project.extensions.extraProperties.set("fabric.loom.disableObfuscation", "true")
         }
 
-        project.pluginManager.apply("fabric-loom")
+        project.pluginManager.apply(loomPluginId(unobfuscated))
         fabricConfig.extraConfigurations.forEach { project.configurations.maybeCreate(it) }
 
         RepositorySetup.configure(project, extraRepositories)

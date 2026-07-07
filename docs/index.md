@@ -7,7 +7,7 @@ sidebar_position: 1
 
 A Gradle plugin for multi-version, multi-loader Minecraft mod development in a single branch.
 
-Prism wraps [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradle](https://github.com/neoforged/ModDevGradle), [ForgeGradle 7](https://github.com/MinecraftForge/ForgeGradle), and [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle). You get full IDE support, run configurations, and all the features of the underlying plugins without managing multiple branches or complex build scripts.
+Prism wraps [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradle](https://github.com/neoforged/ModDevGradle), [ForgeGradle 7 and 6](https://github.com/MinecraftForge/ForgeGradle), and [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle). You get full IDE support, run configurations, and all the features of the underlying plugins without managing multiple branches or complex build scripts.
 
 ## What Prism does
 
@@ -59,9 +59,10 @@ modules/                         optional: independent mods in one repo
 | NeoForge     | ModDevGradle                   | 1.20.2+            | `:neoforge`        |
 | Forge        | ModDevGradle Legacy            | 1.17 – 1.20.1      | `:forge`           |
 | LexForge     | ForgeGradle 7                  | 1.21.1+            | `:lexforge`        |
+| Forge 1.16.5 | ForgeGradle 6                  | 1.16.5             | `:forge16`         |
 | Legacy Forge | RetroFuturaGradle              | 1.7.10 – 1.12.2    | `:legacyforge`     |
 
-LexForge is MinecraftForge proper (the original fork) for 1.21.1 and later. Forge (1.17–1.20.1) uses ModDevGradle Legacy, which is a different toolchain from the same MC version range.
+LexForge is MinecraftForge proper (the original fork) for 1.21.1 and later. Forge (1.17–1.20.1) uses ModDevGradle Legacy, which is a different toolchain from the same MC version range. `forge16` covers 1.16.5 — the gap between RetroFuturaGradle (≤1.12.2) and ModDevGradle Legacy (1.17+) — via ForgeGradle 6 with MCP mappings.
 
 ## Next steps
 

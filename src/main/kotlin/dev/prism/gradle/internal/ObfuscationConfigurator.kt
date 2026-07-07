@@ -3,6 +3,7 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.ObfuscationOptions
@@ -59,6 +60,7 @@ object ObfuscationConfigurator {
         is FabricConfiguration -> "remapJar"
         is LegacyForgeConfiguration -> "reobfJar"
         is LexForgeConfiguration -> "reobfJar"
+        is Forge16Configuration -> "reobfJar"
         else -> "jar"
     }
 

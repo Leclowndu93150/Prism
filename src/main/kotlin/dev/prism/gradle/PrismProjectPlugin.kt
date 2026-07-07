@@ -3,6 +3,7 @@ package dev.prism.gradle
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.ModuleConfiguration
@@ -561,6 +562,7 @@ class PrismProjectPlugin : Plugin<Project> {
         is FabricConfiguration -> loaderConfig.deps
         is ForgeConfiguration -> loaderConfig.deps
         is LexForgeConfiguration -> loaderConfig.deps
+        is Forge16Configuration -> loaderConfig.deps
         is NeoForgeConfiguration -> loaderConfig.deps
         is LegacyForgeConfiguration -> loaderConfig.deps
         else -> throw IllegalStateException("Unsupported loader configuration type: ${loaderConfig::class.qualifiedName}")

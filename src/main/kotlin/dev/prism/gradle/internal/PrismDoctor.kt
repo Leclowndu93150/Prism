@@ -3,6 +3,7 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MixinOptions
@@ -61,7 +62,7 @@ object PrismDoctor {
             val project = findLoaderProject(rootProject, mcVersion, loaderConfig, moduleConfig)
             appendLine("  loader: ${loaderConfig.loaderName}")
             appendLine("  project: ${project?.path ?: "missing"}")
-            appendLine("  underlying: ${underlyingPlugin(loaderConfig)}")
+            appendLine("  underlying: ${underlyingPlugin(versionConfig, loaderConfig)}")
             appendLine("  mappings: ${mappingMode(versionConfig, loaderConfig)}")
             appendLine("  mixins: ${describeMixins(loaderConfig)}")
             appendLine("  publishTask: ${project?.let { PublishingConfigurator.selectPublishTaskName(it, loaderConfig, publishingConfig) } ?: "n/a"}")
@@ -86,10 +87,15 @@ object PrismDoctor {
         }
     }
 
-    private fun underlyingPlugin(loaderConfig: LoaderConfiguration) = when (loaderConfig) {
-        is FabricConfiguration -> "fabric-loom"
+    private fun underlyingPlugin(versionConfig: VersionConfiguration, loaderConfig: LoaderConfiguration) = when (loaderConfig) {
+        is FabricConfiguration -> if (versionConfig.minecraftVersion.startsWith("26.") || versionConfig.minecraftVersion.startsWith("27.")) {
+            "net.fabricmc.fabric-loom"
+        } else {
+            "net.fabricmc.fabric-loom-remap"
+        }
         is ForgeConfiguration -> "net.neoforged.moddev.legacyforge"
-        is LexForgeConfiguration -> "net.minecraftforge.gradle"
+        is LexForgeConfiguration -> "net.minecraftforge.gradle (fg7)"
+        is Forge16Configuration -> "net.minecraftforge.gradle (fg6)"
         is NeoForgeConfiguration -> "net.neoforged.moddev"
         is LegacyForgeConfiguration -> "com.gtnewhorizons.retrofuturagradle"
         else -> "unknown"
@@ -107,6 +113,7 @@ object PrismDoctor {
                 ?: if (versionConfig.parchmentMappingsVersion != null) "parchment" else "official"
             "fg7 $channel"
         }
+        is Forge16Configuration -> "fg6 ${loaderConfig.mappingsChannel}"
         is NeoForgeConfiguration -> "neoform named dev"
         is LegacyForgeConfiguration -> "mcp"
         else -> "unknown"

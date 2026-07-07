@@ -62,6 +62,17 @@ TOML files (`mods.toml`, `neoforge.mods.toml`) are expanded as-is.
 | `lexforge_version`                 | lexForge.loaderVersion        | `52.0.0`   |
 | `lexforge_loader_version_range`    | lexForge.loaderVersionRange   | `[52,)`    |
 
+LexForge also sets `forge_version` and `forge_loader_version_range` as aliases, so a shared `mods.toml` template works for both.
+
+### forge16 subprojects only (ForgeGradle 6, 1.16.5)
+
+| Variable                           | Source                        | Example    |
+|------------------------------------|-------------------------------|------------|
+| `forge16_version`                  | forge16.loaderVersion         | `36.2.42`  |
+| `forge16_loader_version_range`     | forge16.loaderVersionRange    | `[36,)`    |
+
+`forge16` also sets `forge_version` and `forge_loader_version_range` as aliases.
+
 Loader-specific variables are only available in subprojects for that loader — `fabric_loader_version` is only set in Fabric subprojects, and so on. Using a Fabric variable in a NeoForge TOML file will leave the placeholder unexpanded.
 
 ### Custom variables

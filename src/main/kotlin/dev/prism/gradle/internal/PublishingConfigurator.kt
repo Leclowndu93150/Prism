@@ -4,6 +4,7 @@ import dev.prism.gradle.dsl.FabricConfiguration
 import dev.prism.gradle.dsl.ForgeConfiguration
 import dev.prism.gradle.dsl.LegacyForgeConfiguration
 import dev.prism.gradle.dsl.LexForgeConfiguration
+import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.NeoForgeConfiguration
@@ -38,6 +39,7 @@ object PublishingConfigurator {
         is LegacyForgeConfiguration -> "reobfJar"
         is ForgeConfiguration -> "reobfJar"
         is LexForgeConfiguration -> "jar"
+        is Forge16Configuration -> "reobfJar"
         is NeoForgeConfiguration -> "jar"
         else -> "jar"
     }
@@ -55,7 +57,7 @@ object PublishingConfigurator {
             if (hasTask(project, "reobfShadowJar")) {
                 return "reobfShadowJar"
             }
-            if (loaderConfig !is ForgeConfiguration && loaderConfig !is LegacyForgeConfiguration && hasTask(project, "shadowJar")) {
+            if (loaderConfig !is ForgeConfiguration && loaderConfig !is LegacyForgeConfiguration && loaderConfig !is Forge16Configuration && hasTask(project, "shadowJar")) {
                 return "shadowJar"
             }
         }
@@ -66,7 +68,7 @@ object PublishingConfigurator {
         // Forge/LegacyForge must never fall back to `jar`, because that would silently publish
         // the un-remapped dev artifact. Fabric is exempt: on unobfuscated MC there is no
         // `remapJar` and `jar` is the production artifact.
-        val needsRemapped = loaderConfig is ForgeConfiguration || loaderConfig is LegacyForgeConfiguration
+        val needsRemapped = loaderConfig is ForgeConfiguration || loaderConfig is LegacyForgeConfiguration || loaderConfig is Forge16Configuration
         if (needsRemapped) {
             project.logger.warn(
                 "Prism: ${loaderConfig.loaderDisplayName} project '${project.path}' has no '${defaultPublishTaskName(loaderConfig)}' task. " +
@@ -109,6 +111,7 @@ object PublishingConfigurator {
             is FabricConfiguration -> loaderConfig.pubDeps.deps
             is ForgeConfiguration -> loaderConfig.pubDeps.deps
             is LexForgeConfiguration -> loaderConfig.pubDeps.deps
+            is Forge16Configuration -> loaderConfig.pubDeps.deps
             is NeoForgeConfiguration -> loaderConfig.pubDeps.deps
             else -> emptyList()
         }

@@ -12,7 +12,8 @@ Prism bundles every underlying build plugin on its own classpath at fixed versio
 |-------------------------------------------------------------------------------|-----------------------------------|-----------------|
 | [Fabric Loom](https://github.com/FabricMC/fabric-loom)                        | Fabric (all versions)             | `1.16.1`        |
 | [ModDevGradle](https://github.com/neoforged/ModDevGradle)                     | NeoForge + Forge 1.17–1.20.1      | `2.0.141`       |
-| [ForgeGradle](https://github.com/MinecraftForge/ForgeGradle)                  | LexForge 1.21.1+                  | `7.0.25`        |
+| [ForgeGradle 7](https://github.com/MinecraftForge/ForgeGradle)                | LexForge 1.17.1–1.20.1            | `7.0.25`        |
+| [ForgeGradle 6](https://github.com/MinecraftForge/ForgeGradle)                | Forge 1.16.5 (`forge16`)          | `6.0.54`        |
 | [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle)       | Legacy Forge 1.7.10–1.12.2        | `2.0.2`         |
 
 NeoForm versions are **not** pinned — Prism resolves the right NeoForm version per Minecraft version at sync time and caches the lookup in `~/.gradle/caches/prism/neoform-versions.txt`.
@@ -22,6 +23,13 @@ If you need a different pinned-tool version (e.g. an alpha for a brand-new Minec
 ## Fabric
 
 Uses [Fabric Loom](https://github.com/FabricMC/fabric-loom) under the hood.
+
+Since the 1.21.11 transition, the single `net.fabricmc:fabric-loom` jar ships several Gradle plugin IDs. Prism applies the right one automatically based on the Minecraft version:
+
+- **`net.fabricmc.fabric-loom-remap`** — obfuscated versions (Minecraft 1.21.11 and older). This is what the vast majority of projects use.
+- **`net.fabricmc.fabric-loom`** — unobfuscated versions (Minecraft 26.1+), where no remap step is needed.
+
+The legacy `fabric-loom` plugin ID is deprecated and Prism no longer applies it. You don't configure this yourself — it's derived from the version.
 
 ```kotlin
 version("1.21.1") {
@@ -198,6 +206,64 @@ lexForge {
 ```
 
 Run configurations generated: `client`, `server`, `data`.
+
+## Forge 1.16.5 (`forge16`)
+
+Uses [ForgeGradle 6](https://github.com/MinecraftForge/ForgeGradle) for Forge 1.16.5 with MCP mappings. This fills the gap between RetroFuturaGradle (1.7.10–1.12.2) and ModDevGradle Legacy (1.17+): 1.16.5 is served by neither, so Prism wires FG6 for it.
+
+```kotlin
+version("1.16.5") {
+    forge16 {
+        loaderVersion = "36.2.42"
+        loaderVersionRange = "[36,)"
+        mappings("snapshot", "20210309-1.16.5")   // default
+
+        accessTransformer("src/main/resources/META-INF/accesstransformer.cfg")
+
+        dependencies {
+            implementation("some:forge-mod:1.0")
+        }
+    }
+}
+```
+
+In `settings.gradle.kts`:
+
+```kotlin
+prism {
+    version("1.16.5") {
+        forge16()
+    }
+}
+```
+
+The loader subproject path is `:1.16.5:forge16` (directory `versions/1.16.5/forge16/`). As a single-loader version it lives directly at `versions/1.16.5/`.
+
+| Property              | Required | Default                | Description                          |
+|-----------------------|----------|------------------------|--------------------------------------|
+| `loaderVersion`       | Yes      | —                      | Forge version (without MC prefix)    |
+| `loaderVersionRange`  | No       | —                      | Version range for template expansion |
+| `mappings(c, v)`      | No       | `snapshot` / `20210309-1.16.5` | MCP mappings channel and version |
+| `accessTransformer()` | No       | —                      | Path to an AT file                   |
+
+The Forge dependency is resolved as `net.minecraftforge:forge:{mcVersion}-{loaderVersion}`, e.g. `net.minecraftforge:forge:1.16.5-36.2.42`, through FG6's userdev `minecraft` configuration.
+
+:::note MCP mappings only
+1.16.5 has no `stable` MCP channel — use `snapshot` (default `20210309-1.16.5`). Parchment is not wired for `forge16`; pass an explicit `mappings("snapshot", "...")` to override.
+:::
+
+FG6 and FG7 both register the Gradle plugin ID `net.minecraftforge.gradle`. Prism applies each by its implementation class rather than the shared ID, so `forge16` (FG6) and `lexForge` (FG7) can coexist in the same build.
+
+Requires the MinecraftForge maven in `pluginManagement`:
+```kotlin
+maven { url = uri("https://maven.minecraftforge.net/") }
+```
+
+### Mixins
+
+Like LexForge, FG6 has no mixin Gradle extension. Prism auto-detects `.mixins.json` configs, adds the Sponge Mixin annotation processor (`org.spongepowered:mixin:0.8.5:processor`), and writes the `MixinConfigs` manifest attribute. Use `JAVA_8` compatibility level in your mixin JSON (1.16.5 runs on Java 8) and include a `"refmap"` field.
+
+Run configurations generated: `client`, `server`, `data`. The production jar is `reobfJar`.
 
 ## Forge (1.17 - 1.20.1)
 
