@@ -110,6 +110,7 @@ object PublishingConfigurator {
         val loaderPubDeps = when (loaderConfig) {
             is FabricConfiguration -> loaderConfig.pubDeps.deps
             is ForgeConfiguration -> loaderConfig.pubDeps.deps
+            is LegacyForgeConfiguration -> loaderConfig.pubDeps.deps
             is LexForgeConfiguration -> loaderConfig.pubDeps.deps
             is Forge16Configuration -> loaderConfig.pubDeps.deps
             is NeoForgeConfiguration -> loaderConfig.pubDeps.deps

@@ -6,6 +6,19 @@ import org.gradle.api.provider.Provider
 
 open class PrismExtension(private val project: Project) {
     val metadata = MetadataExtension()
+
+    var version: String
+        get() = metadata.version
+        set(value) {
+            metadata.version = value
+        }
+
+    var group: String
+        get() = metadata.group
+        set(value) {
+            metadata.group = value
+        }
+
     internal val versions = mutableMapOf<String, VersionConfiguration>()
     internal val publishingConfig = PublishingConfiguration()
     internal val extraRepositories = mutableListOf<RepositoryEntry>()

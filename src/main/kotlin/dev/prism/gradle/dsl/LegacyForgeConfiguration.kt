@@ -6,6 +6,7 @@ import org.gradle.api.Project
 open class LegacyForgeConfiguration : LoaderConfiguration {
     override val loaderName = "legacyforge"
     override val loaderDisplayName = "Forge"
+    override val publishLoaderSlug = "forge"
     override var changelog: String? = null
     override var changelogFile: String? = null
     override var obfuscateEnabled: Boolean = false
