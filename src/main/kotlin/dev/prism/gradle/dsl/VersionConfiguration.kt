@@ -49,6 +49,7 @@ open class VersionConfiguration(val minecraftVersion: String) {
     internal val commonDeps = DependencyBlock()
     internal val pubDeps = PublishingDepsBlock()
     internal val rawCommonProjectActions = mutableListOf<Action<Project>>()
+    internal var junitVersion: String? = null
 
     val resolvedJavaVersion: Int
         get() = javaVersion ?: detectJavaVersion(minecraftVersion)
@@ -59,6 +60,10 @@ open class VersionConfiguration(val minecraftVersion: String) {
 
     fun kotlin(version: String = "2.1.20") {
         kotlinVersion = version
+    }
+
+    fun tests(junitVersion: String = "5.14.4") {
+        this.junitVersion = junitVersion
     }
 
     fun common(action: Action<DependencyBlock>) {

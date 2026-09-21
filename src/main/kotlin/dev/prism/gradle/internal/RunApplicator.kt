@@ -5,6 +5,7 @@ import dev.prism.gradle.dsl.RunType
 import dev.prism.gradle.dsl.RunsBlock
 import dev.prism.gradle.dsl.VersionConfiguration
 import org.gradle.api.Project
+import java.io.File
 
 object RunApplicator {
 
@@ -77,7 +78,7 @@ object RunApplicator {
                 val dir = runConfig.runDir
                     ?: "runs/${versionConfig.minecraftVersion}/$loaderName/${runConfig.name}"
                 val gameDir = run.javaClass.getMethod("getGameDirectory").invoke(run)
-                gameDir.javaClass.getMethod("set", Any::class.java)
+                gameDir.javaClass.getMethod("set", File::class.java)
                     .invoke(gameDir, project.file(dir))
                 if (runConfig.type == RunType.SERVER) EulaAcceptor.accept(project.file(dir))
 

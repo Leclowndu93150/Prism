@@ -58,8 +58,14 @@ prism {
     kotlin(version: String)                // enable Kotlin for ALL versions with specific version
 
     sharedCommon {                         // configure the shared common project
+        javaVersion: Int?                  // bytecode target; defaults to the lowest version's Java
         mixin()                            // add Mixin as compileOnly
         mixinExtras()                      // add Mixin + MixinExtras as compileOnly
+        minecraftLibraries()               // compileOnly every library Minecraft ships (lowest declared version)
+        minecraftLibraries(version: String) // same, for a specific Minecraft version
+        perTargetSources(vararg paths)     // source dirs (relative to :common) compiled into every version
+        tests()                            // JUnit 5 (default 5.14.4) + main classpath + host LWJGL natives
+        tests(junitVersion: String)
         dependencies { ... }               // additional dependencies
         rawProject { project -> ... }      // escape hatch for :common
     }
@@ -74,6 +80,10 @@ prism {
     gitCommit(short: Boolean = true): Provider<String>  // current commit hash
 }
 ```
+
+`minecraftLibraries()` replaces the default Gson/Guava/SLF4J/fastutil set with the exact library versions from Mojang's version manifest for that Minecraft version. The manifest is cached in `~/.gradle/caches/prism/minecraft/`.
+
+`perTargetSources()` is for code that is identical across versions but needs Minecraft classes, so it can't compile in `:common`. Each directory is added as a source root of every `versions/{mc}/common` (or the single-loader project); loaders compile it from there like any other common source.
 
 The top-level `kotlin()` propagates to every version that doesn't already have its own `kotlin()` call. Per-version `kotlin()` takes precedence.
 
@@ -117,6 +127,8 @@ version("1.21.1") {
 
     minecraftVersions("1.21", "1.21.1")    // explicit Minecraft versions for publishing
     rawCommonProject { project -> ... }    // escape hatch for versions/{mc}/common
+    tests()                                // JUnit 5 on versions/{mc}/common (or the single loader project):
+    tests(junitVersion: String)            // BOM + launcher, Minecraft on the test classpath, host LWJGL natives
 
     common {                               // shared dependencies
         api(dep: String)

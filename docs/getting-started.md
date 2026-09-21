@@ -6,7 +6,7 @@ sidebar_position: 2
 
 ## Requirements
 
-- Gradle 8.8 or newer (9.x recommended)
+- Gradle 9.7 or newer, running on JDK 25
 - JDK for your highest MC target (JDK 25 for 26.x, JDK 21 for 1.21.x, JDK 17 for 1.20.x)
 - IntelliJ IDEA (recommended)
 

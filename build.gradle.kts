@@ -1,12 +1,12 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    kotlin("jvm") version "2.3.21"
-    kotlin("plugin.serialization") version "2.3.21"
+    kotlin("jvm") version "2.4.20"
+    kotlin("plugin.serialization") version "2.4.20"
 }
 
 group = "dev.prism"
-version = "0.5.17"
+version = "0.6.0"
 
 repositories {
     mavenCentral()
@@ -38,28 +38,28 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 dependencies {
     implementation(gradleApi())
-    implementation("net.fabricmc:fabric-loom:1.16.1")
-    implementation("net.neoforged:moddev-gradle:2.0.141")
+    implementation("net.fabricmc:fabric-loom:1.18.2")
+    implementation("net.neoforged:moddev-gradle:2.0.147")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-    implementation("com.gtnewhorizons:retrofuturagradle:2.0.2")
-    implementation("net.minecraftforge:forgegradle:7.0.25")
+    implementation("com.gtnewhorizons:retrofuturagradle:2.0.4")
+    implementation("net.minecraftforge:forgegradle:7.0.40")
     implementation("net.minecraftforge.gradle:ForgeGradle:6.0.54")
-    implementation("com.gradleup.shadow:shadow-gradle-plugin:9.0.0-beta12")
-    implementation("org.ow2.asm:asm:9.7.1")
-    implementation("org.ow2.asm:asm-tree:9.7.1")
+    implementation("com.gradleup.shadow:shadow-gradle-plugin:9.6.1")
+    implementation("org.ow2.asm:asm:9.10.1")
+    implementation("org.ow2.asm:asm-tree:9.10.1")
 
     testImplementation(gradleTestKit())
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
 }
 
 gradlePlugin {

@@ -23,6 +23,7 @@ import dev.prism.gradle.internal.PrismWarnings
 import dev.prism.gradle.internal.RepositorySetup
 import dev.prism.gradle.internal.ShadowConfigurator
 import dev.prism.gradle.internal.SharedCommonConfigurator
+import dev.prism.gradle.internal.TestConfigurator
 import dev.prism.gradle.internal.Validation
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -64,8 +65,15 @@ class PrismProjectPlugin : Plugin<Project> {
         val hasSharedCommon = sharedProject != null
 
         if (hasSharedCommon) {
+            val sharedCommonConfig = extension.sharedCommonConfig
             val minJava = extension.versions.values.minOfOrNull { it.resolvedJavaVersion } ?: 21
-            SharedCommonConfigurator.configure(sharedProject!!, extension.metadata, extension.extraRepositories, minJava, extension.sharedCommonConfig)
+            val javaVersion = sharedCommonConfig.javaVersion ?: minJava
+            val librariesVersion = if (sharedCommonConfig.minecraftLibrariesEnabled) {
+                sharedCommonConfig.minecraftLibrariesVersion ?: extension.versions.keys.minWithOrNull(::compareMinecraftVersions)
+            } else {
+                null
+            }
+            SharedCommonConfigurator.configure(sharedProject!!, extension.metadata, extension.extraRepositories, javaVersion, sharedCommonConfig, librariesVersion, maxOf(javaVersion, minJava))
             for (action in extension.sharedCommonConfig.rawProjectActions) {
                 action.execute(sharedProject)
             }
@@ -169,7 +177,10 @@ class PrismProjectPlugin : Plugin<Project> {
             SharedCommonConfigurator.applyDownstreamSupportDeps(loaderProject, extension.sharedCommonConfig)
             DependencyConfigurator.apply(loaderProject, extension.sharedCommonConfig.deps, isFabric, isSharedCommonDownstream = true)
             SharedCommonConfigurator.wireInto(loaderProject, sharedProject!!)
+            SharedCommonConfigurator.addPerTargetSources(loaderProject, sharedProject, extension.sharedCommonConfig)
         }
+
+        versionConfig.junitVersion?.let { TestConfigurator.apply(loaderProject, it, mcVersion) }
 
         PrismWarnings.reportLoaderWarnings(loaderProject, loaderConfig, extension.publishingConfig)
 
@@ -224,7 +235,10 @@ class PrismProjectPlugin : Plugin<Project> {
             SharedCommonConfigurator.applyDownstreamSupportDeps(commonProject, extension.sharedCommonConfig)
             DependencyConfigurator.apply(commonProject, extension.sharedCommonConfig.deps)
             SharedCommonConfigurator.wireInto(commonProject, sharedProject!!)
+            SharedCommonConfigurator.addPerTargetSources(commonProject, sharedProject, extension.sharedCommonConfig)
         }
+
+        versionConfig.junitVersion?.let { TestConfigurator.apply(commonProject, it, mcVersion) }
 
         if (extension.publishingConfig.hasMaven && extension.publishingConfig.publishCommonJar) {
             MavenPublishConfigurator.configureCommon(
@@ -556,6 +570,16 @@ class PrismProjectPlugin : Plugin<Project> {
             merged.repackage = last.repackage
         }
         return merged
+    }
+
+    private fun compareMinecraftVersions(a: String, b: String): Int {
+        val left = a.split('.', '-').map { it.toIntOrNull() ?: 0 }
+        val right = b.split('.', '-').map { it.toIntOrNull() ?: 0 }
+        for (i in 0 until maxOf(left.size, right.size)) {
+            val compared = left.getOrElse(i) { 0 }.compareTo(right.getOrElse(i) { 0 })
+            if (compared != 0) return compared
+        }
+        return 0
     }
 
     private fun loaderDeps(loaderConfig: LoaderConfiguration) = when (loaderConfig) {

@@ -96,9 +96,11 @@ object FabricConfigurator {
 
         val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(loaderProject, commonProject, fabricConfig.mixinOptions)
 
-        if (!unobfuscated && mixinConfigs.isNotEmpty()) {
+        val refmapName = fabricConfig.mixinOptions.refmapName
+        if (!unobfuscated && mixinConfigs.isNotEmpty() && refmapName != null) {
             loom.mixin { mixin ->
-                mixin.defaultRefmapName.set(fabricConfig.mixinOptions.refmapName ?: "${metadata.modId}.refmap.json")
+                mixin.useLegacyMixinAp.set(true)
+                mixin.defaultRefmapName.set(refmapName)
             }
         }
 
@@ -207,8 +209,12 @@ object FabricConfigurator {
 
         val mixinConfigs = MixinAutoDetect.resolveMixinConfigs(project, null, fabricConfig.mixinOptions)
 
-        if (!unobfuscated && mixinConfigs.isNotEmpty()) {
-            loom.mixin { mixin -> mixin.defaultRefmapName.set(fabricConfig.mixinOptions.refmapName ?: "${metadata.modId}.refmap.json") }
+        val refmapName = fabricConfig.mixinOptions.refmapName
+        if (!unobfuscated && mixinConfigs.isNotEmpty() && refmapName != null) {
+            loom.mixin { mixin ->
+                mixin.useLegacyMixinAp.set(true)
+                mixin.defaultRefmapName.set(refmapName)
+            }
         }
 
         loom.runs { runs ->

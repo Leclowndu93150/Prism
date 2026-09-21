@@ -10,11 +10,11 @@ Prism bundles every underlying build plugin on its own classpath at fixed versio
 
 | Tool                                                                          | Used for                          | Pinned version  |
 |-------------------------------------------------------------------------------|-----------------------------------|-----------------|
-| [Fabric Loom](https://github.com/FabricMC/fabric-loom)                        | Fabric (all versions)             | `1.16.1`        |
-| [ModDevGradle](https://github.com/neoforged/ModDevGradle)                     | NeoForge + Forge 1.17–1.20.1      | `2.0.141`       |
-| [ForgeGradle 7](https://github.com/MinecraftForge/ForgeGradle)                | LexForge 1.17.1–1.20.1            | `7.0.25`        |
+| [Fabric Loom](https://github.com/FabricMC/fabric-loom)                        | Fabric (all versions)             | `1.18.2`        |
+| [ModDevGradle](https://github.com/neoforged/ModDevGradle)                     | NeoForge + Forge 1.17–1.20.1      | `2.0.147`       |
+| [ForgeGradle 7](https://github.com/MinecraftForge/ForgeGradle)                | LexForge 1.21.1+                  | `7.0.40`        |
 | [ForgeGradle 6](https://github.com/MinecraftForge/ForgeGradle)                | Forge 1.16.5 (`forge16`)          | `6.0.54`        |
-| [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle)       | Legacy Forge 1.7.10–1.12.2        | `2.0.2`         |
+| [RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle)       | Legacy Forge 1.7.10–1.12.2        | `2.0.4`         |
 
 NeoForm versions are **not** pinned — Prism resolves the right NeoForm version per Minecraft version at sync time and caches the lookup in `~/.gradle/caches/prism/neoform-versions.txt`.
 

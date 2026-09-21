@@ -72,8 +72,8 @@ object CommonConfigurator {
         commonProject.afterEvaluate { proj ->
             val javaExt = proj.extensions.getByType(JavaPluginExtension::class.java)
             val mainSourceSet = javaExt.sourceSets.getByName("main")
-            proj.artifacts.add("commonJava", mainSourceSet.java.sourceDirectories.singleFile)
-            proj.artifacts.add("commonResources", mainSourceSet.resources.sourceDirectories.singleFile)
+            mainSourceSet.java.srcDirs.forEach { proj.artifacts.add("commonJava", it) }
+            mainSourceSet.resources.srcDirs.forEach { proj.artifacts.add("commonResources", it) }
         }
 
         val group = metadata.group.ifEmpty { commonProject.rootProject.group.toString() }

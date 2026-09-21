@@ -28,27 +28,38 @@ object SharedCommonConfigurator {
         extraRepositories: List<RepositoryEntry>,
         javaVersion: Int,
         sharedCommonConfig: SharedCommonConfiguration = SharedCommonConfiguration(),
+        librariesVersion: String? = null,
+        compileJdk: Int = javaVersion,
     ) {
         sharedProject.pluginManager.apply("java-library")
 
         RepositorySetup.configure(sharedProject, extraRepositories)
 
         sharedProject.extensions.configure(JavaPluginExtension::class.java) { java ->
-            java.toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
+            java.toolchain.languageVersion.set(JavaLanguageVersion.of(compileJdk))
             java.withSourcesJar()
         }
         JavaReleaseConfigurator.pinRelease(sharedProject, javaVersion)
 
-        sharedProject.dependencies.add("compileOnly", "com.google.code.gson:gson:2.11.0")
-        sharedProject.dependencies.add("compileOnly", "org.slf4j:slf4j-api:2.0.9")
-        sharedProject.dependencies.add("compileOnly", "com.google.guava:guava:33.0.0-jre")
-        sharedProject.dependencies.add("compileOnly", "com.mojang:logging:1.2.7")
-        sharedProject.dependencies.add("compileOnly", "it.unimi.dsi:fastutil:8.5.13")
-        sharedProject.dependencies.add("compileOnly", "org.jetbrains:annotations:24.1.0")
+        if (librariesVersion != null) {
+            for (library in MinecraftLibraries.compileLibraries(sharedProject, librariesVersion)) {
+                sharedProject.dependencies.add("compileOnly", library)
+            }
+            sharedProject.dependencies.add("compileOnly", "org.jetbrains:annotations:24.1.0")
+        } else {
+            sharedProject.dependencies.add("compileOnly", "com.google.code.gson:gson:2.11.0")
+            sharedProject.dependencies.add("compileOnly", "org.slf4j:slf4j-api:2.0.9")
+            sharedProject.dependencies.add("compileOnly", "com.google.guava:guava:33.0.0-jre")
+            sharedProject.dependencies.add("compileOnly", "com.mojang:logging:1.2.7")
+            sharedProject.dependencies.add("compileOnly", "it.unimi.dsi:fastutil:8.5.13")
+            sharedProject.dependencies.add("compileOnly", "org.jetbrains:annotations:24.1.0")
+        }
 
         applyDownstreamSupportDeps(sharedProject, sharedCommonConfig)
 
         DependencyConfigurator.apply(sharedProject, sharedCommonConfig.deps)
+
+        sharedCommonConfig.junitVersion?.let { TestConfigurator.apply(sharedProject, it, librariesVersion) }
 
         val sharedJava = sharedProject.configurations.create("sharedJava") { cfg ->
             cfg.isCanBeResolved = false
@@ -63,8 +74,16 @@ object SharedCommonConfigurator {
         sharedProject.afterEvaluate { proj ->
             val javaExt = proj.extensions.getByType(JavaPluginExtension::class.java)
             val mainSourceSet = javaExt.sourceSets.getByName("main")
-            proj.artifacts.add("sharedJava", mainSourceSet.java.sourceDirectories.singleFile)
-            proj.artifacts.add("sharedResources", mainSourceSet.resources.sourceDirectories.singleFile)
+            mainSourceSet.java.srcDirs.forEach { proj.artifacts.add("sharedJava", it) }
+            mainSourceSet.resources.srcDirs.forEach { proj.artifacts.add("sharedResources", it) }
+        }
+    }
+
+    fun addPerTargetSources(targetProject: Project, sharedProject: Project, sharedCommonConfig: SharedCommonConfiguration) {
+        if (sharedCommonConfig.perTargetSourceDirs.isEmpty()) return
+        val sourceSets = targetProject.extensions.getByType(JavaPluginExtension::class.java).sourceSets
+        sourceSets.named("main") { main ->
+            sharedCommonConfig.perTargetSourceDirs.forEach { main.java.srcDir(sharedProject.file(it)) }
         }
     }
 

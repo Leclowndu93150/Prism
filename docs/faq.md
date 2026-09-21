@@ -324,7 +324,7 @@ Reload the Gradle project in IntelliJ after changing the Prism configuration. Ru
 
 ## What Gradle version do I need?
 
-Gradle 8.8 or newer. 9.x recommended.
+Gradle 9.7 or newer, and Gradle itself must run on JDK 25. Your mods can still target older Java versions.
 
 ## What Java version do I need?
 
