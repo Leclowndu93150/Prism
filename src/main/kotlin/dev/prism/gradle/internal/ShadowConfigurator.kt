@@ -2,8 +2,10 @@ package dev.prism.gradle.internal
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dev.prism.gradle.dsl.DependencyBlock
+import net.neoforged.moddevgradle.dsl.ModDevExtension
 import net.neoforged.moddevgradle.legacyforge.dsl.ObfuscationExtension
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.Task
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.JavaPluginExtension
@@ -29,6 +31,8 @@ object ShadowConfigurator {
 
         val shadowConfig = project.configurations.getByName("shadow")
         val shadowJar = project.tasks.named("shadowJar", ShadowJar::class.java)
+
+        mergeShadowModulesInRuns(project, shadowConfig)
 
         project.tasks.named("jar", Jar::class.java).configure { jar ->
             if (jar.archiveClassifier.orNull.isNullOrBlank()) {
@@ -79,6 +83,48 @@ object ShadowConfigurator {
             val reobfShadowJar = obfuscation.reobfuscate(shadowJar, mainSourceSet)
             project.tasks.named("assemble").configure { it.dependsOn(reobfShadowJar) }
             sanitizeTaskOutputs(reobfShadowJar, settings)
+        }
+    }
+
+    private fun mergeShadowModulesInRuns(project: Project, shadowConfig: Configuration) {
+        val extension = project.extensions.findByType(ModDevExtension::class.java) ?: return
+        if (!DependencyConfigurator.hasUsableAdditionalRuntimeClasspath(project)) return
+
+        val mergedJarNames = project.provider {
+            shadowConfig.incoming.artifactView { it.isLenient = true }.files.files
+                .filter { it.isFile && it.extension == "jar" && !declaresModule(it) }
+                .takeIf { it.size > 1 }
+                ?.joinToString(",") { it.name }
+                .orEmpty()
+        }
+        extension.runs.configureEach { run ->
+            run.systemProperties.put("mergeModules", mergedJarNames)
+        }
+        project.tasks.matching { it.name.startsWith("prepare") && it.name.endsWith("Run") }.configureEach { task ->
+            task.doLast {
+                task.outputs.files.files
+                    .filter { it.isFile && it.name.endsWith("RunVmArgs.txt") }
+                    .forEach { joinMergeModulesArguments(it.toPath()) }
+            }
+        }
+    }
+
+    private fun joinMergeModulesArguments(vmArgsFile: java.nio.file.Path) {
+        val prefix = "-DmergeModules="
+        val lines = Files.readAllLines(vmArgsFile)
+        val mergeLines = lines.filter { it.startsWith(prefix) }
+        if (mergeLines.size < 2 && mergeLines.none { it.length == prefix.length }) return
+
+        val joined = mergeLines.map { it.removePrefix(prefix) }.filter { it.isNotEmpty() }.joinToString(";")
+        val rewritten = lines.filterNot { it.startsWith(prefix) } + if (joined.isEmpty()) emptyList() else listOf(prefix + joined)
+        Files.write(vmArgsFile, rewritten)
+    }
+
+    private fun declaresModule(jar: java.io.File): Boolean {
+        return JarFile(jar).use { input ->
+            input.entries().asSequence().any {
+                it.name == "module-info.class" || (it.name.startsWith("META-INF/versions/") && it.name.endsWith("/module-info.class"))
+            }
         }
     }
 

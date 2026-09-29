@@ -168,7 +168,9 @@ forge {
 
 On Forge/NeoForge, `shadow(dep)` dependencies are:
 - Added to the `shadow` configuration (merged into the output JAR)
-- Added to `additionalRuntimeClasspath` when that configuration exists (so Forge dev runs can see them without putting them on the module path)
+- Added to `additionalRuntimeClasspath` while the Minecraft version has a legacy classpath, i.e. before 1.21.9 (so Forge dev runs can see them without putting them on the module path)
+- Added to `runtimeOnly` on Minecraft 1.21.9 and newer, where ModDevGradle no longer accepts dependencies on `additionalRuntimeClasspath`
+- Merged into a single module in dev runs (through the `mergeModules` system property) while the Minecraft version has a legacy classpath, mirroring how they are merged into one JAR in production. Without this, JARs sharing a Java package lose classes to each other on the module path, and libraries cannot read resources of their sibling JARs. JARs that declare their own `module-info` are never merged
 
 On Fabric, `shadow(dep)` maps to `implementation` + `include` (Loom's Jar-in-Jar).
 
@@ -242,7 +244,7 @@ fabric {
 }
 ```
 
-On Fabric, this maps to Loom's `include` configuration. On NeoForge/Forge, this maps to MDG's `jarJar` configuration.
+On Fabric, this maps to Loom's `include` configuration and also adds the dependency to `implementation`, so it is on the classpath of dev runs. On NeoForge/Forge, this maps to MDG's `jarJar` configuration.
 
 `jarJar()` is best for normal jar-in-jar embedding. If a library is split across multiple JARs that share packages, prefer `shadow()` instead.
 

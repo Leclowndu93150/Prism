@@ -177,7 +177,7 @@ fabric {
         modCompileOnly(dep: String)      // remapped by Loom
         runtimeOnly(dep: String)
         modRuntimeOnly(dep: String)      // remapped by Loom
-        jarJar(dep: String)              // maps to Loom include
+        jarJar(dep: String)              // maps to Loom include + implementation
         jarJar(dep: String) { excludeNatives(...); exclude(...) }  // repackage before bundling
         shadow(dep: String)              // maps to implementation + include
         annotationProcessor(dep: String)
@@ -275,7 +275,7 @@ forge {
         modRuntimeOnly(dep: String)      // remapped by MDG Legacy
         jarJar(dep: String)              // maps to MDG Legacy jarJar
         jarJar(dep: String) { excludeNatives(...); exclude(...) }  // repackage before bundling
-        shadow(dep: String)              // maps to Shadow + additionalRuntimeClasspath
+        shadow(dep: String)              // maps to Shadow + additionalRuntimeClasspath (before 1.21.9) or runtimeOnly (1.21.9+)
         annotationProcessor(dep: String)
         localJar(path: String)                         // local JAR, defaults to compileOnly
         localJar(path: String, configuration: String)  // local JAR with custom configuration

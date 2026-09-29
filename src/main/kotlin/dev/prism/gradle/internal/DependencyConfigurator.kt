@@ -1,15 +1,22 @@
 package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.DependencyBlock
+import net.neoforged.moddevgradle.dsl.ModDevExtension
 import org.gradle.api.Project
 
 object DependencyConfigurator {
     private fun String.capitalized(): String =
         replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 
+    internal fun hasUsableAdditionalRuntimeClasspath(project: Project): Boolean {
+        if (project.configurations.findByName("additionalRuntimeClasspath") == null) return false
+        val extension = project.extensions.findByType(ModDevExtension::class.java) ?: return true
+        return runCatching { extension.versionCapabilities.legacyClasspath() }.getOrDefault(true)
+    }
+
     fun apply(project: Project, deps: DependencyBlock, isFabric: Boolean = false, isSharedCommonDownstream: Boolean = false) {
         val hasModConfigs = project.configurations.findByName("modImplementation") != null
-        val hasAdditionalRuntimeCp = project.configurations.findByName("additionalRuntimeClasspath") != null
+        val hasAdditionalRuntimeCp = hasUsableAdditionalRuntimeClasspath(project)
         val forgeRuntime = isSharedCommonDownstream && !isFabric && hasAdditionalRuntimeCp
 
         for (dep in deps.apis) {
@@ -105,6 +112,7 @@ object DependencyConfigurator {
 
                 if (isFabric && includeConfig != null) {
                     project.dependencies.add("include", artifact)
+                    project.dependencies.add("implementation", artifact)
                 } else {
                     if (project.configurations.findByName("jarJar") != null) {
                         project.dependencies.add("jarJar", artifact)
@@ -117,7 +125,8 @@ object DependencyConfigurator {
         if (deps.shadowDeps.isNotEmpty()) {
             val includeConfig = project.configurations.findByName("include")
             val shadowConfig = project.configurations.findByName("shadow")
-            val hasLegacyCp = project.configurations.findByName("additionalRuntimeClasspath") != null
+            val hasLegacyCp = hasUsableAdditionalRuntimeClasspath(project)
+            val legacyCpForbidden = !hasLegacyCp && project.configurations.findByName("additionalRuntimeClasspath") != null
 
             for (dep in deps.shadowDeps) {
                 if (isFabric) {
@@ -129,6 +138,8 @@ object DependencyConfigurator {
                     project.dependencies.add("shadow", dep)
                     if (hasLegacyCp) {
                         project.dependencies.add("additionalRuntimeClasspath", dep)
+                    } else if (legacyCpForbidden) {
+                        project.dependencies.add("runtimeOnly", dep)
                     }
                 } else {
                     project.dependencies.add("implementation", dep)
