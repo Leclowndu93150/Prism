@@ -22,15 +22,15 @@ object BuildPreconditions {
         versionConfig: VersionConfiguration,
         projectPathPrefix: String,
     ) {
-        val isSingleLoader = versionConfig.loaders.size == 1 &&
-            rootProject.findProject("$projectPathPrefix:$mcVersion:common") == null
+        val isSingleLoader = PrismLayout.isRootVersion(rootProject, projectPathPrefix, mcVersion) ||
+            (versionConfig.loaders.size == 1 && rootProject.findProject("$projectPathPrefix:$mcVersion:common") == null)
 
         val commonProject = if (isSingleLoader) null
         else rootProject.findProject("$projectPathPrefix:$mcVersion:common")
 
         val loaderProjects = mutableMapOf<LoaderConfiguration, Project>()
         if (isSingleLoader) {
-            val p = rootProject.findProject("$projectPathPrefix:$mcVersion")
+            val p = PrismLayout.singleProject(rootProject, projectPathPrefix, mcVersion)
             if (p != null) loaderProjects[versionConfig.loaders.first()] = p
         } else {
             for (loader in versionConfig.loaders) {

@@ -19,6 +19,7 @@ import dev.prism.gradle.internal.MavenPublishConfigurator
 import dev.prism.gradle.internal.ObfuscationConfigurator
 import dev.prism.gradle.internal.PublishingConfigurator
 import dev.prism.gradle.internal.PrismDoctor
+import dev.prism.gradle.internal.PrismLayout
 import dev.prism.gradle.internal.PrismWarnings
 import dev.prism.gradle.internal.RepositorySetup
 import dev.prism.gradle.internal.ShadowConfigurator
@@ -97,7 +98,7 @@ class PrismProjectPlugin : Plugin<Project> {
 
             BuildPreconditions.check(rootProject, mcVersion, versionConfig, "")
 
-            val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$mcVersion:common") == null
+            val isSingleLoader = isSingleLoaderVersion(rootProject, mcVersion, versionConfig)
 
             if (isSingleLoader) {
                 configureSingleLoader(rootProject, mcVersion, versionConfig, extension, sharedProject, hasSharedCommon)
@@ -109,8 +110,9 @@ class PrismProjectPlugin : Plugin<Project> {
         val moduleNames = extension.modules.keys.toSet()
 
         for ((mcVersion, versionConfig) in extension.versions) {
+            if (PrismLayout.isRootVersion(rootProject, "", mcVersion)) continue
             val versionProject = rootProject.findProject(":$mcVersion") ?: continue
-            val isSingleLoader = versionConfig.loaders.size == 1 && rootProject.findProject(":$mcVersion:common") == null
+            val isSingleLoader = isSingleLoaderVersion(rootProject, mcVersion, versionConfig)
             if (!isSingleLoader) {
                 PublishingConfigurator.createVersionAggregate(versionProject)
                 MavenPublishConfigurator.createVersionAggregate(versionProject)
@@ -141,7 +143,7 @@ class PrismProjectPlugin : Plugin<Project> {
         hasSharedCommon: Boolean,
     ) {
         val loaderConfig = versionConfig.loaders.first()
-        val loaderProject = rootProject.findProject(":$mcVersion")
+        val loaderProject = PrismLayout.singleProject(rootProject, "", mcVersion)
             ?: throw IllegalStateException(
                 "Prism: Project ':$mcVersion' not found for single-loader ${loaderConfig.loaderDisplayName}.\n" +
                 "Make sure settings.gradle.kts has:\n" +
@@ -539,6 +541,10 @@ class PrismProjectPlugin : Plugin<Project> {
             }
         }
     }
+
+    private fun isSingleLoaderVersion(rootProject: Project, mcVersion: String, versionConfig: VersionConfiguration): Boolean =
+        PrismLayout.isRootVersion(rootProject, "", mcVersion) ||
+            (versionConfig.loaders.size == 1 && rootProject.findProject(":$mcVersion:common") == null)
 
     private fun shouldObfuscate(
         extension: PrismExtension,

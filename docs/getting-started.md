@@ -109,6 +109,8 @@ versions/
     neoforge/src/main/resources/
 ```
 
+If the mod only targets one Minecraft version with one loader, you can skip `versions/` entirely: add `atRoot()` to that version in `settings.gradle.kts` and use `src/main/java/` at the repository root. See [Project Structure — Single version at the root](configuration/project-structure.md#single-version-at-the-root).
+
 ### 4. Add metadata files
 
 Place `fabric.mod.json`, `neoforge.mods.toml`, etc. in each loader's `src/main/resources/`. Use `${variable}` placeholders that Prism expands automatically. See [Template Variables](reference/template-variables.md) for the full list.

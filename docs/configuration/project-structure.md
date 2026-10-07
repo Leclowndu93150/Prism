@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Project Structure
 
-Prism supports three distinct layout patterns. You can mix all three in a single project.
+Prism supports four layout patterns. The first three can be mixed freely in one project. The fourth, a single version at the root, is for mods that only ever target one Minecraft version and one loader.
 
 ---
 
@@ -100,6 +100,62 @@ prism {
     }
 }
 ```
+
+---
+
+## Single version at the root
+
+A mod that targets one Minecraft version with one loader does not need a `versions/` folder. Add `atRoot()` to that version and the root project becomes the mod project:
+
+```
+src/main/java/
+src/main/resources/
+src/generated/resources/        # NeoForge / Forge datagen output
+build.gradle.kts
+settings.gradle.kts
+```
+
+**settings.gradle.kts:**
+```kotlin
+prism {
+    version("26.1.2") {
+        neoforge()
+        atRoot()
+    }
+}
+```
+
+**build.gradle.kts** is written exactly as for any other version; nothing changes on the build side:
+
+```kotlin
+prism {
+    metadata { modId = "mymod"; name = "My Mod" }
+
+    version("26.1.2") {
+        neoforge { loaderVersion = "26.1.2.76" }
+    }
+}
+```
+
+**Gradle path:** `:` (the root project), so tasks run without a prefix:
+
+```bash
+./gradlew build
+./gradlew runClient
+./gradlew prismPublishAll
+```
+
+Everything Prism resolves relative to the mod project now resolves against the repository root: `src/main/resources/META-INF/accesstransformer.cfg`, the `pack.mcmeta` precondition, the datagen output in `src/generated/resources`, and the default run folders under `runs/`. Publishing and Maven tasks are registered on the root project.
+
+Rules, enforced when `settings.gradle.kts` is evaluated:
+
+- The version must be single-loader: exactly one loader and no `common()`.
+- It must be the only `version()` block. `mod()` modules can still live next to it under `modules/`.
+- It cannot be combined with `sharedCommon()`, since there is only one version to share with.
+
+`rawProject { }` and the other raw hooks receive the root project. The root build file is evaluated before Prism applies the loader plugin, so configure loader-plugin extensions (`neoForge`, `loom`, ...), `sourceSets` and the jar task inside the raw hooks rather than at the top level of the script.
+
+To add a second Minecraft version later, remove `atRoot()`, move `src/` into `versions/<mc>/src/`, and declare the new version next to it.
 
 ---
 
@@ -308,6 +364,7 @@ modules/
 
 | Layout | Gradle path |
 |--------|-------------|
+| Single version at the root (`atRoot()`) | `:` |
 | Shared common | `:common` |
 | Version common | `:mcVersion:common` |
 | Version loader | `:mcVersion:loaderName` |

@@ -1,5 +1,6 @@
 package dev.prism.gradle.dsl
 
+import dev.prism.gradle.internal.PrismLayout
 import org.gradle.api.Action
 import org.gradle.api.initialization.Settings
 import java.io.File
@@ -9,6 +10,7 @@ class PrismSettingsExtension(private val settings: Settings) {
     internal val modules = mutableMapOf<String, SettingsModuleConfig>()
     internal var hasSharedCommon = false
     internal var sharedCommonPath: String = "common"
+    internal var rootVersion: String? = null
 
     fun sharedCommon() {
         sharedCommon("common")
@@ -16,6 +18,9 @@ class PrismSettingsExtension(private val settings: Settings) {
 
     fun sharedCommon(path: String) {
         if (hasSharedCommon) return
+        require(rootVersion == null) {
+            "Prism: sharedCommon() cannot be combined with atRoot(). A root layout has a single version, so there is nothing to share."
+        }
         hasSharedCommon = true
         sharedCommonPath = path
         settings.include(":common")
@@ -25,6 +30,14 @@ class PrismSettingsExtension(private val settings: Settings) {
     fun version(mcVersion: String, action: Action<SettingsVersionConfig>) {
         val config = versions.getOrPut(mcVersion) { SettingsVersionConfig(mcVersion) }
         action.execute(config)
+
+        if (config.isAtRoot) {
+            registerRootVersion(mcVersion, config)
+            return
+        }
+        require(rootVersion == null) {
+            "Prism: version '$mcVersion' cannot be added because version '$rootVersion' uses atRoot(). A root layout holds exactly one version."
+        }
 
         if (config.isSingleLoader) {
             registerSingleProject(mcVersion, config.singleLoaderName!!)
@@ -56,6 +69,23 @@ class PrismSettingsExtension(private val settings: Settings) {
                 if (versionConfig.hasLegacyForge) registerModuleSubproject(moduleName, mcVersion, "legacyforge")
             }
         }
+    }
+
+    private fun registerRootVersion(mcVersion: String, config: SettingsVersionConfig) {
+        require(config.isSingleLoader) {
+            "Prism: atRoot() needs exactly one loader and no common() in version '$mcVersion'."
+        }
+        require(rootVersion == null || rootVersion == mcVersion) {
+            "Prism: atRoot() is already used by version '$rootVersion'. Only one version can live at the root."
+        }
+        require(versions.keys.all { it == mcVersion }) {
+            "Prism: atRoot() on version '$mcVersion' needs it to be the only version, but ${versions.keys.filter { it != mcVersion }} are also declared."
+        }
+        require(!hasSharedCommon) {
+            "Prism: atRoot() cannot be combined with sharedCommon()."
+        }
+        rootVersion = mcVersion
+        PrismLayout.markRootVersion(settings.gradle, mcVersion)
     }
 
     private fun registerSingleProject(mcVersion: String, loader: String) {
@@ -117,6 +147,7 @@ class SettingsVersionConfig(val minecraftVersion: String) {
     var hasNeoForge = false; private set
     var hasLegacyForge = false; private set
     var hasCommon = false; private set
+    var isAtRoot = false; private set
 
     fun common() { hasCommon = true }
     fun fabric() { hasFabric = true }
@@ -125,6 +156,7 @@ class SettingsVersionConfig(val minecraftVersion: String) {
     fun forge16() { hasForge16 = true }
     fun neoforge() { hasNeoForge = true }
     fun legacyForge() { hasLegacyForge = true }
+    fun atRoot() { isAtRoot = true }
 
     val loaderCount: Int
         get() = listOf(hasFabric, hasForge, hasLexForge, hasForge16, hasNeoForge, hasLegacyForge).count { it }

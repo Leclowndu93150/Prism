@@ -35,6 +35,7 @@ versions/
 - Raw Gradle and raw underlying-plugin hooks
 - `prismDoctor` task for auditing resolved wiring
 - Common JAR publishing for library mods
+- Root layout (`atRoot()`) for single-version, single-loader mods
 
 ## Getting started
 

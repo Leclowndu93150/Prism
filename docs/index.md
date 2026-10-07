@@ -25,6 +25,7 @@ Prism wraps [Fabric Loom](https://github.com/FabricMC/fabric-loom), [ModDevGradl
 - CurseForge, Modrinth, GitHub, Gitea, GitLab, and Maven publishing
 - Optional shared common across all versions for pure Java API code
 - Multi-mod workspaces with independent metadata and publishing per module
+- A root layout for single-version mods, with `src/` at the repository root
 - Raw project and underlying-plugin hooks when the Prism DSL is not enough
 - `prismDoctor` for auditing resolved wiring, publish artifacts, and remap configs
 

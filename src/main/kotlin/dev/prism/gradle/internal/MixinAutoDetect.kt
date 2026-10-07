@@ -63,8 +63,8 @@ object MixinAutoDetect {
         if (mixinConfigs.isEmpty()) return
 
         project.tasks.named("processResources", ProcessResources::class.java) { task ->
-            task.doLast {
-                val tomlFile = File(task.destinationDir, "META-INF/neoforge.mods.toml")
+            task.doLast { action ->
+                val tomlFile = File((action as ProcessResources).destinationDir, "META-INF/neoforge.mods.toml")
                 if (!tomlFile.exists()) return@doLast
 
                 val content = tomlFile.readText()
@@ -77,7 +77,7 @@ object MixinAutoDetect {
                         "\n[[mixins]]\nconfig = \"$config\""
                     }
                     tomlFile.appendText(mixinEntries)
-                    project.logger.lifecycle("Prism: Auto-registered ${missingConfigs.size} mixin config(s) in neoforge.mods.toml: $missingConfigs")
+                    action.logger.lifecycle("Prism: Auto-registered ${missingConfigs.size} mixin config(s) in neoforge.mods.toml: $missingConfigs")
                 }
             }
         }
@@ -137,8 +137,8 @@ object MixinAutoDetect {
         if (mixinConfigs.isEmpty()) return
 
         project.tasks.named("processResources", ProcessResources::class.java) { task ->
-            task.doLast {
-                val jsonFile = File(task.destinationDir, "fabric.mod.json")
+            task.doLast { action ->
+                val jsonFile = File((action as ProcessResources).destinationDir, "fabric.mod.json")
                 if (!jsonFile.exists()) return@doLast
 
                 val content = jsonFile.readText()
@@ -150,7 +150,7 @@ object MixinAutoDetect {
                     val mixinsArray = missingConfigs.joinToString(", ") { "\"$it\"" }
                     val injected = content.trimEnd().removeSuffix("}") + ",\n  \"mixins\": [$mixinsArray]\n}"
                     jsonFile.writeText(injected)
-                    project.logger.lifecycle("Prism: Auto-registered ${missingConfigs.size} mixin config(s) in fabric.mod.json: $missingConfigs")
+                    action.logger.lifecycle("Prism: Auto-registered ${missingConfigs.size} mixin config(s) in fabric.mod.json: $missingConfigs")
                 }
             }
         }

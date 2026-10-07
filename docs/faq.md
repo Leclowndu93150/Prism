@@ -44,6 +44,21 @@ The version folder itself becomes the project (`versions/1.21.1/src/main/java/`)
 
 Use `common()` only when you have multiple loaders and want shared code between them.
 
+## Can my mod live at the repository root, without a versions/ folder?
+
+Yes, if it targets a single Minecraft version with a single loader. Add `atRoot()` in `settings.gradle.kts`:
+
+```kotlin
+prism {
+    version("26.1.2") {
+        neoforge()
+        atRoot()
+    }
+}
+```
+
+Sources then live in `src/main/java/` at the repository root, the root project is the mod project, and tasks run without a prefix (`./gradlew runClient`). It cannot be combined with other `version()` blocks or `sharedCommon()`. See [Project Structure — Single version at the root](configuration/project-structure.md#single-version-at-the-root).
+
 ## Can I use Fabric API in common code?
 
 No. The version-specific common project (`versions/{mc}/common/`) only has access to vanilla Minecraft classes. Loader APIs like Fabric API, NeoForge events, or Forge events are only available in the loader-specific folders.
@@ -194,7 +209,7 @@ Prism fails the build at configuration time when any of the following are detect
 
 1. **Mixin without refmap (MDG Legacy only).** Any `*.mixins.json` under `versions/{mc}/common/src/main/resources/` or `versions/{mc}/forge/src/main/resources/` that declares non-empty `mixins`/`client`/`server` arrays must include a top-level `"refmap": "<modid>.refmap.json"` field. This applies to versions using `forge { }` (Forge < 1.21.1). Fabric does not need this because Loom writes the refmap itself.
 
-2. **Missing `pack.mcmeta`.** For every version, each per-version subproject (`common`, `fabric`, `forge`, `lexforge`, `neoforge`, `legacyforge`, or the single-loader root) whose `src/main/resources/assets/` or `src/main/resources/data/` contains any file must also have a `src/main/resources/pack.mcmeta`. Empty or missing `assets`/`data` folders are fine. Only the per-version projects are checked — the cross-version `sharedCommon` root `:common` is not.
+2. **Missing `pack.mcmeta`.** For every version, each per-version subproject (`common`, `fabric`, `forge`, `lexforge`, `neoforge`, `legacyforge`, the single-loader version project, or the root project when the version uses `atRoot()`) whose `src/main/resources/assets/` or `src/main/resources/data/` contains any file must also have a `src/main/resources/pack.mcmeta`. Empty or missing `assets`/`data` folders are fine. Only the per-version projects are checked — the cross-version `sharedCommon` root `:common` is not.
 
 3. **Forge mods on non-`mod` configurations (MDG Legacy only).** On versions using `forge { }`, any dependency declared on `implementation`/`api`/`compileOnly(Api)`/`runtimeOnly`/custom configurations whose jar contains `META-INF/mods.toml` is rejected. Use `modImplementation`/`modApi`/`modCompileOnly`/`modRuntimeOnly` instead so MDG Legacy remaps the mod jar. The common project is also checked, because NeoForm-remapped common still pulls Forge mod jars through the loader.
 

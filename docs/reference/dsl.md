@@ -27,6 +27,8 @@ prism {
 
         // Single-loader: just one loader, no common()
         // neoforge()  // single-loader mode, no common/loader split
+
+        atRoot()       // optional, single-loader only: the root project is the mod project (src/ at the repo root)
     }
 
     // Multi-mod workspace (opt-in)
@@ -644,6 +646,7 @@ Prints a full configuration and wiring report. Example output:
 ```
 Prism Doctor
 root: :
+layout: versions
 sharedCommon: true
 
 version: 1.21.1
@@ -670,6 +673,7 @@ Fields:
 
 | Field | Description |
 |-------|-------------|
+| `layout` | `versions` for the standard layout, or `root (<mcVersion>)` when a version uses `atRoot()` |
 | `sharedCommon` | Whether a `:common` shared project exists |
 | `version` | Minecraft version |
 | `java` | Resolved Java toolchain version |

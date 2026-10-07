@@ -18,33 +18,35 @@ object PrismDoctor {
     fun register(rootProject: Project, extension: PrismExtension) {
         if (rootProject.tasks.findByName("prismDoctor") != null) return
 
+        val report = rootProject.provider { buildReport(rootProject, extension) }
         rootProject.tasks.register("prismDoctor") { task ->
             task.group = "help"
             task.description = "Prints a Prism configuration and wiring report"
-            task.doLast {
-                val report = buildString {
-                    appendLine("Prism Doctor")
-                    appendLine("root: ${rootProject.path}")
-                    appendLine("sharedCommon: ${rootProject.findProject(":common") != null}")
-                    appendLine()
-
-                    for ((mcVersion, versionConfig) in extension.versions) {
-                        appendVersionReport(rootProject, mcVersion, versionConfig, null, extension.publishingConfig)
-                    }
-
-                    for ((moduleName, moduleConfig) in extension.modules) {
-                        appendLine("module: $moduleName")
-                        for ((mcVersion, versionConfig) in moduleConfig.versions) {
-                            appendVersionReport(rootProject, mcVersion, versionConfig, moduleConfig, moduleConfig.publishingConfig)
-                        }
-                        appendLine()
-                    }
-                }
-
-                rootProject.logger.lifecycle(report.trimEnd())
+            task.doLast { action ->
+                action.logger.lifecycle(report.get())
             }
         }
     }
+
+    private fun buildReport(rootProject: Project, extension: PrismExtension): String = buildString {
+        appendLine("Prism Doctor")
+        appendLine("root: ${rootProject.path}")
+        appendLine("layout: ${PrismLayout.rootVersion(rootProject)?.let { "root ($it)" } ?: "versions"}")
+        appendLine("sharedCommon: ${rootProject.findProject(":common") != null}")
+        appendLine()
+
+        for ((mcVersion, versionConfig) in extension.versions) {
+            appendVersionReport(rootProject, mcVersion, versionConfig, null, extension.publishingConfig)
+        }
+
+        for ((moduleName, moduleConfig) in extension.modules) {
+            appendLine("module: $moduleName")
+            for ((mcVersion, versionConfig) in moduleConfig.versions) {
+                appendVersionReport(rootProject, mcVersion, versionConfig, moduleConfig, moduleConfig.publishingConfig)
+            }
+            appendLine()
+        }
+    }.trimEnd()
 
     private fun StringBuilder.appendVersionReport(
         rootProject: Project,
@@ -80,7 +82,7 @@ object PrismDoctor {
     ): Project? {
         return if (moduleConfig == null) {
             rootProject.findProject(":$mcVersion:${loaderConfig.loaderName}")
-                ?: rootProject.findProject(":$mcVersion")
+                ?: PrismLayout.singleProject(rootProject, "", mcVersion)
         } else {
             rootProject.findProject(":${moduleConfig.moduleName}:$mcVersion:${loaderConfig.loaderName}")
                 ?: rootProject.findProject(":${moduleConfig.moduleName}:$mcVersion")
