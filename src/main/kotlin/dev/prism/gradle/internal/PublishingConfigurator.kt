@@ -143,9 +143,11 @@ object PublishingConfigurator {
         val cleanTaskProvider = taskProviderOrNull(proj, "clean")
         val artifactTaskProvider = selectPublishTaskProvider(proj, loaderConfig, publishingConfig)
 
-        if (artifactTaskProvider != null && cleanTaskProvider != null) {
-            artifactTaskProvider.configure { artifactTask ->
-                artifactTask.mustRunAfter(cleanTaskProvider)
+        if (cleanTaskProvider != null) {
+            proj.tasks.configureEach { task ->
+                if (task.name != "clean") {
+                    task.mustRunAfter(cleanTaskProvider)
+                }
             }
         }
 
