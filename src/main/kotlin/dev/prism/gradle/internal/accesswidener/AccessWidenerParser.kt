@@ -10,22 +10,23 @@ enum class AccessModifier {
 
 sealed class AccessWidenerEntry {
     abstract val modifier: AccessModifier
+    abstract val className: String
 
     data class ClassEntry(
         override val modifier: AccessModifier,
-        val className: String
+        override val className: String
     ) : AccessWidenerEntry()
 
     data class MethodEntry(
         override val modifier: AccessModifier,
-        val className: String,
+        override val className: String,
         val methodName: String,
         val descriptor: String
     ) : AccessWidenerEntry()
 
     data class FieldEntry(
         override val modifier: AccessModifier,
-        val className: String,
+        override val className: String,
         val fieldName: String,
         val descriptor: String
     ) : AccessWidenerEntry()
@@ -33,10 +34,14 @@ sealed class AccessWidenerEntry {
 
 data class AccessWidenerFile(
     val namespace: String,
-    val entries: List<AccessWidenerEntry>
+    val entries: List<AccessWidenerEntry>,
+    val unsupportedEntries: List<String> = emptyList()
 )
 
 object AccessWidenerParser {
+
+    private const val TRANSITIVE_PREFIX = "transitive-"
+    private val UNSUPPORTED_DIRECTIVES = setOf("inject-interface", "extend-enum")
 
     fun parse(file: File): AccessWidenerFile {
         val lines = file.readLines()
@@ -54,12 +59,18 @@ object AccessWidenerParser {
         }
 
         val namespace = if (headerParts.size >= 3) headerParts[2] else "named"
+        val unsupportedEntries = mutableListOf<String>()
 
         val entries = lines.drop(1).mapNotNull { line ->
             val parts = line.split("\\s+".toRegex())
+            val directive = parts[0].removePrefix(TRANSITIVE_PREFIX)
+            if (directive in UNSUPPORTED_DIRECTIVES) {
+                unsupportedEntries.add(line)
+                return@mapNotNull null
+            }
             if (parts.size < 3) return@mapNotNull null
 
-            val modifier = when (parts[0]) {
+            val modifier = when (directive) {
                 "accessible" -> AccessModifier.ACCESSIBLE
                 "mutable" -> AccessModifier.MUTABLE
                 "extendable" -> AccessModifier.EXTENDABLE
@@ -82,6 +93,6 @@ object AccessWidenerParser {
             }
         }
 
-        return AccessWidenerFile(namespace, entries)
+        return AccessWidenerFile(namespace, entries, unsupportedEntries)
     }
 }

@@ -44,7 +44,7 @@ abstract class PublishCurseforgeTask : DefaultTask() {
     fun publish() {
         val token = accessToken.get()
         val pid = projectId.get()
-        if (pid.isBlank()) throw IllegalStateException("Prism: CurseForge projectId is empty for ${project.path}")
+        if (pid.isBlank()) throw IllegalStateException("Prism: CurseForge projectId is empty for $path")
         val file = artifactFile.get().asFile
         if (!file.exists()) throw IllegalStateException("Prism: artifact file ${file.absolutePath} does not exist")
 
@@ -89,7 +89,7 @@ abstract class PublishCurseforgeTask : DefaultTask() {
         }
         val url = "https://www.curseforge.com/minecraft/mc-mods/$pid/files/${response.id}"
         logger.lifecycle("Prism: Uploaded to CurseForge: $url")
-        PublishResultsHolder.record(project, PublishResult("CurseForge", url))
+        PublishResultsHolder.record(path, PublishResult("CurseForge", url))
     }
 
     private fun buildRelations(deps: List<PublishingDep>): CurseforgeApi.UploadFileRelations? {

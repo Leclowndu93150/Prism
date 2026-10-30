@@ -37,7 +37,7 @@ abstract class PublishGithubTask : DefaultTask() {
     fun publish() {
         val token = accessToken.get()
         val repo = repository.get()
-        if (repo.isBlank()) throw IllegalStateException("Prism: GitHub repository is empty for ${project.path}")
+        if (repo.isBlank()) throw IllegalStateException("Prism: GitHub repository is empty for $path")
         val tag = tagName.get()
         val file = artifactFile.get().asFile
 
@@ -71,7 +71,7 @@ abstract class PublishGithubTask : DefaultTask() {
         }
 
         logger.lifecycle("Prism: Uploaded to GitHub: ${release.htmlUrl}")
-        PublishResultsHolder.record(project, PublishResult("GitHub", release.htmlUrl))
+        PublishResultsHolder.record(path, PublishResult("GitHub", release.htmlUrl))
     }
 
     private fun findReleaseByTag(api: GithubApi, repo: String, tag: String): GithubApi.Release? {

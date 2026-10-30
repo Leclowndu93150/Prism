@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "dev.prism"
-version = "0.6.3"
+version = "0.6.5"
 
 repositories {
     mavenCentral()

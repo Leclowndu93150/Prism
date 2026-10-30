@@ -36,7 +36,7 @@ abstract class PublishGitlabTask : DefaultTask() {
         val token = accessToken.get()
         val endpoint = apiEndpoint.get()
         val pid = projectId.get()
-        if (pid <= 0L) throw IllegalStateException("Prism: GitLab projectId is empty for ${project.path}")
+        if (pid <= 0L) throw IllegalStateException("Prism: GitLab projectId is empty for $path")
         val tag = tagName.get()
         val file = artifactFile.get().asFile
 
@@ -70,6 +70,6 @@ abstract class PublishGitlabTask : DefaultTask() {
         }
 
         logger.lifecycle("Prism: Uploaded to GitLab: ${asset.url}")
-        PublishResultsHolder.record(project, PublishResult("GitLab", asset.url))
+        PublishResultsHolder.record(path, PublishResult("GitLab", asset.url))
     }
 }

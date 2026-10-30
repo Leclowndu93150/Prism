@@ -39,7 +39,7 @@ abstract class PublishGiteaTask : DefaultTask() {
         val endpoint = apiEndpoint.get()
         val repo = repository.get()
         if (endpoint.isBlank() || repo.isBlank()) {
-            throw IllegalStateException("Prism: Gitea apiEndpoint/repository empty for ${project.path}")
+            throw IllegalStateException("Prism: Gitea apiEndpoint/repository empty for $path")
         }
         val tag = tagName.get()
         val file = artifactFile.get().asFile
@@ -75,6 +75,6 @@ abstract class PublishGiteaTask : DefaultTask() {
         }
 
         logger.lifecycle("Prism: Uploaded to Gitea: ${release.htmlUrl}")
-        PublishResultsHolder.record(project, PublishResult("Gitea", release.htmlUrl))
+        PublishResultsHolder.record(path, PublishResult("Gitea", release.htmlUrl))
     }
 }

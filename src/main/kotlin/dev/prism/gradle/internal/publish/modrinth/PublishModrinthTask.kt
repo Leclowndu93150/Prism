@@ -42,7 +42,7 @@ abstract class PublishModrinthTask : DefaultTask() {
     fun publish() {
         val token = accessToken.get()
         val pid = projectId.get()
-        if (pid.isBlank()) throw IllegalStateException("Prism: Modrinth projectId is empty for ${project.path}")
+        if (pid.isBlank()) throw IllegalStateException("Prism: Modrinth projectId is empty for $path")
         val file = artifactFile.get().asFile
         if (!file.exists()) throw IllegalStateException("Prism: artifact file ${file.absolutePath} does not exist")
 
@@ -79,7 +79,7 @@ abstract class PublishModrinthTask : DefaultTask() {
         }
         val url = "https://modrinth.com/mod/${response.projectId}/version/${response.id}"
         logger.lifecycle("Prism: Uploaded to Modrinth: $url")
-        PublishResultsHolder.record(project, PublishResult("Modrinth", url))
+        PublishResultsHolder.record(path, PublishResult("Modrinth", url))
     }
 
     private fun buildDeps(deps: List<PublishingDep>, api: ModrinthApi): List<ModrinthApi.Dependency> {

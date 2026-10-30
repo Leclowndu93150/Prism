@@ -30,7 +30,7 @@ abstract class AnnounceDiscordTask : DefaultTask() {
         val url = webhookUrl.orNull ?: return
         if (url.isBlank()) return
 
-        val results = PublishResultsHolder.collect(project)
+        val results = PublishResultsHolder.collect(path)
         val fields = if (includeProjectLinks.getOrElse(true)) {
             results.map { DiscordApi.EmbedField(it.platform, it.url, false) }
         } else emptyList()

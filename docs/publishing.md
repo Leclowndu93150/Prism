@@ -228,7 +228,7 @@ Override with `artifactTask("myTask")` or `artifactFile("build/libs/custom.jar")
 
 Platform publish tasks build the selected artifact before upload. Each leaf loader's `prismPublish<Platform>` task:
 
-- depends on `clean`
+- depends on `clean`, and every other task in the project is ordered after it, so the upload is always built from a clean output
 - depends on the selected artifact task (or your `artifactTask(...)` override)
 - uploads the freshly built file
 - (optional) triggers `prismAnnounceDiscord` as a finalizer once the upload succeeds

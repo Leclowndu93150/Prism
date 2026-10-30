@@ -3,6 +3,7 @@ package dev.prism.gradle.internal
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
+import dev.prism.gradle.internal.accesswidener.AccessTransformerNames
 import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension
 import net.neoforged.moddevgradle.dsl.NeoForgeExtension
@@ -113,7 +114,7 @@ object CommonConfigurator {
                     project, null, versionConfig.unifiedAccessWidener, metadata.modId
                 )
                 if (awFile != null) {
-                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "common")
+                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "common", versionConfig, AccessTransformerNames.Mojang)
                     neoForge.accessTransformers.from(generatedAt.absolutePath)
                 }
             }
@@ -141,7 +142,7 @@ object CommonConfigurator {
                     project, null, versionConfig.unifiedAccessWidener, metadata.modId
                 )
                 if (awFile != null) {
-                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "common")
+                    val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "common", versionConfig, AccessTransformerNames.SrgFromMojang)
                     legacyForge.setAccessTransformers(generatedAt.absolutePath)
                 }
             }

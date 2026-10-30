@@ -38,7 +38,12 @@ object MinecraftLibraries {
         }.distinct()
     }
 
-    private fun coordinateParts(library: JsonObject) = library["name"]!!.jsonPrimitive.content.split(":")
+    fun clientMappingsUrl(project: Project, minecraftVersion: String): String =
+        versionJson(project, minecraftVersion)["downloads"]?.jsonObject?.get("client_mappings")?.jsonObject
+            ?.get("url")?.jsonPrimitive?.content
+            ?: throw IllegalStateException("Mojang publishes no mappings for Minecraft $minecraftVersion.")
+
+    private fun coordinateParts(library: JsonObject) =library["name"]!!.jsonPrimitive.content.split(":")
 
     private fun libraries(project: Project, minecraftVersion: String): List<JsonObject> =
         versionJson(project, minecraftVersion)["libraries"]!!.jsonArray.map { it.jsonObject }

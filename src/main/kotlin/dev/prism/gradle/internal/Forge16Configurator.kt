@@ -4,6 +4,7 @@ import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
+import dev.prism.gradle.internal.accesswidener.AccessTransformerNames
 import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
@@ -143,11 +144,18 @@ object Forge16Configurator {
                 project, commonProject, versionConfig.unifiedAccessWidener, metadata.modId
             )
             if (awFile != null) {
-                val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "forge16")
+                val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "forge16", versionConfig, accessTransformerNames(commonProject, forge16Config))
                 atMethod.invoke(minecraft, generatedAt)
             }
         }
     }
+
+    private fun accessTransformerNames(commonProject: Project?, forge16Config: Forge16Configuration): AccessTransformerNames =
+        if (commonProject != null || forge16Config.mappingsChannel in setOf("official", "parchment")) {
+            AccessTransformerNames.SrgFromMojang
+        } else {
+            AccessTransformerNames.SrgFromMcp(forge16Config.mappingsChannel, forge16Config.mappingsVersion)
+        }
 
     private fun configureRuns(
         project: Project,

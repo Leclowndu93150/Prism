@@ -4,6 +4,7 @@ import dev.prism.gradle.dsl.LexForgeConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.RepositoryEntry
 import dev.prism.gradle.dsl.VersionConfiguration
+import dev.prism.gradle.internal.accesswidener.AccessTransformerNames
 import dev.prism.gradle.internal.accesswidener.AccessWidenerSupport
 import net.minecraftforge.gradle.ForgeGradleExtension
 import net.minecraftforge.gradle.MinecraftExtensionForProject
@@ -174,7 +175,7 @@ object LexForgeConfigurator {
                 project, commonProject, versionConfig.unifiedAccessWidener, metadata.modId
             )
             if (awFile != null) {
-                val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "lexforge")
+                val generatedAt = AccessWidenerSupport.generateAccessTransformer(project, awFile, "lexforge", versionConfig, AccessTransformerNames.Mojang)
                 minecraft.accessTransformer.from(generatedAt.absolutePath)
             }
         }

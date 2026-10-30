@@ -111,6 +111,22 @@ version("1.21.1") {
 
 Access transformers are picked up from both `common/src/main/resources/META-INF/accesstransformer.cfg` and the loader's own resources. If no AT file exists but an `.accesswidener` file is found (via `accessWidener()` or auto-detection), Prism automatically converts it to AT format.
 
+### Access widener conversion
+
+The converted file is written to `.gradle/prism/at/` in the root project, so `clean` doesn't remove it, and is packed into the jar as `META-INF/accesstransformer.cfg`. Conversion follows Fabric's rules:
+
+| Access widener | Access transformer |
+|---|---|
+| `accessible class` | `public` |
+| `extendable class` | `public-f` |
+| `accessible method` / `accessible field` | `public`, plus `public` on the owning class |
+| `extendable method` | `protected-f`, plus `public-f` on the owning class |
+| `mutable field` | `private-f` (only removes `final`) |
+
+`transitive-` entries are converted like the plain ones. `inject-interface` and `extend-enum` can't be expressed as access transformers; Prism warns and skips them.
+
+Names are taken as Mojang names. NeoForge, LexForge and common projects on NeoForm use them as-is. Forge 1.17–1.20.1 and Forge 1.16.5 apply access transformers in SRG names, so Prism renames fields and methods (and on 1.16.5 classes too) using Mojang's mappings and MCPConfig, downloaded once into `~/.gradle/caches/prism`. A single-loader `forge16` project with MCP mappings reads the access widener in MCP names instead. Prism refuses to convert when Fabric uses `yarn()`, since Yarn names can't be turned into an access transformer.
+
 ### Mixins and raw hooks
 
 ```kotlin

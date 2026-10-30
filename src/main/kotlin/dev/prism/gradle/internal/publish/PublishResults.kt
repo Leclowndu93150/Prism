@@ -1,7 +1,5 @@
 package dev.prism.gradle.internal.publish
 
-import org.gradle.api.Project
-
 data class PublishResult(
     val platform: String,
     val url: String,
@@ -10,14 +8,17 @@ data class PublishResult(
 object PublishResultsHolder {
     private val byProject = mutableMapOf<String, MutableList<PublishResult>>()
 
-    fun record(project: Project, result: PublishResult) {
-        byProject.getOrPut(project.path) { mutableListOf() }.add(result)
+    @Synchronized
+    fun record(taskPath: String, result: PublishResult) {
+        byProject.getOrPut(projectPathOf(taskPath)) { mutableListOf() }.add(result)
     }
 
-    fun collect(project: Project): List<PublishResult> {
-        val out = mutableListOf<PublishResult>()
-        out.addAll(byProject[project.path].orEmpty())
-        project.childProjects.values.forEach { out.addAll(collect(it)) }
-        return out
+    @Synchronized
+    fun collect(taskPath: String): List<PublishResult> {
+        val projectPath = projectPathOf(taskPath)
+        val childPrefix = if (projectPath == ":") ":" else "$projectPath:"
+        return byProject.filterKeys { it == projectPath || it.startsWith(childPrefix) }.values.flatten()
     }
+
+    private fun projectPathOf(taskPath: String): String = taskPath.substringBeforeLast(':').ifEmpty { ":" }
 }

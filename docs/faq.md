@@ -231,7 +231,7 @@ Place the file in the appropriate location — Prism auto-detects it. Use `acces
 
 ## Can I use a single access widener for all loaders?
 
-Yes, via `accessWidener(path)` in the version block. Prism uses it as-is for Fabric and converts it to `accesstransformer.cfg` for NeoForge and Forge. See [Loaders](configuration/loaders.md) for details.
+Yes, via `accessWidener(path)` in the version block. Prism uses it as-is for Fabric and converts it to `accesstransformer.cfg` for NeoForge and Forge, renaming members to SRG names for Forge 1.20.1 and older. See [Access widener conversion](configuration/loaders.md#access-widener-conversion) for details.
 
 ## How does the common project compile?
 
