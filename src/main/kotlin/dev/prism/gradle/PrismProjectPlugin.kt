@@ -202,7 +202,7 @@ class PrismProjectPlugin : Plugin<Project> {
 
         if (shouldObfuscate(extension, versionConfig, loaderConfig)) {
             val merged = mergeObfuscationOptions(extension.obfuscateOptions, versionConfig.obfuscateOptions, loaderConfig.obfuscateOptions)
-            ObfuscationConfigurator.configure(loaderProject, loaderConfig, extension.metadata, merged)
+            ObfuscationConfigurator.configure(loaderProject, loaderConfig, extension.metadata, merged, extension.publishingConfig)
         }
     }
 
@@ -305,7 +305,7 @@ class PrismProjectPlugin : Plugin<Project> {
 
             if (shouldObfuscate(extension, versionConfig, loaderConfig)) {
                 val merged = mergeObfuscationOptions(extension.obfuscateOptions, versionConfig.obfuscateOptions, loaderConfig.obfuscateOptions)
-                ObfuscationConfigurator.configure(loaderProject, loaderConfig, extension.metadata, merged)
+                ObfuscationConfigurator.configure(loaderProject, loaderConfig, extension.metadata, merged, extension.publishingConfig)
             }
         }
     }

@@ -1,18 +1,18 @@
 package dev.prism.gradle.internal
 
 import dev.prism.gradle.dsl.FabricConfiguration
-import dev.prism.gradle.dsl.LegacyForgeConfiguration
-import dev.prism.gradle.dsl.LexForgeConfiguration
-import dev.prism.gradle.dsl.Forge16Configuration
 import dev.prism.gradle.dsl.LoaderConfiguration
 import dev.prism.gradle.dsl.MetadataExtension
 import dev.prism.gradle.dsl.ObfuscationOptions
+import dev.prism.gradle.dsl.PublishingConfiguration
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
+import org.gradle.jvm.toolchain.JavaToolchainService
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
@@ -20,7 +20,12 @@ import org.objectweb.asm.FieldVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import java.io.File
+import java.io.RandomAccessFile
+import java.net.URI
+import java.nio.file.FileSystems
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.security.MessageDigest
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
@@ -34,6 +39,7 @@ object ObfuscationConfigurator {
         loaderConfig: LoaderConfiguration,
         metadata: MetadataExtension,
         options: ObfuscationOptions,
+        publishingConfig: PublishingConfiguration? = null,
     ) {
         val extras = project.extensions.extraProperties
         if (extras.has(MARKER)) return
@@ -47,21 +53,12 @@ object ObfuscationConfigurator {
         project.repositories.mavenCentral()
         project.dependencies.add(cfg.name, "com.guardsquare:proguard-base:$PROGUARD_VERSION")
 
-        val targetTaskName = primaryJarTaskName(loaderConfig)
-
         project.afterEvaluate { proj ->
-            val targetTask = proj.tasks.findByName(targetTaskName) ?: proj.tasks.findByName("jar") ?: return@afterEvaluate
+            val targetTaskName = PublishingConfigurator.selectPublishTaskName(proj, loaderConfig, publishingConfig) ?: return@afterEvaluate
+            val targetTask = proj.tasks.findByName(targetTaskName) ?: return@afterEvaluate
             val obfTask = registerObfTask(proj, targetTask, loaderConfig, metadata, cfg, options)
             targetTask.finalizedBy(obfTask)
         }
-    }
-
-    private fun primaryJarTaskName(loaderConfig: LoaderConfiguration): String = when (loaderConfig) {
-        is FabricConfiguration -> "remapJar"
-        is LegacyForgeConfiguration -> "reobfJar"
-        is LexForgeConfiguration -> "reobfJar"
-        is Forge16Configuration -> "reobfJar"
-        else -> "jar"
     }
 
     private fun registerObfTask(
@@ -77,6 +74,7 @@ object ObfuscationConfigurator {
             exec.group = "build"
             exec.classpath = proguardCfg
             exec.mainClass.set("proguard.ProGuard")
+            exec.dependsOn(targetTask)
             val jarFileHolder = arrayOfNulls<File>(1)
             val tempOutHolder = arrayOfNulls<File>(1)
             val mappingFileHolder = arrayOfNulls<File>(1)
@@ -98,6 +96,7 @@ object ObfuscationConfigurator {
                 val configFile = writeProguardConfig(
                     project, jarFile, tempOut, outDir, mappingFile,
                     loaderConfig, metadata, options, scan, namespace, renameMixinsHolder[0],
+                    launchJavaHome(project, exec),
                 )
                 exec.args = listOf("@${configFile.absolutePath}")
             }
@@ -152,10 +151,11 @@ object ObfuscationConfigurator {
         scan: JarScanner.ScanResult,
         namespace: String?,
         renameMixins: Boolean,
+        javaHome: File,
     ): File {
         val configFile = File(outDir, "${jarFile.nameWithoutExtension}.pro")
 
-        val libraryJars = collectLibraryJars(project, loaderConfig, namespace)
+        val libraryJars = collectLibraryJars(project, loaderConfig, namespace, javaHome)
         val keeps = buildKeepRules(scan, options, renameMixins)
 
         val sb = StringBuilder()
@@ -188,6 +188,7 @@ object ObfuscationConfigurator {
         sb.appendLine("-keepattributes ${attrs.joinToString(",")}")
         if (options.allowAccessModification) sb.appendLine("-allowaccessmodification")
         sb.appendLine("-overloadaggressively")
+        sb.appendLine("-dontusemixedcaseclassnames")
         if (options.repackage) {
             val target = resolveRepackageTarget(project, metadata, options)
             sb.appendLine("-repackageclasses '$target'")
@@ -208,16 +209,23 @@ object ObfuscationConfigurator {
         return configFile
     }
 
-    private fun collectLibraryJars(project: Project, loaderConfig: LoaderConfiguration, namespace: String?): List<File> {
-        val result = mutableListOf<File>()
-        val javaHome = System.getProperty("java.home")
-        val jmodsDir = File(javaHome, "jmods")
-        if (jmodsDir.isDirectory) {
-            jmodsDir.listFiles { f -> f.extension == "jmod" }?.forEach(result::add)
-        } else {
-            val rt = File(javaHome, "lib/rt.jar")
-            if (rt.isFile) result.add(rt)
+    private fun launchJavaHome(project: Project, exec: JavaExec): File {
+        val languageVersion = project.extensions.findByType(JavaPluginExtension::class.java)?.toolchain?.languageVersion?.orNull
+        if (languageVersion != null) {
+            val toolchains = project.extensions.findByType(JavaToolchainService::class.java)
+            if (toolchains != null) {
+                runCatching {
+                    toolchains.launcherFor { it.languageVersion.set(languageVersion) }.get().metadata.installationPath.asFile
+                }.getOrNull()?.let { return it }
+            }
         }
+        runCatching { exec.javaLauncher.orNull }.getOrNull()?.metadata?.installationPath?.asFile?.let { return it }
+        return File(System.getProperty("java.home"))
+    }
+
+    private fun collectLibraryJars(project: Project, loaderConfig: LoaderConfiguration, namespace: String?, javaHome: File): List<File> {
+        val result = mutableListOf<File>()
+        result += JdkLibraryJars.resolve(project, javaHome)
 
         val useIntermediary = loaderConfig is FabricConfiguration && namespace == "intermediary"
         if (useIntermediary) {
@@ -238,7 +246,8 @@ object ObfuscationConfigurator {
     private fun buildKeepRules(scan: JarScanner.ScanResult, options: ObfuscationOptions, renameMixins: Boolean): List<String> {
         val rules = mutableListOf<String>()
 
-        rules += "-keepclassmembers,allowoptimization enum * { public static **[] values(); public static ** valueOf(java.lang.String); }"
+        rules += "-keepclassmembers enum * { *; }"
+        rules += "-keepclassmembers class * { @dev.isxander.yacl3.config.v2.api.SerialEntry <fields>; }"
         rules += "-keepclassmembers class * implements java.io.Serializable { static final long serialVersionUID; private static final java.io.ObjectStreamField[] serialPersistentFields; private void writeObject(java.io.ObjectOutputStream); private void readObject(java.io.ObjectInputStream); java.lang.Object writeReplace(); java.lang.Object readResolve(); }"
         rules += "-keepclasseswithmembers,includedescriptorclasses class * { native <methods>; }"
         rules += "-keepclassmembers class * extends java.lang.Throwable { <init>(...); }"
@@ -471,6 +480,59 @@ internal object FabricIntermediaryLibraries {
         }
 
         return result.distinct()
+    }
+}
+
+internal object JdkLibraryJars {
+    fun resolve(project: Project, javaHome: File): List<File> {
+        val jmods = File(javaHome, "jmods")
+        if (jmods.isDirectory) {
+            return jmods.listFiles { file -> file.extension == "jmod" }?.sortedBy(File::getName).orEmpty()
+        }
+        val rt = File(javaHome, "lib/rt.jar")
+        if (rt.isFile) return listOf(rt)
+        val modules = File(javaHome, "lib/modules")
+        if (!modules.isFile) return emptyList()
+        return listOf(runtimeImageJar(project, javaHome, modules))
+    }
+
+    private fun runtimeImageJar(project: Project, javaHome: File, modules: File): File {
+        val cacheDir = project.gradle.gradleUserHomeDir.resolve("caches/prism/jdk-runtime")
+        val digest = MessageDigest.getInstance("SHA-256").digest(javaHome.absolutePath.toByteArray(Charsets.UTF_8))
+        val suffix = digest.take(6).joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
+        val output = cacheDir.resolve("${javaHome.name}-$suffix.jar")
+        if (output.isFile && output.lastModified() >= modules.lastModified()) return output
+        cacheDir.mkdirs()
+        val lockFile = cacheDir.resolve("${output.name}.lock")
+        synchronized(this) {
+            RandomAccessFile(lockFile, "rw").channel.use { channel ->
+                channel.lock().use {
+                    if (output.isFile && output.lastModified() >= modules.lastModified()) return output
+                    val temp = Files.createTempFile(cacheDir.toPath(), output.name, ".tmp")
+                    try {
+                        FileSystems.newFileSystem(URI.create("jrt:/"), mapOf("java.home" to javaHome.absolutePath)).use { image ->
+                            JarOutputStream(temp.toFile().outputStream().buffered()).use { jar ->
+                                val written = HashSet<String>()
+                                Files.walk(image.getPath("/modules")).use { paths ->
+                                    paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".class") }.forEach { path ->
+                                        val relative = path.toString().removePrefix("/modules/").replace('\\', '/')
+                                        val entry = relative.substringAfter('/', "")
+                                        if (entry.isEmpty() || entry == "module-info.class" || !written.add(entry)) return@forEach
+                                        jar.putNextEntry(JarEntry(entry))
+                                        Files.copy(path, jar)
+                                        jar.closeEntry()
+                                    }
+                                }
+                            }
+                        }
+                        Files.move(temp, output.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                    } finally {
+                        Files.deleteIfExists(temp)
+                    }
+                }
+            }
+        }
+        return output
     }
 }
 
