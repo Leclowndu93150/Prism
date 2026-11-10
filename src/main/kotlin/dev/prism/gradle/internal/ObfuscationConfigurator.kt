@@ -29,6 +29,7 @@ import java.security.MessageDigest
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
+import java.util.jar.Manifest
 
 object ObfuscationConfigurator {
     private const val MARKER = "dev.prism.obfConfigured"
@@ -96,7 +97,7 @@ object ObfuscationConfigurator {
                 val configFile = writeProguardConfig(
                     project, jarFile, tempOut, outDir, mappingFile,
                     loaderConfig, metadata, options, scan, namespace, renameMixinsHolder[0],
-                    launchJavaHome(project, exec),
+                    launchJavaHome(project, exec), targetTask.name == "reobfJar",
                 )
                 exec.args = listOf("@${configFile.absolutePath}")
             }
@@ -105,9 +106,9 @@ object ObfuscationConfigurator {
                 val tempOut = tempOutHolder[0] ?: return@doLast
                 val mappingFile = mappingFileHolder[0]
                 if (tempOut.exists()) {
-                    if (mappingFile != null && mappingFile.exists()) {
-                        MixinJsonRewriter.rewriteInPlace(tempOut, ProguardMapping.parse(mappingFile))
-                    }
+                    val mapping = if (mappingFile != null && mappingFile.exists()) ProguardMapping.parse(mappingFile) else ProguardMapping.Mapping(emptyMap())
+                    val manifest = JarFile(jarFile).use { it.manifest }
+                    MixinJsonRewriter.rewriteInPlace(tempOut, mapping, manifest)
                     Files.move(tempOut.toPath(), jarFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                 }
             }
@@ -152,6 +153,7 @@ object ObfuscationConfigurator {
         namespace: String?,
         renameMixins: Boolean,
         javaHome: File,
+        srgNames: Boolean,
     ): File {
         val configFile = File(outDir, "${jarFile.nameWithoutExtension}.pro")
 
@@ -200,6 +202,9 @@ object ObfuscationConfigurator {
         sb.appendLine()
         for (rule in keeps) {
             sb.appendLine(rule)
+        }
+        if (srgNames) {
+            sb.appendLine("-keepclassmembers class * { *** m_*_(...); *** func_*(...); }")
         }
         for (raw in options.rawRules) {
             sb.appendLine(raw)
@@ -560,14 +565,16 @@ internal object ProguardMapping {
 }
 
 internal object MixinJsonRewriter {
-    fun rewriteInPlace(jarFile: File, mapping: ProguardMapping.Mapping) {
+    fun rewriteInPlace(jarFile: File, mapping: ProguardMapping.Mapping, manifest: Manifest?) {
         val tmp = File(jarFile.parentFile, "${jarFile.name}.rewrite.tmp")
         if (tmp.exists()) tmp.delete()
         JarFile(jarFile).use { jf ->
-            JarOutputStream(tmp.outputStream()).use { jos ->
+            val output = tmp.outputStream()
+            (if (manifest != null) JarOutputStream(output, manifest) else JarOutputStream(output)).use { jos ->
                 val entries = jf.entries()
                 while (entries.hasMoreElements()) {
                     val entry = entries.nextElement()
+                    if (manifest != null && entry.name.equals(JarFile.MANIFEST_NAME, ignoreCase = true)) continue
                     if (entry.isDirectory) {
                         jos.putNextEntry(JarEntry(entry.name))
                         jos.closeEntry()
@@ -676,13 +683,11 @@ internal object MixinJsonRewriter {
     }
 
     private fun rewriteRefmap(text: String, mapping: ProguardMapping.Mapping): String {
-        var result = text
-        result = Regex("\"([A-Za-z_][\\w.\\$]*\\.[A-Za-z_][\\w\\$]*)\"\\s*:").replace(result) { m ->
-            val fqn = m.groupValues[1]
-            val newFqn = mapping.classRenames[fqn] ?: fqn
-            "\"$newFqn\":"
+        return Regex("\"([A-Za-z_$][\\w$]*(?:/[A-Za-z_$][\\w$]*)+)\"\\s*:").replace(text) { m ->
+            val internalName = m.groupValues[1]
+            val renamed = mapping.classRenames[internalName.replace('/', '.')]?.replace('.', '/') ?: internalName
+            "\"$renamed\":"
         }
-        return result
     }
 
     private fun commonPackagePrefix(fqns: Collection<String>): String {

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "dev.prism"
-version = "0.6.7"
+version = "0.6.8"
 
 repositories {
     mavenCentral()
@@ -60,6 +60,7 @@ dependencies {
 
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
 }
 
 gradlePlugin {
