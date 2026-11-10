@@ -26,8 +26,12 @@ import dev.prism.gradle.internal.ShadowConfigurator
 import dev.prism.gradle.internal.SharedCommonConfigurator
 import dev.prism.gradle.internal.TestConfigurator
 import dev.prism.gradle.internal.Validation
+import net.neoforged.moddevgradle.dsl.NeoForgeExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.FileCollection
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.provider.Provider
 
 class PrismProjectPlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -524,7 +528,7 @@ class PrismProjectPlugin : Plugin<Project> {
                     if (isSingleLoader) {
                         val loaderProject = rootProject.findProject(":$moduleName:$mcVersion") ?: continue
                         loaderProject.dependencies.add("compileOnly", loaderProject.files(depOutput))
-                        loaderProject.dependencies.add("runtimeOnly", loaderProject.files(depOutput))
+                        wireDevRuntimeMod(rootProject, loaderProject, depModuleName, depModuleConfig, mcVersion, versionConfig.loaders.first().loaderName, depOutput)
                     } else {
                         val commonProject = rootProject.findProject(":$moduleName:$mcVersion:common")
                         if (commonProject != null) {
@@ -534,12 +538,34 @@ class PrismProjectPlugin : Plugin<Project> {
                         for (loaderConfig in versionConfig.loaders) {
                             val loaderProject = rootProject.findProject(":$moduleName:$mcVersion:${loaderConfig.loaderName}") ?: continue
                             loaderProject.dependencies.add("compileOnly", loaderProject.files(depOutput))
-                            loaderProject.dependencies.add("runtimeOnly", loaderProject.files(depOutput))
+                            wireDevRuntimeMod(rootProject, loaderProject, depModuleName, depModuleConfig, mcVersion, loaderConfig.loaderName, depOutput)
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun wireDevRuntimeMod(
+        rootProject: Project,
+        loaderProject: Project,
+        depModuleName: String,
+        depModuleConfig: ModuleConfiguration,
+        mcVersion: String,
+        loaderName: String,
+        depOutput: Provider<FileCollection>,
+    ) {
+        val depLoaderProject = rootProject.findProject(":$depModuleName:$mcVersion:$loaderName")
+            ?: rootProject.findProject(":$depModuleName:$mcVersion")
+                ?.takeIf { rootProject.findProject(":$depModuleName:$mcVersion:common") == null }
+        val neoForge = loaderProject.extensions.findByType(NeoForgeExtension::class.java)
+        if (depLoaderProject == null || neoForge == null) {
+            loaderProject.dependencies.add("runtimeOnly", loaderProject.files(depOutput))
+            return
+        }
+        val depMain = depLoaderProject.extensions.getByType(JavaPluginExtension::class.java).sourceSets.getByName("main")
+        loaderProject.dependencies.add("runtimeOnly", loaderProject.files(depMain.output))
+        neoForge.mods.maybeCreate(depModuleConfig.metadata.modId).sourceSet(depMain)
     }
 
     private fun isSingleLoaderVersion(rootProject: Project, mcVersion: String, versionConfig: VersionConfiguration): Boolean =

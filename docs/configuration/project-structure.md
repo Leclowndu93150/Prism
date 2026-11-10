@@ -314,7 +314,7 @@ mod("addon") {
 }
 ```
 
-Prism adds the dependency module's compiled common classes to the dependent module's classpath as `compileOnly` for every matching version and loader. At runtime, both mods must be installed — `dependsOn()` is a compile-time wiring only.
+Prism adds the dependency module's compiled common classes to the dependent module's classpath as `compileOnly` for every matching version and loader. On NeoForge, the dependency module is also registered as a mod in the dependent module's dev runs (classes and resources), so `runClient` loads both. `dependsOn()` is not transitive: list every module the dev run needs. In production, both mods must be installed.
 
 You can depend on multiple modules: `dependsOn("core-lib", "other-mod")`.
 
